@@ -1,0 +1,83 @@
+created:
+    - database/factories/EventFactory.php
+    - database/factories/CategorySupplierFactory.php
+    - database/factories/SubcategorySupplierFactory.php
+    - database/factories/CurrencyFactory.php
+    - database/factories/CategoryExpenseFactory.php
+    - database/factories/SubcategoryExpenseFactory.php
+    - database/factories/ExpenseFactory.php
+    - database/factories/SupplierFactory.php
+    - database/factories/CategoryMethodPaymentFactory.php
+    - database/factories/EntityFactory.php
+    - database/factories/MethodPaymentFactory.php
+    - database/factories/CountryFactory.php
+    - database/factories/ProvinceFactory.php
+    - database/factories/CityFactory.php
+    - database/factories/ClubFactory.php
+    - database/factories/ClubItemFactory.php
+    - database/factories/CategoryIncomeFactory.php
+    - database/factories/CategoryEgressFactory.php
+    - database/factories/BussinesFactory.php
+    - database/factories/EventMovementFactory.php
+    - database/migrations/2025_06_12_235934_create_events_table.php
+    - database/migrations/2025_06_12_235935_create_category_suppliers_table.php
+    - database/migrations/2025_06_12_235936_create_subcategory_suppliers_table.php
+    - database/migrations/2025_06_12_235937_create_currencies_table.php
+    - database/migrations/2025_06_12_235938_create_category_expenses_table.php
+    - database/migrations/2025_06_12_235939_create_subcategory_expenses_table.php
+    - database/migrations/2025_06_12_235940_create_expenses_table.php
+    - database/migrations/2025_06_12_235941_create_suppliers_table.php
+    - database/migrations/2025_06_12_235942_create_category_method_payments_table.php
+    - database/migrations/2025_06_12_235943_create_entities_table.php
+    - database/migrations/2025_06_12_235944_create_method_payments_table.php
+    - database/migrations/2025_06_12_235945_create_countries_table.php
+    - database/migrations/2025_06_12_235946_create_provinces_table.php
+    - database/migrations/2025_06_12_235947_create_cities_table.php
+    - database/migrations/2025_06_12_235948_create_clubs_table.php
+    - database/migrations/2025_06_12_235949_create_club_items_table.php
+    - database/migrations/2025_06_12_235950_create_category_incomes_table.php
+    - database/migrations/2025_06_12_235951_create_category_egresses_table.php
+    - database/migrations/2025_06_12_235952_create_bussines_table.php
+    - database/migrations/2025_06_12_235953_create_event_movements_table.php
+    - app/Models/Event.php
+    - app/Models/CategorySupplier.php
+    - app/Models/SubcategorySupplier.php
+    - app/Models/Currency.php
+    - app/Models/CategoryExpense.php
+    - app/Models/SubcategoryExpense.php
+    - app/Models/Expense.php
+    - app/Models/Supplier.php
+    - app/Models/CategoryMethodPayment.php
+    - app/Models/Entity.php
+    - app/Models/MethodPayment.php
+    - app/Models/Country.php
+    - app/Models/Province.php
+    - app/Models/City.php
+    - app/Models/Club.php
+    - app/Models/ClubItem.php
+    - app/Models/CategoryIncome.php
+    - app/Models/CategoryEgress.php
+    - app/Models/Bussines.php
+    - app/Models/EventMovement.php
+models:
+    CategoryExpense: { id: 'bigint primary_key auto_increment', name: string, relationships: { hasMany: SubcategoryExpense } }
+    CategoryMethodPayment: { id: 'bigint primary_key auto_increment', name: string, relationships: { hasMany: MethodPayment } }
+    CategorySupplier: { id: 'bigint primary_key auto_increment', name: string, relationships: { hasMany: SubcategorySupplier } }
+    Club: { id: 'bigint primary_key auto_increment', event_id: 'bigint foreign:Event.id', currency_id: 'bigint foreign:Currency.id', name: string, logo: string, cuit: string, responsible: string, phone: 'string nullable', email: 'string nullable', country_id: 'bigint foreign:Country.id', province_id: 'bigint foreign:Province.id', city_id: 'bigint foreign:City.id', hosting: 'boolean false', total_amount: 'decimal nullable', relationships: { belongsTo: 'Event, Currency, Country, Province, City', hasMany: 'ClubItem, EventMovement' } }
+    ClubItem: { id: 'bigint primary_key auto_increment', club_id: 'bigint foreign:Club.id', name: string, quantity: 'integer nullable', price: 'decimal nullable', total: 'decimal nullable', relationships: { belongsTo: Club } }
+    Currency: { id: 'bigint primary_key auto_increment', name: string, symbol: string, relationships: { hasMany: 'Supplier, Club' } }
+    Entity: { id: 'bigint primary_key auto_increment', name: string, relationships: { hasMany: MethodPayment } }
+    Event: { id: 'bigint primary_key auto_increment', name: string, url_images: string, date: date, year: string }
+    Expense: { id: 'bigint primary_key auto_increment', category_expense_id: 'bigint foreign:CategoryExpense.id', subcategory_expense_id: 'bigint foreign:SubcategoryExpense.id', name: string, description: 'text nullable', relationships: { belongsTo: 'CategoryExpense, SubcategoryExpense' } }
+    MethodPayment: { id: 'bigint primary_key auto_increment', category_method_payment_id: 'bigint foreign:CategoryMethodPayment.id', entity_id: 'bigint foreign:Entity.id', name: string, account_holder: string, type_entity: 'string nullable', account_number: string, cbu_cvu: 'string nullable', alias: 'string nullable', type_account: 'enum:Propia,Terceros', relationships: { belongsTo: 'CategoryMethodPayment, Entity' } }
+    SubcategoryExpense: { id: 'bigint primary_key auto_increment', category_expense_id: 'bigint foreign:CategoryExpense.id', name: string, relationships: { belongsTo: CategoryExpense, hasMany: Expense } }
+    SubcategorySupplier: { id: 'bigint primary_key auto_increment', category_supplier_id: 'bigint foreign:CategorySupplier.id', name: string, relationships: { belongsTo: CategorySupplier } }
+    Supplier: { id: 'bigint primary_key auto_increment', category_supplier_id: 'bigint foreign:CategorySupplier.id', subcategory_supplier_id: 'bigint foreign:SubcategorySupplier.id', currency_id: 'bigint foreign:Currency.id', name: string, representant: string, phone: 'string nullable', amount: decimal, description: 'text nullable', relationships: { belongsTo: 'CategorySupplier, SubcategorySupplier, Currency' } }
+    User: { name: string, email: string, email_verified_at: 'timestamp nullable', password: string, remember_token: 'string:100 nullable' }
+    Country: { id: 'bigint primary_key auto_increment', name: string, code: string, relationships: { hasMany: 'Province, Club, Bussines' } }
+    Province: { id: 'bigint primary_key auto_increment', country_id: 'bigint foreign:Country.id', name: string, relationships: { belongsTo: Country, hasMany: 'City, Club, Bussines' } }
+    City: { id: 'bigint primary_key auto_increment', province_id: 'bigint foreign:Province.id', name: string, relationships: { belongsTo: Province, hasMany: 'Club, Bussines' } }
+    CategoryIncome: { id: 'bigint primary_key auto_increment', name: string, relationships: { hasMany: EventMovement } }
+    CategoryEgress: { id: 'bigint primary_key auto_increment', name: string, relationships: { hasMany: EventMovement } }
+    Bussines: { id: 'bigint primary_key auto_increment', name: string, email: 'string nullable', phone: 'string nullable', address: 'string nullable', country_id: 'bigint foreign:Country.id', province_id: 'bigint foreign:Province.id', city_id: 'bigint foreign:City.id', logo: 'string nullable', cuit: 'string nullable', relationships: { belongsTo: 'Country, Province, City', hasMany: EventMovement } }
+    EventMovement: { id: 'bigint primary_key auto_increment', bussines_id: 'bigint foreign:Bussines.id', event_id: 'bigint foreign:Event.id', club_id: 'bigint foreign:Club.id', method_payment_id: 'bigint foreign:MethodPayment.id', category_income_id: 'bigint foreign:CategoryIncome.id', category_egress_id: 'bigint foreign:CategoryEgress.id', currency_id: 'bigint foreign:Currency.id', supplier_id: 'bigint foreign:Supplier.id', expense_id: 'bigint foreign:Expense.id', amount: decimal, date: date, description: 'text nullable', status: 'enum:Pendiente,Pagado,Cancelado', type: 'enum:Ingreso,Egreso', relationships: { belongsTo: 'Bussines, Event, Club, MethodPayment, CategoryIncome, CategoryEgress, Currency, Supplier, Expense' } }

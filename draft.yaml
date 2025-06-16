@@ -1,0 +1,230 @@
+models:
+  # Event - Eventos
+  Event:
+    id: bigint primary_key auto_increment
+    name: string
+    url_images: string
+    date: date
+    year: string
+
+  # CategorySupplier - Categoria de proveedores
+  CategorySupplier:
+    id: bigint primary_key auto_increment
+    name: string
+    relationships:
+      hasMany: SubcategorySupplier
+
+  # SubcategorySupplier - Subcategoria de proveedores, relacionado con CategorySupplier
+  SubcategorySupplier:
+    id: bigint primary_key auto_increment
+    category_supplier_id: bigint foreign:CategorySupplier.id
+    name: string
+    relationships:
+      belongsTo: CategorySupplier
+
+  # Currency - Moneda
+  Currency:
+    id: bigint primary_key auto_increment
+    name: string
+    symbol: string
+    relationships:
+      hasMany: Supplier, Club
+
+  # CategoryExpense - Categoria de gastos
+  CategoryExpense:
+    id: bigint primary_key auto_increment
+    name: string
+    relationships:
+      hasMany: SubcategoryExpense
+
+  # SubcategoryExpense - Subcategoria de gastos, relacionado con CategoryExpense
+  SubcategoryExpense:
+    id: bigint primary_key auto_increment
+    category_expense_id: bigint foreign:CategoryExpense.id
+    name: string
+    relationships:
+      belongsTo: CategoryExpense
+      hasMany: Expense
+
+  # Expense - Gasto, relacionado con SubcategoryExpense y CategoryExpense
+  Expense:
+    id: bigint primary_key auto_increment
+    category_expense_id: bigint foreign:CategoryExpense.id
+    subcategory_expense_id: bigint foreign:SubcategoryExpense.id
+    name: string
+    description: text nullable
+    relationships:
+      belongsTo: CategoryExpense, SubcategoryExpense
+
+  # Supplier - Proveedor, relacionado con SubcategorySupplier y CategorySupplier
+  Supplier:
+    id: bigint primary_key auto_increment
+    category_supplier_id: bigint foreign:CategorySupplier.id
+    subcategory_supplier_id: bigint foreign:SubcategorySupplier.id
+    currency_id: bigint foreign:Currency.id
+    name: string
+    representant: string
+    phone: string nullable
+    amount: decimal
+    description: text nullable
+    relationships:
+      belongsTo: CategorySupplier, SubcategorySupplier, Currency
+
+  # CategoryMethodPayment - Categoria de metodo de pago, relacionado con MethodPayment
+  CategoryMethodPayment:
+    id: bigint primary_key auto_increment
+    name: string
+    relationships:
+      hasMany: MethodPayment
+
+  # Entity - Entidad, son entidades bancarias o billeteras de criptomonedas
+  Entity:
+    id: bigint primary_key auto_increment
+    name: string
+    relationships:
+      hasMany: MethodPayment
+
+  # MethodPayment - Metodo de pago, relacionado con Entity
+  MethodPayment:
+    id: bigint primary_key auto_increment
+    category_method_payment_id: bigint foreign:CategoryMethodPayment.id
+    entity_id: bigint foreign:Entity.id
+    name: string
+    account_holder: string
+    type_entity: string nullable
+    account_number: string
+    cbu_cvu: string nullable
+    alias: string nullable
+    type_account: enum:Propia,Terceros
+    relationships:
+      belongsTo: CategoryMethodPayment, Entity
+
+  # Country - Pais
+  Country:
+    id: bigint primary_key auto_increment
+    name: string
+    code: string
+    relationships:
+      hasMany: Province, Club, Bussines
+
+  # Province - Provincia, relacionado con Pais
+  Province:
+    id: bigint primary_key auto_increment
+    country_id: bigint foreign:Country.id
+    name: string
+    relationships:
+      belongsTo: Country
+      hasMany: City, Club, Bussines
+
+  # City - Ciudad, relacionado con Provincia
+  City:
+    id: bigint primary_key auto_increment
+    province_id: bigint foreign:Province.id
+    name: string
+    relationships:
+      belongsTo: Province
+      hasMany: Club, Bussines
+
+  # Club - Club, relacionado con eventos y moneda
+  Club:
+    id: bigint primary_key auto_increment
+    event_id: bigint foreign:Event.id
+    currency_id: bigint foreign:Currency.id
+    name: string
+    logo: string
+    cuit: string
+    responsible: string
+    phone: string nullable
+    email: string nullable
+    country_id: bigint foreign:Country.id
+    province_id: bigint foreign:Province.id
+    city_id: bigint foreign:City.id
+    hosting: boolean false
+    total_amount: decimal nullable
+    relationships:
+      belongsTo: Event, Currency, Country, Province, City
+      hasMany: ClubItem, EventMovement
+
+  # clubItem - Item de club, relacionado con Club
+  ClubItem:
+    id: bigint primary_key auto_increment
+    club_id: bigint foreign:Club.id
+    name: string
+    quantity: integer nullable
+    price: decimal nullable
+    total: decimal nullable
+    relationships:
+      belongsTo: Club
+
+  # CategoryIncome - Categoria de ingreso
+  CategoryIncome:
+    id: bigint primary_key auto_increment
+    name: string
+    relationships:
+      hasMany: EventMovement
+
+  # CategoryEgress - Categoria de egreso
+  CategoryEgress:
+    id: bigint primary_key auto_increment
+    name: string
+    relationships:
+      hasMany: EventMovement
+
+  # Bussines - Empresa dueño del sistema y el que gestiona los eventos
+  Bussines:
+    id: bigint primary_key auto_increment
+    name: string
+    email: string nullable
+    phone: string nullable
+    address: string nullable
+    country_id: bigint foreign:Country.id
+    province_id: bigint foreign:Province.id
+    city_id: bigint foreign:City.id
+    logo: string nullable
+    cuit: string nullable
+    relationships:
+      belongsTo: Country, Province, City
+      hasMany: EventMovement
+
+  # EventMovement - Movimiento de evento (Ingresos o Egresos), relacionado con Event, Bussines,
+  # Club, MethodPayment, CategoryIncome, CategoryEgress, currency, supplier, expense, 
+  EventMovement:
+    id: bigint primary_key auto_increment
+    bussines_id: bigint foreign:Bussines.id
+    event_id: bigint foreign:Event.id
+    club_id: bigint foreign:Club.id
+    method_payment_id: bigint foreign:MethodPayment.id
+    category_income_id: bigint foreign:CategoryIncome.id
+    category_egress_id: bigint foreign:CategoryEgress.id
+    currency_id: bigint foreign:Currency.id
+    supplier_id: bigint foreign:Supplier.id
+    expense_id: bigint foreign:Expense.id
+    amount: decimal
+    date: date
+    description: text nullable
+    status: enum:Pendiente,Pagado,Cancelado
+    type: enum:Ingreso,Egreso
+    relationships:
+      belongsTo: Bussines, Event, Club, MethodPayment, CategoryIncome, CategoryEgress, Currency, Supplier, Expense
+
+# Budget - Presupuesto, relacionado con Event, bussines, start_date, end_date
+Budget:
+  id: bigint primary_key auto_increment
+  event_id: bigint foreign:Event.id nullable
+  bussines_id: bigint foreign:Bussines.id nullable
+  start_date: date
+  end_date: date
+  total_amount: decimal
+  relationships:
+    belongsTo: Event, Bussines
+    hasMany: BudgetItem
+
+# BudgetItem - Item de presupuesto, relacionado con Budget, expense, amount
+BudgetItem:
+  id: bigint primary_key auto_increment
+  budget_id: bigint foreign:Budget.id
+  expense_id: bigint foreign:Expense.id nullable
+  amount: decimal
+  relationships:
+    belongsTo: Budget, Expense
+
