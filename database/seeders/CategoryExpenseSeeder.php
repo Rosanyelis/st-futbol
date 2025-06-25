@@ -13,6 +13,12 @@ class CategoryExpenseSeeder extends Seeder
      */
     public function run(): void
     {
-        CategoryExpense::factory()->count(10)->create();
+        $data = [
+            ['name' => 'Monotributo'],
+            ['name' => 'Impuestos'],
+            ['name' => 'Contador'],
+            ['name' => 'Sueldos'],
+        ];
+        CategoryExpense::insert($data);
     }
 }

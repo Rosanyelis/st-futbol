@@ -13,6 +13,11 @@ class CategoryMethodPaymentSeeder extends Seeder
      */
     public function run(): void
     {
-        CategoryMethodPayment::factory()->count(10)->create();
+        $data = [
+            ['name' => 'Efectivo'],
+            ['name' => 'Transferencia'],
+            ['name' => 'Deposito'],
+        ];
+        CategoryMethodPayment::insert($data);
     }
 }

@@ -13,6 +13,24 @@ class CategorySupplierSeeder extends Seeder
      */
     public function run(): void
     {
-        CategorySupplier::factory()->count(10)->create();
+        $data = [
+            ['name' => 'Hotel'],
+            ['name' => 'Estructura/Sonido'],
+            ['name' => 'Apertura'],
+            ['name' => 'Almuerzos'],
+            ['name' => 'Carpas'],
+            ['name' => 'Varios'],
+            ['name' => 'CafAccess'],
+            ['name' => 'Predio'],
+            ['name' => 'Cenas'],
+            ['name' => 'Viajes'],
+            ['name' => 'Seguros'],
+            ['name' => 'Merchandising'],
+            ['name' => 'Remeras de Regalo'],
+            ['name' => 'Trofeos'],
+            ['name' => 'Fotografía'],
+            ['name' => 'Traslados Internos'],
+        ];
+        CategorySupplier::insert($data);
     }
 }

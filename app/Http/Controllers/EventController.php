@@ -2,8 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Club;
 use App\Models\Event;
+use App\Models\Expense;
+use App\Models\Currency;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
+use App\Models\EventMovement;
+use App\Models\MethodPayment;
+use App\Models\ClubPayment;
+use App\Models\SupplierPayment;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\Events\StoreEventRequest;
@@ -51,6 +60,161 @@ class EventController extends Controller
         }
     }
 
+    public function historyJson(Request $request, $event)
+    {
+        if ($request->ajax()) {
+            $data = EventMovement::with('club', 'currency', 'methodPayment', 'methodPayment.entity', 'supplier')->where('event_id', $event);
+
+            return DataTables::of($data)
+                ->filter(function ($query) use ($request) {
+                    // Filtro por moneda desde el selector
+                    if ($request->filled('currency_id')) {
+                        $query->where('currency_id', $request->get('currency_id'));
+                    }
+
+                    // Búsqueda global
+                    if ($request->has('search') && !empty($request->get('search')['value'])) {
+                        $searchValue = $request->get('search')['value'];
+
+                        $query->where(function ($subQuery) use ($searchValue) {
+                            // Búsqueda en columnas directas de event_movements
+                            $subQuery->where('date', 'like', "%{$searchValue}%")
+                                     ->orWhere('type', 'like', "%{$searchValue}%")
+                                     ->orWhere('amount', 'like', "%{$searchValue}%")
+                                     ->orWhere('description', 'like', "%{$searchValue}%");
+
+                            // Búsqueda en la relación 'currency'
+                            $subQuery->orWhereHas('currency', function ($q) use ($searchValue) {
+                                $q->where('name', 'like', "%{$searchValue}%");
+                            });
+
+                            // Búsqueda en la relación 'club'
+                            $subQuery->orWhereHas('club', function ($q) use ($searchValue) {
+                                $q->where('name', 'like', "%{$searchValue}%");
+                            });
+
+                            // Búsqueda en la relación 'supplier'
+                            $subQuery->orWhereHas('supplier', function ($q) use ($searchValue) {
+                                $q->where('name', 'like', "%{$searchValue}%");
+                            });
+
+                            // Búsqueda en la relación 'methodPayment' y su anidada 'entity'
+                            $subQuery->orWhereHas('methodPayment', function ($q) use ($searchValue) {
+                                $q->where('account_holder', 'like', "%{$searchValue}%")
+                                  ->orWhere('type_account', 'like', "%{$searchValue}%")
+                                  ->orWhereHas('entity', function ($nested_q) use ($searchValue) {
+                                      $nested_q->where('name', 'like', "%{$searchValue}%");
+                                  });
+                            });
+                        });
+                    }
+                })
+                ->make(true);
+        }
+    }
+
+    public function history($event)
+    {
+        $event = Event::find($event);
+        $clubs = Club::all();
+        $suppliers = Supplier::all();
+        $expenses = Expense::all();
+        $currencies = Currency::all();
+        return view('events.history', compact('event', 'clubs', 'suppliers', 'expenses', 'currencies'));
+    }
+
+    public function paymentMethods($currencyId)
+    {
+        $method_payments = MethodPayment::with('entity')->where('currency_id', $currencyId)->get();
+        return response()->json($method_payments);
+    }
+
+    public function currencies()
+    {
+        $currencies = Currency::all();
+        return response()->json($currencies);
+    }
+
+    public function storeTransaction(Request $request, $event)
+    {
+        DB::beginTransaction();
+        try {
+            $data = $request->all();
+
+            $data['event_id'] = $event;
+            $data['date'] = date('Y-m-d H:i:s');
+            $data['status'] = 'Pagado';
+
+            // Crear el movimiento del evento
+            $movement = EventMovement::create($data);
+
+            // Actualizar el balance del método de pago
+            if ($data['method_payment_id']) {
+                $this->updatePaymentMethodBalance($data['method_payment_id'], $data['amount'], $data['type']);
+            }
+
+            // Si es un ingreso de club, crear el movimiento de abono
+            if ($data['type'] === 'Ingreso' && $data['type_income'] === 'Club' && isset($data['club_id'])) {
+                $this->createClubPayment($data);
+            }
+
+            // si es un egreso de proveedor, crear el movimiento de gasto
+            if ($data['type'] === 'Egreso' && $data['type_expense'] === 'Proveedor' && isset($data['supplier_id'])) {
+                $this->createSupplierPayment($data);
+            }
+
+            DB::commit();
+            return redirect()->route('event.history', $event)->with('success', 'Movimiento creado correctamente');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->route('event.history', $event)->with('error', 'Error al crear el movimiento: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Actualiza el balance del método de pago según el tipo de movimiento
+     */
+    private function updatePaymentMethodBalance($paymentMethodId, $amount, $type)
+    {
+        $methodPayment = MethodPayment::findOrFail($paymentMethodId);
+        
+        // Convertir el monto a número
+        $amount = floatval($amount);
+        
+        // Actualizar el balance según el tipo de movimiento
+        if ($type === 'Ingreso') {
+            $methodPayment->current_balance += $amount;
+        } else if ($type === 'Egreso') {
+            // Verificar si hay suficiente balance
+            if ($methodPayment->current_balance < $amount) {
+                throw new \Exception('Saldo insuficiente en el método de pago');
+            }
+            $methodPayment->current_balance -= $amount;
+        }
+        
+        $methodPayment->save();
+    }
+
+    /**
+     * Crea un movimiento de abono para el club
+     */
+    private function createClubPayment($data)
+    {
+        ClubPayment::create([
+            'club_id' => $data['club_id'],
+            'currency_id' => $data['currency_id'],
+            'amount' => $data['amount'],
+        ]);
+    }
+
+    private function createSupplierPayment($data)
+    {
+        SupplierPayment::create([
+            'supplier_id' => $data['supplier_id'],
+            'currency_id' => $data['currency_id'],
+            'amount' => $data['amount'],
+        ]);
+    }
 
     /**
      * Show the form for editing the specified resource.

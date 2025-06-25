@@ -35,21 +35,21 @@ class Province extends Model
 
     public function country(): BelongsTo
     {
-        return $this->belongsTo(Country::class);
+        return $this->belongsTo(Country::class, 'country_id', 'id');
     }
 
     public function cities(): HasMany
     {
-        return $this->hasMany(City::class);
+        return $this->hasMany(City::class, 'province_id', 'id');
     }
 
     public function clubs(): HasMany
     {
-        return $this->hasMany(Club::class);
+        return $this->hasMany(Club::class, 'province_id', 'id');
     }
 
     public function bussines(): HasMany
     {
-        return $this->hasMany(Bussines::class);
+        return $this->hasMany(Bussines::class, 'province_id', 'id');
     }
 }

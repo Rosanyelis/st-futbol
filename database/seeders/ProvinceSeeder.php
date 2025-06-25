@@ -13,6 +13,19 @@ class ProvinceSeeder extends Seeder
      */
     public function run(): void
     {
-        Province::factory()->count(10)->create();
+        $data = [
+            ['country_id' => 1, 'name' => 'Buenos Aires'],
+            ['country_id' => 1, 'name' => 'Rio Negro'],
+            ['country_id' => 1, 'name' => 'Santa Cruz'],
+            ['country_id' => 1, 'name' => 'Chubut'],
+            ['country_id' => 1, 'name' => 'Cordoba'],
+            ['country_id' => 1, 'name' => 'Salta'],
+            ['country_id' => 1, 'name' => 'Misiones'],
+            ['country_id' => 1, 'name' => 'La Pampa'],
+            ['country_id' => 2, 'name' => 'Santa Catarina'],
+            ['country_id' => 2, 'name' => 'Rio Grande do Sul'],
+        ];
+
+        Province::insert($data);
     }
 }

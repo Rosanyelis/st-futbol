@@ -79,7 +79,7 @@ class CategorySupplierController extends Controller
     {
         try {
             $categorySupplier = CategorySupplier::find($categorySupplier);
-            if ($categorySupplier->subcategories->isEmpty()) {
+            if ($categorySupplier->subcategorySuppliers->count() == 0) {
                 $categorySupplier->delete();
                 return redirect()->route('category-supplier.index')->with('success', 'Categoría de proveedor eliminada correctamente');
             } else {

@@ -13,6 +13,17 @@ class EntitySeeder extends Seeder
      */
     public function run(): void
     {
-        Entity::factory()->count(10)->create();
+        $data = [
+            ['name' => 'Banco Frances'],
+            ['name' => 'Banco Galicia'],
+            ['name' => 'Mercado Pago'],
+            ['name' => 'UALA'],
+            ['name' => 'Naranja X'],
+            ['name' => 'NuBank'],
+        ];
+
+        foreach ($data as $item) {
+            Entity::updateOrCreate($item);
+        }
     }
 }

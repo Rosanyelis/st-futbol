@@ -12,6 +12,7 @@ use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\ProvinceController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\MethodPaymentController;
+use App\Http\Controllers\AccountPayableController;
 use App\Http\Controllers\CategoryIncomeController;
 use App\Http\Controllers\CategoryExpenseController;
 use App\Http\Controllers\CategorySupplierController;
@@ -40,6 +41,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/eventos/{id}/edit', [EventController::class, 'edit'])->name('event.edit');
     Route::put('/eventos/{id}/update', [EventController::class, 'update'])->name('event.update');
     Route::get('/eventos/{id}/destroy', [EventController::class, 'destroy'])->name('event.destroy');
+    Route::get('/eventos/{id}/history', [EventController::class, 'history'])->name('event.history');
+    Route::post('/eventos/{id}/store-transaction', [EventController::class, 'storeTransaction'])->name('event.storeTransaction');
+    Route::get('/eventos/{id}/history-json', [EventController::class, 'historyJson'])->name('event.historyJson');
+    Route::get('/eventos/metodo-pago/{currencyId}', [EventController::class, 'paymentMethods'])->name('event.paymentMethods');
+    Route::get(' ', [EventController::class, 'currencies'])->name('event.currencies');
     # Categorías de proveedores
     Route::get('/categorias-proveedores', [CategorySupplierController::class, 'index'])->name('category-supplier.index');
     Route::get('/categorias-proveedores/create', [CategorySupplierController::class, 'create'])->name('category-supplier.create');
@@ -152,6 +158,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/ciudades/{id}/edit', [CityController::class, 'edit'])->name('city.edit');
     Route::put('/ciudades/{id}/update', [CityController::class, 'update'])->name('city.update');
     Route::get('/ciudades/{id}/destroy', [CityController::class, 'destroy'])->name('city.destroy');
+
+    # Cuenta por pagar
+    Route::get('/cuenta-por-pagar', [AccountPayableController::class, 'index'])->name('account-payable.index');
+    Route::get('/cuenta-por-pagar/json', [AccountPayableController::class, 'indexJson'])->name('account-payable.indexJson');
 });
 
 require __DIR__.'/auth.php';

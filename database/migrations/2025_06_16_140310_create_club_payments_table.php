@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('club_payments', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('club_id')->constrained('clubs')->onDelete('cascade');
+            $table->foreignId('currency_id')->constrained('currencies')->onDelete('cascade');
+            $table->decimal('amount', 10, 2);
             $table->timestamps();
         });
     }

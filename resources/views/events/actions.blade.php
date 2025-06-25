@@ -1,3 +1,10 @@
+
+<a href="{{ route('event.history', $id) }}" class="btn btn-sm btn-icon btn-text-secondary
+    rounded-pill"
+    data-bs-toggle="tooltip" title="Historial de Movimientos">
+    <i class="ri-history-line ri-20px"></i>
+</a>
+
 <a href="{{ route('event.edit', $id) }}" class="btn btn-sm btn-icon btn-text-secondary
     rounded-pill"
     data-bs-toggle="tooltip" title="Editar Evento">

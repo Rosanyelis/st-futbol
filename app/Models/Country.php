@@ -22,16 +22,16 @@ class Country extends Model
 
     public function provinces(): HasMany
     {
-        return $this->hasMany(Province::class);
+        return $this->hasMany(Province::class, 'country_id', 'id');
     }
 
     public function clubs(): HasMany
     {
-        return $this->hasMany(Club::class);
+        return $this->hasMany(Club::class, 'country_id', 'id');
     }
 
     public function bussines(): HasMany
     {
-        return $this->hasMany(Bussines::class);
+        return $this->hasMany(Bussines::class, 'country_id', 'id');
     }
 }

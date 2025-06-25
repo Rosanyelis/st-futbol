@@ -21,6 +21,6 @@ class Entity extends Model
 
     public function methodPayments(): HasMany
     {
-        return $this->hasMany(MethodPayment::class);
+        return $this->hasMany(MethodPayment::class, 'entity_id', 'id');
     }
 }

@@ -34,4 +34,20 @@ class Event extends Model
             'end_date' => 'date',
         ];
     }
+
+    public function clubs(): HasMany
+    {
+        return $this->hasMany(Club::class, 'event_id', 'id');
+    }
+
+    public function eventMovements(): HasMany
+    {
+        return $this->hasMany(EventMovement::class, 'event_id', 'id');
+    }
+
+    public function suppliers(): HasMany
+    {
+        return $this->hasMany(Supplier::class, 'event_id', 'id');
+    }
+
 }

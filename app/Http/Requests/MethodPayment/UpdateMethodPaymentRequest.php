@@ -29,7 +29,7 @@ class UpdateMethodPaymentRequest extends FormRequest
             'account_holder' => 'required|string|max:255',
             'type_account' => 'required|string|max:255',
             'account_number' => 'required|string|max:255',
-            'cbu_cvu' => 'required|string|max:255',
+            'cbu_cvu' => 'nullable|max:22',
             'initial_balance' => 'required|numeric|min:0',
         ];
     }
@@ -47,7 +47,7 @@ class UpdateMethodPaymentRequest extends FormRequest
             'account_holder.required' => 'El titular es requerido',
             'type_account.required' => 'El tipo de cuenta es requerido',
             'account_number.required' => 'El número de cuenta es requerido',
-            'cbu_cvu.required' => 'El CBU/CVU es requerido',
+            'cbu_cvu.max' => 'El CBU/CVU debe tener 22 dígitos',
             'initial_balance.required' => 'El saldo inicial es requerido',
             'initial_balance.numeric' => 'El saldo inicial debe ser un número',
             'initial_balance.min' => 'El saldo inicial debe ser mayor a 0',

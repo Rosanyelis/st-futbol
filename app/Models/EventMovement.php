@@ -32,70 +32,49 @@ class EventMovement extends Model
         'type',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'bussines_id' => 'integer',
-            'event_id' => 'integer',
-            'club_id' => 'integer',
-            'method_payment_id' => 'integer',
-            'category_income_id' => 'integer',
-            'category_egress_id' => 'integer',
-            'currency_id' => 'integer',
-            'supplier_id' => 'integer',
-            'expense_id' => 'integer',
-            'amount' => 'decimal',
-            'date' => 'date',
-        ];
-    }
-
+   
     public function bussines(): BelongsTo
     {
-        return $this->belongsTo(Bussines::class);
+        return $this->belongsTo(Bussines::class, 'bussines_id', 'id');
     }
 
     public function event(): BelongsTo
     {
-        return $this->belongsTo(Event::class);
+        return $this->belongsTo(Event::class, 'event_id', 'id');
     }
 
     public function club(): BelongsTo
     {
-        return $this->belongsTo(Club::class);
+        return $this->belongsTo(Club::class, 'club_id', 'id');
     }
 
     public function methodPayment(): BelongsTo
     {
-        return $this->belongsTo(MethodPayment::class);
+        return $this->belongsTo(MethodPayment::class, 'method_payment_id', 'id');
     }
 
     public function categoryIncome(): BelongsTo
     {
-        return $this->belongsTo(CategoryIncome::class);
+        return $this->belongsTo(CategoryIncome::class, 'category_income_id', 'id');
     }
 
     public function categoryEgress(): BelongsTo
     {
-        return $this->belongsTo(CategoryEgress::class);
+        return $this->belongsTo(CategoryEgress::class, 'category_egress_id', 'id');
     }
 
     public function currency(): BelongsTo
     {
-        return $this->belongsTo(Currency::class);
+        return $this->belongsTo(Currency::class, 'currency_id', 'id');
     }
 
     public function supplier(): BelongsTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Supplier::class, 'supplier_id', 'id');
     }
 
     public function expense(): BelongsTo
     {
-        return $this->belongsTo(Expense::class);
+        return $this->belongsTo(Expense::class, 'expense_id', 'id');
     }
 }

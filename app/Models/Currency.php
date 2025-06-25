@@ -22,11 +22,11 @@ class Currency extends Model
 
     public function suppliers(): HasMany
     {
-        return $this->hasMany(Supplier::class);
+        return $this->hasMany(Supplier::class, 'currency_id', 'id');
     }
 
     public function clubs(): HasMany
     {
-        return $this->hasMany(Club::class);
+        return $this->hasMany(Club::class, 'currency_id', 'id');
     }
 }

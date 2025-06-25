@@ -18,7 +18,6 @@
                             <i class="ri-arrow-left-line me-1"></i> Regresar
                         </a>
                     </div>
-{{ $errors }}
                     <div class="card-body">
                         <form id="formClub" class="needs-validation" action="{{ route('club.store') }}" method="POST" enctype="multipart/form-data">
                             @csrf
@@ -48,7 +47,8 @@
                                 <!-- Información Básica -->
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="name">Nombre del Club *</label>
-                                    <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required>
+                                    <input type="text" class="form-control @error('name') is-invalid @enderror" 
+                                    id="name" name="name" value="{{ old('name') }}" required maxlength="100">
                                     @error('name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -56,7 +56,8 @@
 
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="event_id">Evento *</label>
-                                    <select class="form-select select2 @error('event_id') is-invalid @enderror" id="event_id" name="event_id" required>
+                                    <select class="form-select select2 @error('event_id') is-invalid @enderror" 
+                                    id="event_id" name="event_id" required>
                                         <option value="">Seleccione un evento</option>
                                         @foreach($events as $event)
                                             <option value="{{ $event->id }}" {{ old('event_id') == $event->id ? 'selected' : '' }}>
@@ -71,7 +72,8 @@
 
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="currency_id">Moneda *</label>
-                                    <select class="form-select select2 @error('currency_id') is-invalid @enderror" id="currency_id" name="currency_id" required>
+                                    <select class="form-select select2 @error('currency_id') is-invalid @enderror" 
+                                    id="currency_id" name="currency_id" required>
                                         <option value="">Seleccione una moneda</option>
                                         @foreach($currencies as $currency)
                                             <option value="{{ $currency->id }}" {{ old('currency_id') == $currency->id ? 'selected' : '' }}>
@@ -86,7 +88,8 @@
 
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="cuit">CUIT</label>
-                                    <input type="text" class="form-control @error('cuit') is-invalid @enderror" id="cuit" name="cuit" value="{{ old('cuit') }}">
+                                    <input type="text" class="form-control @error('cuit') is-invalid @enderror" 
+                                    id="cuit" name="cuit" value="{{ old('cuit') }}">
                                     @error('cuit')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -95,7 +98,8 @@
                                 <!-- Información de Contacto -->
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="responsible">Responsable *</label>
-                                    <input type="text" class="form-control @error('responsible') is-invalid @enderror" id="responsible" name="responsible" value="{{ old('responsible') }}" required>
+                                    <input type="text" class="form-control @error('responsible') is-invalid @enderror" 
+                                    id="responsible" name="responsible" value="{{ old('responsible') }}" required>
                                     @error('responsible')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -103,7 +107,8 @@
 
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="phone">Cel. de contacto *</label>
-                                    <input type="tel" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" required>
+                                    <input type="tel" class="form-control @error('phone') is-invalid @enderror" 
+                                    id="phone" name="phone" value="{{ old('phone') }}" required>
                                     @error('phone')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -111,7 +116,8 @@
 
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="email">Email *</label>
-                                    <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email') }}" required>
+                                    <input type="email" class="form-control @error('email') is-invalid @enderror" 
+                                    id="email" name="email" value="{{ old('email') }}" required>
                                     @error('email')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
@@ -159,7 +165,8 @@
                                 <!-- Hospedaje -->
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="has_accommodation">¿Paga hospedaje? *</label>
-                                    <select class="form-select @error('has_accommodation') is-invalid @enderror" id="has_accommodation" name="has_accommodation" required>
+                                    <select class="form-select @error('has_accommodation') is-invalid @enderror" 
+                                    id="has_accommodation" name="has_accommodation" required>
                                         <option value="1" {{ old('has_accommodation') == '1' ? 'selected' : '' }}>Sí</option>
                                         <option value="0" {{ old('has_accommodation') == '0' ? 'selected' : '' }}>No</option>
                                     </select>

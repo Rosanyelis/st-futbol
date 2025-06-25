@@ -46,16 +46,16 @@ class MethodPayment extends Model
 
     public function categoryMethodPayment(): BelongsTo
     {
-        return $this->belongsTo(CategoryMethodPayment::class);
+        return $this->belongsTo(CategoryMethodPayment::class, 'category_method_payment_id', 'id');
     }
 
     public function entity(): BelongsTo
     {
-        return $this->belongsTo(Entity::class);
+        return $this->belongsTo(Entity::class, 'entity_id', 'id');
     }
 
     public function currency(): BelongsTo
     {
-        return $this->belongsTo(Currency::class);
+        return $this->belongsTo(Currency::class, 'currency_id', 'id');
     }
 }

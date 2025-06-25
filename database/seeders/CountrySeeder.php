@@ -13,6 +13,15 @@ class CountrySeeder extends Seeder
      */
     public function run(): void
     {
-        Country::factory()->count(10)->create();
+        $data = [
+            ['name' => 'Argentina','code' => 'ARG'  ],
+            ['name' => 'Brasil','code' => 'BRA'  ],
+            ['name' => 'Uruguay','code' => 'URU'  ],
+            ['name' => 'Paraguay','code' => 'PAR'  ],
+            ['name' => 'Bolivia','code' => 'BOL'  ],
+            ['name' => 'Chile','code' => 'CHI'  ],
+        ];
+        
+        Country::insert($data);
     }
 }

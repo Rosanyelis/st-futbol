@@ -21,6 +21,6 @@ class CategorySupplier extends Model
 
     public function subcategorySuppliers(): HasMany
     {
-        return $this->hasMany(SubcategorySupplier::class);
+        return $this->hasMany(SubcategorySupplier::class, 'category_supplier_id', 'id');
     }
 }

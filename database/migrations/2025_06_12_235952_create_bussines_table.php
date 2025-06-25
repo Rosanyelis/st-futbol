@@ -19,9 +19,9 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->string('address')->nullable();
-            $table->foreignId('country_id')->constrained('Country');
-            $table->foreignId('province_id')->constrained('Province');
-            $table->foreignId('city_id')->constrained('City');
+            $table->foreignId('country_id')->nullable()->constrained('Country')->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignId('province_id')->nullable()->constrained('Province')->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignId('city_id')->nullable()->constrained('City')->onUpdate('cascade')->onDelete('cascade');
             $table->string('logo')->nullable();
             $table->string('cuit')->nullable();
             $table->timestamps();

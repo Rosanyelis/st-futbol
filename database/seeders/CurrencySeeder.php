@@ -13,6 +13,13 @@ class CurrencySeeder extends Seeder
      */
     public function run(): void
     {
-        Currency::factory()->count(10)->create();
+        $data = [
+            ['name' => 'Pesos', 'symbol' => '$'],
+            ['name' => 'Dolares', 'symbol' => 'u$s'],
+            ['name' => 'Reales', 'symbol' => 'R$'],
+            ['name' => 'Cripto', 'symbol' => 'USDT'],
+        ];
+        Currency::insert($data);
+        
     }
 }

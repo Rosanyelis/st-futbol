@@ -13,6 +13,13 @@ class SubcategoryExpenseSeeder extends Seeder
      */
     public function run(): void
     {
-        SubcategoryExpense::factory()->count(10)->create();
+        $data = [
+            ['category_expense_id' => 4, 'name' => 'Eliana'],
+            ['category_expense_id' => 4, 'name' => 'Faviola'],
+            ['category_expense_id' => 4, 'name' => 'Community Manager'],
+            ['category_expense_id' => 4, 'name' => 'Natalia'],
+        ];
+        SubcategoryExpense::insert($data);
     }
 }
+
