@@ -18,57 +18,24 @@
     <input type="hidden" id="idEvento" value="{{$event->id}}" style="display: none">
     <!-- Product List Widget -->
     <div class="card mb-6 ">
-    
         <div class="card-widget-separator-wrapper">
             <div class="card-body card-widget-separator">
-                <div class="row gy-4 gy-sm-1" id="eventos">
+                <div class="row gy-4 gy-sm-1" id="monedas">
+                    @foreach ($currencies as $currency)
                     <div class="col-sm-6 col-lg-3">
-                        <div
-                            class="d-flex justify-content-between align-items-start card-widget-1 border-end pb-4 pb-sm-0">
+                        <div class="d-flex flex-column align-items-start card-widget-1 border-end pb-4 pb-sm-0">
                             <div>
-                                <p class="mb-1">Balance Actual</p>
-                                <h4 id="totalBalance" class="mb-1 text-success">0</h4>
+                                <p class="mb-1">{{ $currency->name }}</p>
                             </div>
-                            <div class="avatar me-sm-6">
-                                <span class="avatar-initial rounded text-heading">
-                                    <i class="ri-money-dollar-circle-fill ri-26px"></i>
-                                </span>
+                            <div>
+                                <h4 id="totalIngreso{{ $currency->name }}" class="mb-1 text-success">0</h4>
+                                <h4 id="totalEgreso{{ $currency->name }}" class="mb-1 text-danger">0</h4>
                             </div>
                         </div>
                         <hr class="d-none d-sm-block d-lg-none me-6" />
                     </div>
-                    <div class="col-sm-6 col-lg-3">
-                        <div
-                            class="d-flex justify-content-between align-items-start card-widget-1 border-end pb-4 pb-sm-0">
-                            <div>
-                                <p class="mb-1">Ingresos</p>
-                                <h4 id="totalIngresos" class="mb-1 text-success">0</h4>
-                            </div>
-                            <div class="avatar me-sm-6">
-                                <span class="avatar-initial rounded text-heading">
-                                    <i class="ri-money-dollar-circle-fill ri-26px"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <hr class="d-none d-sm-block d-lg-none me-6" />
-                    </div>
-                    <div class="col-sm-6 col-lg-3">
-                        <div
-                            class="d-flex justify-content-between align-items-start card-widget-1 border-end pb-4 pb-sm-0">
-                            <div>
-                                <p class="mb-1">Egresos</p>
-                                <h4 id="totalEgresos" class="mb-1 text-danger">0</h4>
-                            </div>
-                            <div class="avatar me-sm-6">
-                                <span class="avatar-initial rounded text-heading">
-                                    <i class="ri-money-dollar-circle-fill ri-26px"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <hr class="d-none d-sm-block d-lg-none me-6" />
-                    </div>
+                    @endforeach
                 </div>
-
             </div>
         </div>
     </div>
@@ -90,6 +57,7 @@
                         <th>Club</th>
                         <th>Proveedor</th>
                         <th>Cuenta</th>
+                        <th></th>
                     </tr>
                 </thead>
             </table>
@@ -97,7 +65,7 @@
     </div>
 </div>
 @include('events.modal-movimiento')
-{{-- @include('events.modal-intercambio-entre-cuentas') --}}
+
 @endsection
 @section('scripts')
 <script src="{{ asset('assets/vendor/libs/select2/select2.js') }}"></script>
@@ -106,5 +74,6 @@
 <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.js') }}"></script>
+<script src="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.js') }}"></script>
 <script src="{{ asset('pagesjs/events/history.js') }}"></script>
 @endsection

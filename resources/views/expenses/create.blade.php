@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/flatpickr/flatpickr.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.css') }}" />
 @endsection
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y">
@@ -18,7 +19,6 @@
                         <a href="{{ route('expense.index') }}" class="btn btn-sm btn-secondary"
                         ><i class="ri-arrow-left-line me-1"></i> Regresar</a>
                     </div>
-
 
                     <div class="card-body">
                         <form id="formTask" class="needs-validation" action="{{ route('expense.store') }}" method="POST">

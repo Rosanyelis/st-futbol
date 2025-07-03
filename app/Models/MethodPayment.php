@@ -58,4 +58,9 @@ class MethodPayment extends Model
     {
         return $this->belongsTo(Currency::class, 'currency_id', 'id');
     }
+
+    public function event_movements()
+    {
+        return $this->hasMany(EventMovement::class, 'method_payment_id', 'id');
+    }
 }

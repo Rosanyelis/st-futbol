@@ -118,6 +118,9 @@ class MethodPaymentController extends Controller
     {
         try {
             $methodPayment = MethodPayment::find($methodPayment);
+            if (!$methodPayment->event_movements->isEmpty()) {
+                return redirect()->route('method-payment.index')->with('error', 'No puede ser eliminado. El método de pago tiene movimientos asociados');
+            }
             $methodPayment->delete();
             return redirect()->route('method-payment.index')->with('success', 'Método de pago eliminado correctamente');
         } catch (\Exception $e) {

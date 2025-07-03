@@ -17,6 +17,7 @@ class Club extends Model
      * @var array
      */
     protected $fillable = [
+        'category_income_id',
         'supplier_id',
         'event_id',
         'currency_id',
@@ -59,6 +60,11 @@ class Club extends Model
         ];
     }
 
+    public function categoryIncome(): BelongsTo
+    {
+        return $this->belongsTo(CategoryIncome::class, 'category_income_id', 'id');
+    }
+
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id', 'id');
@@ -89,9 +95,9 @@ class Club extends Model
         return $this->belongsTo(City::class, 'city_id', 'id');
     }
 
-    public function clubItems(): HasMany
+    public function payments(): HasMany
     {
-        return $this->hasMany(ClubItem::class, 'club_id', 'id');
+        return $this->hasMany(ClubPayment::class, 'club_id', 'id');
     }
 
     public function eventMovements(): HasMany

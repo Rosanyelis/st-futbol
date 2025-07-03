@@ -23,4 +23,9 @@ class CategoryExpense extends Model
     {
         return $this->hasMany(SubcategoryExpense::class);
     }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
 }

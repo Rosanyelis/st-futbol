@@ -19,11 +19,11 @@ return new class extends Migration
             $table->foreignId('currency_id')->constrained('currencies')->onUpdate('cascade')->onDelete('cascade');
             $table->string('account_holder');
             $table->string('account_number')->nullable();
-            $table->integer('cbu_cvu')->nullable();
+            $table->string('cbu_cvu')->nullable();
             $table->string('alias')->nullable();
-            $table->enum('type_account', ["Propia","Terceros"]);
-            $table->decimal('initial_balance')->nullable();
-            $table->decimal('current_balance')->nullable();
+            $table->enum('type_account', ["Propia","Terceros"])->default('Propia');
+            $table->decimal('initial_balance', 18, 2)->nullable();
+            $table->decimal('current_balance', 18, 2)->nullable();
             $table->timestamps();
         });
 

@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Expense\StoreExpenseRequest;
 use App\Http\Requests\Expense\UpdateExpenseRequest;
+use App\Models\CategoryExpense;
+use App\Models\CategoryEgress;
 use App\Models\Expense;
 use App\Models\SubcategoryExpense;
-use App\Models\CategoryExpense;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -44,10 +45,12 @@ class ExpenseController extends Controller
     public function store(StoreExpenseRequest $request)
     {
         try {
-            $expense = Expense::create($request->validated());
+            $data = $request->all();
+            $data['category_egress_id'] = 1; // Egreso de gastos
+            $expense = Expense::create($data);
             return redirect()->route('expense.index')->with('success', 'Gasto creado correctamente');
         } catch (\Exception $e) {
-            return redirect()->route('expense.create')->with('error', 'Error al crear el gasto');
+            return redirect()->route('expense.create')->with('error', 'Error al crear el gasto: ' . $e->getMessage());
         }
     }
 
@@ -71,7 +74,7 @@ class ExpenseController extends Controller
     public function edit($expense)
     {
         $expense = Expense::find($expense);
-        $categoryExpenses = CategoryExpense::all(); 
+        $categoryExpenses = CategoryExpense::all();
         return view('expenses.edit', compact('expense', 'categoryExpenses'));
     }
 
@@ -82,7 +85,8 @@ class ExpenseController extends Controller
     {
         try {
             $expense = Expense::find($expense);
-            $expense->update($request->validated());
+            $data = $request->all();
+            $expense->update($data);
             return redirect()->route('expense.index')->with('success', 'Gasto actualizado correctamente');
         } catch (\Exception $e) {
             return redirect()->route('expense.edit', $expense)->with('error', 'Error al actualizar el gasto');

@@ -10,6 +10,8 @@ class ClubPayment extends Model
     protected $fillable = [
         'club_id',
         'currency_id',
+        'method_payment_id',
+        'date',
         'amount',
     ];
 
@@ -21,5 +23,10 @@ class ClubPayment extends Model
     public function currency(): BelongsTo   
     {
         return $this->belongsTo(Currency::class, 'currency_id', 'id');
+    }
+
+    public function methodPayment(): BelongsTo
+    {
+        return $this->belongsTo(MethodPayment::class, 'method_payment_id', 'id');
     }
 }

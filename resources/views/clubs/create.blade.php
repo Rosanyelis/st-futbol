@@ -179,9 +179,6 @@
                                     <label class="form-label" for="supplier_id">Nombre del Hotel</label>
                                     <select class="form-select" id="supplier_id" name="supplier_id">
                                         <option value="">Seleccione un hotel</option>
-                                        @foreach($suppliers as $hotel)
-                                            <option value="{{ $hotel->id }}">{{ $hotel->name }}</option>
-                                        @endforeach
                                     </select>
                                 </div>
 
@@ -200,44 +197,44 @@
                                 <tbody>
                                     <tr>
                                         <td>Jugadores</td>
-                                        <td><input type="number" id="players_quantity" name="players_quantity" class="form-control" min="0" value="{{ old('players_quantity', 0) }}"></td>
-                                        <td><input type="number" id="player_price" name="player_price" class="form-control" min="0" step="0.01" value="{{ old('player_price', 0) }}"></td>
-                                        <td><input type="number" id="totalPlayers" name="total_players" class="form-control" min="0" step="0.01" value="{{ old('total_players', 0) }}" readonly></td>
+                                        <td><input type="text" id="players_quantity" name="players_quantity" class="form-control" min="0" value="{{ old('players_quantity', 0) }}"></td>
+                                        <td><input type="text" id="player_price" name="player_price" class="form-control" min="0" step="0.01" value="{{ old('player_price', 0) }}"></td>
+                                        <td><input type="text" id="totalPlayers" name="total_players" class="form-control" min="0" step="0.01" value="{{ old('total_players', 0) }}" readonly></td>
                                     </tr>
                                     <tr>
                                         <td>Profesores</td>
-                                        <td><input type="number" id="teachers_quantity" name="teachers_quantity" class="form-control" min="0" value="{{ old('teachers_quantity', 0) }}"></td>
-                                        <td><input type="number" id="teacher_price" name="teacher_price" class="form-control" min="0" step="0.01" value="{{ old('teacher_price', 0) }}"></td>
-                                        <td><input type="number" id="totalTeachers" name="total_teachers" class="form-control" min="0" step="0.01" value="{{ old('total_teachers', 0) }}" readonly></td>
+                                        <td><input type="text" id="teachers_quantity" name="teachers_quantity" class="form-control" min="0" value="{{ old('teachers_quantity', 0) }}"></td>
+                                        <td><input type="text" id="teacher_price" name="teacher_price" class="form-control" min="0" step="0.01" value="{{ old('teacher_price', 0) }}"></td>
+                                        <td><input type="text" id="totalTeachers" name="total_teachers" class="form-control numeral-mask" min="0" step="0.01" value="{{ old('total_teachers', 0) }}" readonly></td>
                                     </tr>
                                     <tr>
                                         <td>Acompañantes</td>
-                                        <td><input type="number" id="companions_quantity" name="companions_quantity" class="form-control" min="0" value="{{ old('companions_quantity', 0) }}"></td>
-                                        <td><input type="number" id="companion_price" name="companion_price" class="form-control" min="0" step="0.01" value="{{ old('companion_price', 0) }}"></td>
-                                        <td><input type="number" id="totalCompanions" name="total_companions" class="form-control" min="0" step="0.01" value="{{ old('total_companions', 0) }}" readonly></td>
+                                        <td><input type="text" id="companions_quantity" name="companions_quantity" class="form-control" min="0" value="{{ old('companions_quantity', 0) }}"></td>
+                                        <td><input type="text" id="companion_price" name="companion_price" class="form-control" min="0" step="0.01" value="{{ old('companion_price', 0) }}"></td>
+                                        <td><input type="text" id="totalCompanions" name="total_companions" class="form-control" min="0" step="0.01" value="{{ old('total_companions', 0) }}" readonly></td>
                                     </tr>
                                     <tr>
                                         <td>Choferes</td>
-                                        <td><input type="number" id="drivers_quantity" name="drivers_quantity" class="form-control" min="0" value="{{ old('drivers_quantity', 0) }}"></td>
-                                        <td><input type="number" id="driver_price" name="driver_price" class="form-control" min="0" step="0.01" value="{{ old('driver_price', 0) }}"></td>
-                                        <td><input type="number" id="totalDrivers" name="total_drivers" class="form-control" min="0" step="0.01" value="{{ old('total_drivers', 0) }}" readonly></td>
+                                        <td><input type="text" id="drivers_quantity" name="drivers_quantity" class="form-control" min="0" value="{{ old('drivers_quantity', 0) }}"></td>
+                                        <td><input type="text" id="driver_price" name="driver_price" class="form-control" min="0" step="0.01" value="{{ old('driver_price', 0) }}"></td>
+                                        <td><input type="text" id="totalDrivers" name="total_drivers" class="form-control" min="0" step="0.01" value="{{ old('total_drivers', 0) }}" readonly></td>
                                     </tr>
                                     <tr>
                                         <td>Liberados</td>
-                                        <td><input type="number" id="liberated_quantity" name="liberated_quantity" class="form-control" min="0" value="{{ old('liberated_quantity', 0) }}"></td>
-                                        <td><input type="number" id="liberated_price" name="liberated_price" class="form-control" min="0" step="0.01" value="{{ old('liberated_price', 0) }}" readonly></td>
-                                        <td><input type="number" id="totalLiberated" name="total_liberated" class="form-control" min="0" step="0.01" value="{{ old('total_liberated', 0) }}" readonly></td>
+                                        <td><input type="text" id="liberated_quantity" name="liberated_quantity" class="form-control" min="0" value="{{ old('liberated_quantity', 0) }}"></td>
+                                        <td><input type="text" id="liberated_price" name="liberated_price" class="form-control" min="0" step="0.01" value="{{ old('liberated_price', 0) }}" readonly></td>
+                                        <td><input type="text" id="totalLiberated" name="total_liberated" class="form-control" min="0" step="0.01" value="{{ old('total_liberated', 0) }}" readonly></td>
                                     </tr>
 
                                 </tbody>
                                 <tfoot>
                                     <tr>
                                         <th colspan="3" class="text-end">Total Personas</th>
-                                        <th><input type="number" id="totalPeople" name="total_people" class="form-control" min="0" step="0.01" value="{{ old('total_people', 0) }}" readonly></th>
+                                        <th><input type="text" id="totalPeople" name="total_people" class="form-control" min="0" step="0.01" value="{{ old('total_people', 0) }}" readonly></th>
                                     </tr>
                                     <tr>
                                         <th colspan="3" class="text-end">Total General</th>
-                                        <th><input type="number" id="grandTotal" name="total_amount" class="form-control" min="0" step="0.01" value="{{ old('total_amount', 0) }}" readonly></th>
+                                        <th><input type="text" id="grandTotal" name="total_amount" class="form-control" min="0" step="0.01" value="{{ old('total_amount', 0) }}" readonly></th>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -265,7 +262,6 @@
     <script src="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.js') }}"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
     <!-- Page JS -->
-    
     <script src="{{ asset('assets/js/forms-selects.js') }}"></script>
     <script src="{{ asset('pagesjs/clubs/create.js') }}"></script>
     

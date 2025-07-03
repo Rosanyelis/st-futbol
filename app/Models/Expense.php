@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\CategoryEgress;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ class Expense extends Model
      * @var array
      */
     protected $fillable = [
+        'category_egress_id',
         'category_expense_id',
         'subcategory_expense_id',
         'description',
@@ -29,10 +31,16 @@ class Expense extends Model
     protected function casts(): array
     {
         return [
+            'category_egress_id' => 'integer',
             'category_expense_id' => 'integer',
             'subcategory_expense_id' => 'integer',
             'description' => 'string',
         ];
+    }
+
+    public function categoryEgress(): BelongsTo
+    {
+        return $this->belongsTo(CategoryEgress::class, 'category_egress_id', 'id');
     }
 
     public function categoryExpense(): BelongsTo

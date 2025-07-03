@@ -14,17 +14,20 @@
     <div class="card mb-6 ">
         <div class="card-widget-separator-wrapper">
             <div class="card-body card-widget-separator">
-                <div class="row gy-4 gy-sm-1">
+                <div class="row gy-4 gy-sm-1" id="monedas">
+                    @foreach ($totalesPendientes as $currency)
                     <div class="col-sm-6 col-lg-3">
-                        <div
-                            class="d-flex justify-content-between align-items-start card-widget-1 border-end pb-4 pb-sm-0">
+                        <div class="d-flex flex-column align-items-start card-widget-1 border-end pb-4 pb-sm-0">
                             <div>
-                                <p class="mb-1">Total Pendiente</p>
-                                <h4 id="totalPendiente" class="mb-1">0</h4>
+                                <p class="mb-1">Total Pendiente de {{ $currency->currency_name }}</p>
+                            </div>
+                            <div>
+                                <h4 class="mb-1">{{ number_format($currency->total_pendiente, 0, '.', ',') }}</h4>
                             </div>
                         </div>
                         <hr class="d-none d-sm-block d-lg-none me-6" />
                     </div>
+                    @endforeach
                 </div>
             </div>
         </div>

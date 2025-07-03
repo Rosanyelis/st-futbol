@@ -19,14 +19,14 @@ return new class extends Migration
             $table->foreignId('club_id')->nullable()->constrained('clubs')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('method_payment_id')->nullable()->constrained('method_payments')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('category_income_id')->nullable()->constrained('category_incomes')->onUpdate('cascade')->onDelete('cascade');
-            $table->foreignId('category_expense_id')->nullable()->constrained('category_expenses')->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignId('subcategory_expense_id')->nullable()->constrained('subcategory_expenses')->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignId('category_egress_id')->nullable()->constrained('category_egresses')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('currency_id')->nullable()->constrained('currencies')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->onUpdate('cascade')->onDelete('cascade');
-            $table->foreignId('expense_id')->nullable()->constrained('expenses')->onUpdate('cascade')->onDelete('cascade');
-            $table->decimal('amount');
+            $table->foreignId('user_id')->nullable()->constrained('users')->onUpdate('cascade')->onDelete('cascade');
+            $table->decimal('amount', 18, 2);
             $table->date('date');
             $table->text('description')->nullable();
-            $table->enum('status', ["Pendiente","Pagado","Cancelado"]);
             $table->enum('type', ["Ingreso","Egreso"]);
             $table->timestamps();
         });

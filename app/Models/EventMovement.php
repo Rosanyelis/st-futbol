@@ -30,6 +30,7 @@ class EventMovement extends Model
         'description',
         'status',
         'type',
+        'user_id',
     ];
 
    

@@ -31,10 +31,12 @@ $(document).ready(function() {
 
     // Cálculo de totales
     function calculateTotal(quantityId, priceId, totalId) {
-        const quantity = parseFloat(document.getElementById(quantityId).value) || 0;
-        const price = parseFloat(document.getElementById(priceId).value) || 0;
+        // Quita las comas antes de convertir a número
+        const quantity = parseFloat(document.getElementById(quantityId).value.replace(/,/g, '')) || 0;
+        const price = parseFloat(document.getElementById(priceId).value.replace(/,/g, '')) || 0;
         const total = quantity * price;
-        document.getElementById(totalId).value = total.toFixed(0);
+        // Formatea el total con separador de miles
+        document.getElementById(totalId).value = formatNumberWithThousandsSeparator(total.toFixed(0));
         return total;
     }
 
@@ -45,19 +47,19 @@ $(document).ready(function() {
         const totalDrivers = calculateTotal('drivers_quantity', 'driver_price', 'totalDrivers');
         const totalLiberated = calculateTotal('liberated_quantity', 'liberated_price', 'totalLiberated');
 
-        // Calcular total de personas
+        // Calcular total de personas (quita comas)
         const totalPeople = 
-            (parseFloat(document.getElementById('players_quantity').value) || 0) +
-            (parseFloat(document.getElementById('teachers_quantity').value) || 0) +
-            (parseFloat(document.getElementById('companions_quantity').value) || 0) +
-            (parseFloat(document.getElementById('drivers_quantity').value) || 0) +
-            (parseFloat(document.getElementById('liberated_quantity').value) || 0);
-        
-        document.getElementById('totalPeople').value = totalPeople;
+            (parseFloat(document.getElementById('players_quantity').value.replace(/,/g, '')) || 0) +
+            (parseFloat(document.getElementById('teachers_quantity').value.replace(/,/g, '')) || 0) +
+            (parseFloat(document.getElementById('companions_quantity').value.replace(/,/g, '')) || 0) +
+            (parseFloat(document.getElementById('drivers_quantity').value.replace(/,/g, '')) || 0) +
+            (parseFloat(document.getElementById('liberated_quantity').value.replace(/,/g, '')) || 0);
+
+        document.getElementById('totalPeople').value = formatNumberWithThousandsSeparator(totalPeople.toString());
 
         // Calcular total general
         const grandTotal = totalPlayers + totalTeachers + totalCompanions + totalDrivers + totalLiberated;
-        document.getElementById('grandTotal').value = grandTotal.toFixed(0);
+        document.getElementById('grandTotal').value = formatNumberWithThousandsSeparator(grandTotal.toFixed(0));
     }
 
     // Agregar event listeners para todos los campos de cantidad y precio
@@ -209,7 +211,6 @@ $(document).ready(function() {
     $('#formClub').on('submit', function(e) {
         e.preventDefault();
 
-      
         // Cambiar el texto del botón y deshabilitarlo
         let $btn = $(this).find('button[type=submit]');
         let originalText = $btn.html();
@@ -219,4 +220,74 @@ $(document).ready(function() {
         // Enviar el formulario
         this.submit();
     });
+
+
+
+// Evento de cambio de evento usando jQuery
+$('#event_id').on('change', function() {
+    loadSuppliersByEvent($(this).val());
+});
+
+// Cargar proveedores por evento
+function loadSuppliersByEvent(eventId) {
+    // Limpiar el select de proveedores
+    $('#supplier_id').html('<option value="">Seleccione un proveedor</option>');
+    if (!eventId) return;
+
+    $.ajax({
+        url: '/clubs/get-suppliers',
+        type: 'POST',
+        data: {
+            event_id: eventId,
+            _token: $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(data) {
+            $.each(data, function(i, supplier) {
+                $('#supplier_id').append(
+                    $('<option>', {
+                        value: supplier.id,
+                        text: supplier.name
+                    })
+                );
+            });
+        },
+        error: function(xhr) {
+            console.error('Error al cargar proveedores:', xhr);
+        }
+    });
+}
+
+// Formateo de números con separador de miles
+function formatNumberWithThousandsSeparator(value) {
+    // Elimina todo lo que no sea dígito
+    value = value.replace(/\D/g, '');
+    // Formatea con puntos como separador de miles
+    return value.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// Aplica el formateo en tiempo real a los campos de cantidad y precio
+[
+    'players_quantity', 'player_price',
+    'teachers_quantity', 'teacher_price',
+    'companions_quantity', 'companion_price',
+    'drivers_quantity', 'driver_price',
+    'liberated_quantity', 'liberated_price'
+].forEach(function(id) {
+    $('#' + id).on('input', function() {
+        // Guarda la posición del cursor
+        var cursorPos = this.selectionStart;
+        var originalLength = this.value.length;
+
+        // Formatea el valor
+        var formatted = formatNumberWithThousandsSeparator(this.value);
+        this.value = formatted;
+
+        // Ajusta la posición del cursor
+        var newLength = formatted.length;
+        this.selectionEnd = this.selectionStart = cursorPos + (newLength - originalLength);
+
+        // Actualiza los totales (si tienes lógica de cálculo)
+        updateAllTotals();
+    });
+});
 });

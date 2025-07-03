@@ -4,11 +4,11 @@
             <form id="formMovimiento" action="{{ route('event.storeTransaction', ['id' => $event->id]) }}" method="POST">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalCenterTitle">Crear Movimiento de Ingreso o Egreso</h5>
+                    <h5 class="modal-title" id="modalCenterTitle">Crear Movimiento de Ingreso/Egreso</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row gy-3">
+                    <div class="row gy-3">  
                         <div class="mb-3"> 
                             <div class="form-floating form-floating-outline">
                                 <textarea name="description" class="form-control h-px-100"
@@ -21,8 +21,14 @@
                         </div>
                         <div class="col-md-12">
                             <div class="form-floating form-floating-outline">
+                                <input type="date" id="date" name="date" class="form-control"  />
+                                <label for="date">Fecha</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-floating form-floating-outline">
                                 <select id="type" name="type"
-                                    class="form-select "
+                                    class="form-select select2"
                                     placeholder="Selecione Tipo de Movimiento"
                                     required
                                     >
@@ -36,11 +42,12 @@
                         <div class="col-md-12" id="type_income_div">
                             <div class="form-floating form-floating-outline">
                                 <select id="type_income" name="type_income"
-                                    class="form-select "
+                                    class="form-select select2"
                                     placeholder="Selecione Tipo de Ingreso">
                                     <option value="">-- Seleccionar --</option>
-                                    <option value="Club">Club</option>
-                                    <option value="Otro">Otro</option>
+                                    @foreach ($categoryIncomes as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
                                 </select>
                                 <label for="code">Tipo de Ingreso</label>
                             </div>
@@ -48,11 +55,12 @@
                         <div class="col-md-12" id="type_expense_div">
                             <div class="form-floating form-floating-outline">
                                 <select id="type_expense" name="type_expense"
-                                    class="form-select "
+                                    class="form-select select2"
                                     placeholder="Selecione Tipo de Egreso">
                                     <option value="">-- Seleccionar --</option>
-                                    <option value="Proveedor">Proveedor</option>
-                                    <option value="Gasto">Gasto</option>
+                                    @foreach ($categoryEgress as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
                                 </select>
                                 <label for="code">Tipo de Egreso</label>
                             </div>
@@ -81,6 +89,17 @@
                                     @endforeach
                                 </select>
                                 <label for="code">Proveedor</label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-12" id="expense_id_div" >
+                            <div class="form-floating form-floating-outline">
+                                <select id="expense_id" name="expense_id"
+                                    class="form-select select2"
+                                    placeholder="Selecione Gasto">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                                <label for="code">Gasto</label>
                             </div>
                         </div>
                         
@@ -117,7 +136,7 @@
                 </div>
                 <div class="modal-footer">
                     <input type="hidden" name="event_id" id="event_id" value="{{ $event->id }}">
-                    <button type="submit" class="btn btn-primary" id="btnPayOrder">Pagar</button>
+                    <button type="submit" class="btn btn-primary" id="btnPayOrder">Crear</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </form>

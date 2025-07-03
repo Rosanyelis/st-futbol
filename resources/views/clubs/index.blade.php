@@ -27,28 +27,6 @@
                     <tr>
                         <th>Club</th>
                         <th>Evento</th>
-                        <th>Responsable</th>
-                        <th>Telefono</th>
-                        <th>Correo</th>
-                        <th>País</th>
-                        <th>Hotel</th>
-                        <th>Cat. Hotel</th>
-                        <th>Moneda</th> 
-                        <th>Jugadores</th>
-                        <th>Precio x <br>jugador</th>
-                        <th>Total</th>
-                        <th>Profesores</th>
-                        <th>Precio x <br>profesor</th>
-                        <th>Total</th>
-                        <th>Acompañantes</th>
-                        <th>Precio x <br>acompañante</th>
-                        <th>Total</th>
-                        <th>Choferes</th>
-                        <th>Precio x <br>chofer</th>
-                        <th>Total</th>
-                        <th>Liberados</th>
-                        <th>Total <br>Delegación</th>
-                        <th>Total $</th>
                         <th style="width: 10px"></th>
                     </tr>
                 </thead>

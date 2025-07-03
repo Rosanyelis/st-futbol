@@ -14,8 +14,10 @@ return new class extends Migration
        
         Schema::create('expenses', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('category_egress_id')->constrained('category_egresses')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('category_expense_id')->constrained('category_expenses')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('subcategory_expense_id')->constrained('subcategory_expenses')->onUpdate('cascade')->onDelete('cascade');
+
             $table->text('description')->nullable();
             $table->timestamps();
         });

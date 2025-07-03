@@ -21,11 +21,26 @@
             <div class="menu-inner-shadow"></div>
             <ul class="menu-inner py-1">
                 <!-- Dashboards -->
+                 <li class="menu-item
+                    @if (Route::currentRouteName() == 'bussines.index' ||
+                        Route::currentRouteName() == 'bussines.create' ||
+                        Route::currentRouteName() == 'bussines.edit' ||
+                        Route::currentRouteName() == 'bussines.show' ||
+                        Route::currentRouteName() == 'bussines.currencies' ||
+                        Route::currentRouteName() == 'bussines.history') active @endif
+                    ">
+                    <a href="{{ route('bussines.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons ri-calendar-fill"></i>
+                        <div data-i18n="Negocios">Negocios</div>
+                    </a>
+                </li>
                 <li class="menu-item
                     @if (Route::currentRouteName() == 'event.index' ||
                         Route::currentRouteName() == 'event.create' ||
                         Route::currentRouteName() == 'event.edit' ||
-                        Route::currentRouteName() == 'event.show') active @endif
+                        Route::currentRouteName() == 'event.show' ||
+                        Route::currentRouteName() == 'event.currencies' ||
+                        Route::currentRouteName() == 'event.history') active @endif
                     ">
                     <a href="{{ route('event.index') }}" class="menu-link">
                         <i class="menu-icon tf-icons ri-calendar-fill"></i>
@@ -75,7 +90,11 @@
                         Route::currentRouteName() == 'entity.index' ||
                         Route::currentRouteName() == 'entity.create' ||
                         Route::currentRouteName() == 'entity.edit' ||
-                        Route::currentRouteName() == 'entity.show') active open @endif
+                        Route::currentRouteName() == 'entity.show' ||
+                        Route::currentRouteName() == 'method-payment.index' ||
+                        Route::currentRouteName() == 'method-payment.create' ||
+                        Route::currentRouteName() == 'method-payment.edit' ||
+                        Route::currentRouteName() == 'method-payment.show') active open @endif
                     ">
                     <a href="javascript:void(0);" class="menu-link menu-toggle">
                         <i class="menu-icon tf-icons ri-currency-fill"></i>
@@ -220,24 +239,29 @@
                         </li>
                     </ul>
                 </li>
-                <li class="menu-item">
-                    <a href="javascript:void(0);" class="menu-link">
+                <li class="menu-item
+                    @if (Route::currentRouteName() == 'account-receivable.index' ||
+                        Route::currentRouteName() == 'account-receivable.create' ||
+                        Route::currentRouteName() == 'account-receivable.edit' ||
+                        Route::currentRouteName() == 'account-receivable.show') active @endif
+                    ">
+                    <a href="{{ route('account-receivable.index') }}" class="menu-link">
                         <i class="menu-icon tf-icons ri-coin-fill"></i>
                         <div data-i18n="Cuentas por Cobrar">Cuentas por Cobrar</div>
                     </a>
                 </li>
-                <li class="menu-item">
+                <li class="menu-item
+                    @if (Route::currentRouteName() == 'account-payable.index' ||
+                        Route::currentRouteName() == 'account-payable.create' ||
+                        Route::currentRouteName() == 'account-payable.edit' ||
+                        Route::currentRouteName() == 'account-payable.show') active @endif
+                    ">
                     <a href="{{ route('account-payable.index') }}" class="menu-link">
                         <i class="menu-icon tf-icons ri-coin-fill"></i>
                         <div data-i18n="Cuentas por Pagar">Cuentas por Pagar</div>
                     </a>
                 </li>
-                <li class="menu-item">
-                    <a href="javascript:void(0);" class="menu-link">
-                        <i class="menu-icon tf-icons ri-file-list-3-fill"></i>
-                        <div data-i18n="Presupuestos">Presupuestos</div>
-                    </a>
-                </li>
+                
                 <li class="menu-item">
                     <a href="javascript:void(0);" class="menu-link">
                         <i class="menu-icon tf-icons ri-swap-3-fill"></i>

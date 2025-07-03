@@ -135,10 +135,8 @@
 
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="province">Provincia</label>
-                                    <select class="form-select select2 @error('province') is-invalid @enderror" 
-                                    id="province" name="province_id">
-                                        <option value="{{ $club->province_id }}">{{ $club->province->name ?? 'Seleccione una provincia' }}</option>
-
+                                    <select id="province" class="form-select select2 @error('province_id') is-invalid @enderror" name="province_id" data-selected="{{ old('province_id', $club->province_id) }}">
+                                        <!-- Opciones se llenan por JS -->
                                     </select>
                                     @error('province')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -147,9 +145,8 @@
 
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label" for="city">Ciudad</label>
-                                    <select class="form-select select2 @error('city') is-invalid @enderror" 
-                                    id="city" name="city_id">
-                                        <option value="{{ $club->city_id }}">{{ $club->city->name ?? 'Seleccione una ciudad' }}</option>
+                                    <select id="city" class="form-select select2 @error('city_id') is-invalid @enderror" name="city_id" data-selected="{{ old('city_id', $club->city_id) }}">
+                                        <!-- Opciones se llenan por JS -->
                                     </select>
                                     @error('city')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -195,44 +192,44 @@
                                 <tbody>
                                     <tr>
                                         <td>Jugadores</td>
-                                        <td><input type="number" id="players_quantity" name="players_quantity" class="form-control" min="0" value="{{ old('players_quantity', $club->players_quantity) }}"></td>
-                                        <td><input type="number" id="player_price" name="player_price" class="form-control" min="0" step="0.01" value="{{ old('player_price', $club->player_price) }}"></td>
-                                        <td><input type="number" id="totalPlayers" name="total_players" class="form-control" min="0" step="0.01" value="{{ old('total_players', $club->total_players) }}" readonly></td>
+                                        <td><input type="text" id="players_quantity" name="players_quantity" class="form-control" min="0" value="{{ old('players_quantity', $club->players_quantity) }}"></td>
+                                        <td><input type="text" id="player_price" name="player_price" class="form-control" min="0" step="0.01" value="{{ old('player_price', number_format($club->player_price, 0, '.')) }}"></td>
+                                        <td><input type="text" id="totalPlayers" name="total_players" class="form-control" min="0" step="0.01" value="{{ old('total_players', number_format($club->total_players, 0, '.')) }}" readonly></td>
                                     </tr>
                                     <tr>
                                         <td>Profesores</td>
-                                        <td><input type="number" id="teachers_quantity" name="teachers_quantity" class="form-control" min="0" value="{{ old('teachers_quantity', $club->teachers_quantity) }}"></td>
-                                        <td><input type="number" id="teacher_price" name="teacher_price" class="form-control" min="0" step="0.01" value="{{ old('teacher_price', $club->teacher_price) }}"></td>
-                                        <td><input type="number" id="totalTeachers" name="total_teachers" class="form-control" min="0" step="0.01" value="{{ old('total_teachers', $club->total_teachers) }}" readonly></td>
+                                        <td><input type="text" id="teachers_quantity" name="teachers_quantity" class="form-control" min="0" value="{{ old('teachers_quantity', $club->teachers_quantity) }}"></td>
+                                        <td><input type="text" id="teacher_price" name="teacher_price" class="form-control" min="0" step="0.01" value="{{ old('teacher_price', number_format($club->teacher_price, 0, '.')) }}"></td>
+                                        <td><input type="text" id="totalTeachers" name="total_teachers" class="form-control" min="0" step="0.01" value="{{ old('total_teachers', number_format($club->total_teachers, 0, '.')) }}" readonly></td>
                                     </tr>
                                     <tr>
                                         <td>Acompañantes</td>
-                                        <td><input type="number" id="companions_quantity" name="companions_quantity" class="form-control" min="0" value="{{ old('companions_quantity', $club->companions_quantity   ) }}"></td>
-                                        <td><input type="number" id="companion_price" name="companion_price" class="form-control" min="0" step="0.01" value="{{ old('companion_price', $club->companion_price) }}"></td>
-                                        <td><input type="number" id="totalCompanions" name="total_companions" class="form-control" min="0" step="0.01" value="{{ old('total_companions', $club->total_companions) }}" readonly></td>
+                                        <td><input type="text" id="companions_quantity" name="companions_quantity" class="form-control" min="0" value="{{ old('companions_quantity', $club->companions_quantity) }}"></td>
+                                        <td><input type="text" id="companion_price" name="companion_price" class="form-control" min="0" step="0.01" value="{{ old('companion_price', number_format($club->companion_price, 0, '.')) }}"></td>
+                                        <td><input type="text" id="totalCompanions" name="total_companions" class="form-control" min="0" step="0.01" value="{{ old('total_companions', number_format($club->total_companions, 0, '.')) }}" readonly></td>
                                     </tr>
                                     <tr>
                                         <td>Choferes</td>
-                                        <td><input type="number" id="drivers_quantity" name="drivers_quantity" class="form-control" min="0" value="{{ old('drivers_quantity', $club->drivers_quantity) }}"></td>
-                                        <td><input type="number" id="driver_price" name="driver_price" class="form-control" min="0" step="0.01" value="{{ old('driver_price', $club->driver_price) }}"></td>
-                                        <td><input type="number" id="totalDrivers" name="total_drivers" class="form-control" min="0" step="0.01" value="{{ old('total_drivers', $club->total_drivers) }}" readonly></td>
+                                        <td><input type="text" id="drivers_quantity" name="drivers_quantity" class="form-control" min="0" value="{{ old('drivers_quantity', $club->drivers_quantity) }}"></td>
+                                        <td><input type="text" id="driver_price" name="driver_price" class="form-control" min="0" step="0.01" value="{{ old('driver_price', number_format($club->driver_price, 0, '.')) }}"></td>
+                                        <td><input type="text" id="totalDrivers" name="total_drivers" class="form-control" min="0" step="0.01" value="{{ old('total_drivers', number_format($club->total_drivers, 0, '.')) }}" readonly></td>
                                     </tr>
                                     <tr>
                                         <td>Liberados</td>
-                                        <td><input type="number" id="liberated_quantity" name="liberated_quantity" class="form-control" min="0" value="{{ old('liberated_quantity', $club->liberated_quantity) }}"></td>
-                                        <td><input type="number" id="liberated_price" name="liberated_price" class="form-control" min="0" step="0.01" value="{{ old('liberated_price', $club->liberated_price) }}" readonly></td>
-                                        <td><input type="number" id="totalLiberated" name="total_liberated" class="form-control" min="0" step="0.01" value="{{ old('total_liberated', $club->total_liberated) }}" readonly></td>
+                                        <td><input type="text" id="liberated_quantity" name="liberated_quantity" class="form-control" min="0" value="{{ old('liberated_quantity', $club->liberated_quantity) }}"></td>
+                                        <td><input type="text" id="liberated_price" name="liberated_price" class="form-control" min="0" step="0.01" value="{{ old('liberated_price', number_format($club->liberated_price, 0, '.')) }}" readonly></td>
+                                        <td><input type="text" id="totalLiberated" name="total_liberated" class="form-control" min="0" step="0.01" value="{{ old('total_liberated', number_format($club->total_liberated, 0, '.')) }}" readonly></td>
                                     </tr>
 
                                 </tbody>
                                 <tfoot>
                                     <tr>
                                         <th colspan="3" class="text-end">Total Personas</th>
-                                        <th><input type="number" id="totalPeople" name="total_people" class="form-control" min="0" step="0.01" value="{{ old('total_people', $club->total_people) }}" readonly></th>
+                                        <th><input type="text" id="totalPeople" name="total_people" class="form-control" min="0" step="0.01" value="{{ old('total_people', $club->total_people) }}" readonly></th>
                                     </tr>
                                     <tr>
                                         <th colspan="3" class="text-end">Total General</th>
-                                        <th><input type="number" id="grandTotal" name="total_amount" class="form-control" min="0" step="0.01" value="{{ old('total_amount', $club->total_amount) }}" readonly></th>
+                                        <th><input type="text" id="grandTotal" name="total_amount" class="form-control" min="0" step="0.01" value="{{ old('total_amount', $club->total_amount) }}" readonly></th>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -262,6 +259,6 @@
     <!-- Page JS -->
     
     <script src="{{ asset('assets/js/forms-selects.js') }}"></script>
-    <script src="{{ asset('pagesjs/clubs/create.js') }}"></script>
+    <script src="{{ asset('pagesjs/clubs/edit.js') }}"></script>
     
 @endsection

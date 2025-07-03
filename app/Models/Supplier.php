@@ -16,6 +16,7 @@ class Supplier extends Model
      * @var array
      */
     protected $fillable = [
+        'category_egress_id',
         'event_id',
         'category_supplier_id',
         'subcategory_supplier_id',
@@ -26,6 +27,11 @@ class Supplier extends Model
         'amount',
         'description',
     ];
+
+    public function categoryEgress(): BelongsTo
+    {
+        return $this->belongsTo(CategoryEgress::class, 'category_egress_id', 'id');
+    }
 
     public function event(): BelongsTo
     {

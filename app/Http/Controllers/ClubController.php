@@ -46,8 +46,7 @@ class ClubController extends Controller
                 })
                 ->rawColumns(['actions'])
                 ->make(true);
-        } 
-        return view('clubs.index');
+        }         return view('clubs.index');
     }
 
     /**
@@ -57,23 +56,30 @@ class ClubController extends Controller
     {
         $events = Event::all();
         $currencies = Currency::all();
-        $suppliers = Supplier::all();
-        $countries = Country::all();
+        $suppliers = Supplier::orderBy('name', 'asc')->get();
+        $countries = Country::orderBy('name', 'asc')->get();
         return view('clubs.create', compact('events', 'currencies', 'suppliers', 'countries'));
     }
 
     public function getProvinces(Request $request)
     {
         $countryId = $request->input('country_id');
-        $provinces = Province::where('country_id', $countryId)->get();
+        $provinces = Province::where('country_id', $countryId)->orderBy('name', 'asc')->get();
         return response()->json($provinces);
     }
 
     public function getCities(Request $request)
     {
         $provinceId = $request->input('province_id');
-        $cities = City::where('province_id', $provinceId)->get();
+        $cities = City::where('province_id', $provinceId)->orderBy('name', 'asc')->get();
         return response()->json($cities);
+    }
+
+    public function getSuppliersByEvent(Request $request)
+    {
+        $eventId = $request->input('event_id');
+        $suppliers = Supplier::where('event_id', $eventId)->orderBy('name', 'asc')->get();
+        return response()->json($suppliers);
     }
 
     /**
@@ -83,19 +89,31 @@ class ClubController extends Controller
     {
         try {
             $data = $request->all();
-        
+
+            // Eliminar comas de los montos antes de guardar
+            $fieldsToClean = [
+                'players_quantity', 'teachers_quantity', 'companions_quantity', 'drivers_quantity', 'liberated_quantity',
+                'player_price', 'teacher_price', 'companion_price', 'driver_price', 'liberated_price',
+                'total_players', 'total_teachers', 'total_companions', 'total_drivers', 'total_liberated',
+                'total_people', 'total_amount'
+            ];
+            foreach ($fieldsToClean as $field) {
+                if (isset($data[$field])) {
+                    $data[$field] = str_replace(',', '', $data[$field]);
+                }
+            }
+
             if ($request->hasFile('logo')) {
                 $logoPath = $this->saveFile($request->file('logo'), 'clubs/logos/');
                 $data['logo'] = $logoPath;
             }
-
+            $data['category_income_id'] = 1; // Ingreso de clubes
             $club = Club::create($data);
 
             return redirect()->route('club.index')
                 ->with('success', 'Club creado exitosamente.');
         } catch (\Exception $e) {
-            dd($e->getMessage());
-            return redirect()->route('club.index')->with('error', 'Error al crear el club');
+            return redirect()->route('club.index')->with('error', 'Error al crear el club: ' . $e->getMessage());
         }
         
     }
@@ -103,9 +121,10 @@ class ClubController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Club $club)
+    public function show($club)
     {
-        
+        $club = Club::with(['event', 'currency', 'supplier', 'country', 'province', 'city'])->find($club);
+        return view('clubs.show', compact('club'));
     }
 
     /**
@@ -115,8 +134,8 @@ class ClubController extends Controller
     {
         $events = Event::all();
         $currencies = Currency::all();
-        $suppliers = Supplier::all();
-        $countries = Country::all();
+        $suppliers = Supplier::orderBy('name', 'asc')->get();
+        $countries = Country::orderBy('name', 'asc')->get();
         $club = Club::find($id);
         return view('clubs.edit', compact('club', 'events', 'currencies', 'suppliers', 'countries'));
     }
@@ -128,6 +147,18 @@ class ClubController extends Controller
     {
         try {
             $data = $request->all();
+            // Eliminar comas de los montos antes de guardar
+            $fieldsToClean = [
+                'players_quantity', 'teachers_quantity', 'companions_quantity', 'drivers_quantity', 'liberated_quantity',
+                'player_price', 'teacher_price', 'companion_price', 'driver_price', 'liberated_price',
+                'total_players', 'total_teachers', 'total_companions', 'total_drivers', 'total_liberated',
+                'total_people', 'total_amount'
+            ];
+            foreach ($fieldsToClean as $field) {
+                if (isset($data[$field])) {
+                    $data[$field] = str_replace(',', '', $data[$field]);
+                }
+            }
             $club = Club::find($club);
             if ($request->hasFile('logo')) {
                 $logoPath = $this->saveFile($request->file('logo'), 'clubs/logos/');
@@ -182,4 +213,6 @@ class ClubController extends Controller
             throw new \Exception('Error al guardar la imagen: ' . $e->getMessage());
         }
     }
+
+
 }

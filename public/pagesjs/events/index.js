@@ -56,11 +56,11 @@ const initEventsTable = () => {
                     <div class="d-flex justify-content-start align-items-center user-name">
                         <div class="avatar-wrapper">
                             <div class="avatar avatar-sm me-4">
-                                <img src="${row.url_images}" alt="${row.name}" class="rounded-circle">
+                                <img src="storage/${row.url_images}" alt="${row.name}" class="rounded-circle">
                             </div>
                         </div>  
                         <div class="d-flex flex-column">
-                            <a href="app-user-view-account.html" class="text-heading text-truncate">
+                            <a href="/eventos/${row.id}/history" class="text-heading text-truncate">
                                 <span class="fw-medium">${row.name}</span>
                             </a>
                         </div>

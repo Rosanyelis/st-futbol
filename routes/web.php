@@ -8,6 +8,7 @@ use App\Http\Controllers\EntityController;
 use App\Http\Controllers\CountryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\BussinesController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\ProvinceController;
 use App\Http\Controllers\SupplierController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\AccountPayableController;
 use App\Http\Controllers\CategoryIncomeController;
 use App\Http\Controllers\CategoryExpenseController;
 use App\Http\Controllers\CategorySupplierController;
+use App\Http\Controllers\AccountReceivableController;
 use App\Http\Controllers\SubcategoryExpenseController;
 use App\Http\Controllers\SubcategorySupplierController;
 use App\Http\Controllers\CategoryMethodPaymentController;
@@ -34,6 +36,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    # Negocio
+    Route::get('/negocio', [BussinesController::class, 'index'])->name('bussines.index');
+    Route::get('/negocio/history-json', [BussinesController::class, 'historyJson'])->name('bussines.historyJson');
+    Route::post('/negocio/store-transaction', [BussinesController::class, 'storeTransaction'])->name('bussines.storeTransaction');
+    Route::get('/negocio/metodo-pago/{currencyId}', [BussinesController::class, 'paymentMethods'])->name('bussines.paymentMethods');
+    Route::get('/negocio/currencies', [BussinesController::class, 'currencies'])->name('bussines.currencies');
+    Route::get('/negocio/clubs-by-category/{categoryIncomeId}', [BussinesController::class, 'getClubsByCategory'])->name('bussines.getClubsByCategory');
+    Route::get('/negocio/expenses-by-category/{categoryEgressId}', [BussinesController::class, 'getExpensesByCategory'])->name('bussines.getExpensesByCategory');
+    Route::get('/negocio/suppliers-by-category/{categoryEgressId}', [BussinesController::class, 'getSuppliersByCategory'])->name('bussines.getSuppliersByCategory');
+
     # Eventos
     Route::get('/eventos', [EventController::class, 'index'])->name('event.index');
     Route::get('/eventos/create', [EventController::class, 'create'])->name('event.create');
@@ -45,7 +57,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/eventos/{id}/store-transaction', [EventController::class, 'storeTransaction'])->name('event.storeTransaction');
     Route::get('/eventos/{id}/history-json', [EventController::class, 'historyJson'])->name('event.historyJson');
     Route::get('/eventos/metodo-pago/{currencyId}', [EventController::class, 'paymentMethods'])->name('event.paymentMethods');
-    Route::get(' ', [EventController::class, 'currencies'])->name('event.currencies');
+    Route::get('/eventos/currencies', [EventController::class, 'currencies'])->name('event.currencies');
+    Route::get('/eventos/clubs-by-category/{categoryIncomeId}', [EventController::class, 'getClubsByCategory'])->name('event.getClubsByCategory');
+    Route::get('/eventos/expenses-by-category/{categoryEgressId}', [EventController::class, 'getExpensesByCategory'])->name('event.getExpensesByCategory');
+    Route::get('/eventos/suppliers-by-category/{categoryEgressId}', [EventController::class, 'getSuppliersByCategory'])->name('event.getSuppliersByCategory');
+    Route::get('/eventos/{id}/edit-history', [EventController::class, 'editHistory'])->name('event.history.edit');
+    Route::post('/eventos/{id}/update-history', [EventController::class, 'updateHistory'])->name('event.history.update');
+    Route::get('/eventos/{id}/destroy-history', [EventController::class, 'destroyHistory'])->name('event.history.destroy');
+
     # Categorías de proveedores
     Route::get('/categorias-proveedores', [CategorySupplierController::class, 'index'])->name('category-supplier.index');
     Route::get('/categorias-proveedores/create', [CategorySupplierController::class, 'create'])->name('category-supplier.create');
@@ -122,11 +141,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/clubs', [ClubController::class, 'index'])->name('club.index');
     Route::get('/clubs/create', [ClubController::class, 'create'])->name('club.create');
     Route::post('/clubs', [ClubController::class, 'store'])->name('club.store');
+    Route::get('/clubs/{id}/show', [ClubController::class, 'show'])->name('club.show');
     Route::get('/clubs/{id}/edit', [ClubController::class, 'edit'])->name('club.edit');
     Route::put('/clubs/{id}/update', [ClubController::class, 'update'])->name('club.update');
     Route::get('/clubs/{id}/destroy', [ClubController::class, 'destroy'])->name('club.destroy');
     Route::post('/clubs/get-provinces', [ClubController::class, 'getProvinces'])->name('club.get-provinces');
     Route::post('/clubs/get-cities', [ClubController::class, 'getCities'])->name('club.get-cities');
+    Route::post('/clubs/get-suppliers', [ClubController::class, 'getSuppliersByEvent'])->name('club.get-suppliers');
     # Monedas
     Route::get('/monedas', [CurrencyController::class, 'index'])->name('currency.index');
     Route::get('/monedas/create', [CurrencyController::class, 'create'])->name('currency.create');
@@ -162,6 +183,12 @@ Route::middleware('auth')->group(function () {
     # Cuenta por pagar
     Route::get('/cuenta-por-pagar', [AccountPayableController::class, 'index'])->name('account-payable.index');
     Route::get('/cuenta-por-pagar/json', [AccountPayableController::class, 'indexJson'])->name('account-payable.indexJson');
+    Route::post('/cuenta-por-pagar/procesar-pago', [AccountPayableController::class, 'processPayment'])->name('account-payable.processPayment');
+
+    # Cuenta por cobrar
+    Route::get('/cuenta-por-cobrar', [AccountReceivableController::class, 'index'])->name('account-receivable.index');
+    Route::get('/cuenta-por-cobrar/json', [AccountReceivableController::class, 'indexJson'])->name('account-receivable.indexJson');
+    Route::post('/cuenta-por-cobrar/procesar-pago', [AccountReceivableController::class, 'processPayment'])->name('account-receivable.processPayment');
 });
 
 require __DIR__.'/auth.php';

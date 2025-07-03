@@ -7,7 +7,10 @@ const CONFIG = {
     endpoints: {
         historyJson: (id) => `/eventos/${id}/history-json`,
         paymentMethods: (currencyId) => `/eventos/metodo-pago/${currencyId}`,
-        currencies: '/eventos/currencies'
+        currencies: '/eventos/currencies',
+        clubsByCategory: (categoryIncomeId) => `/eventos/clubs-by-category/${categoryIncomeId}`,
+        expensesByCategory: (categoryEgressId) => `/eventos/expenses-by-category/${categoryEgressId}`,
+        suppliersByCategory: (categoryEgressId) => `/eventos/suppliers-by-category/${categoryEgressId}`
     },
     selectors: {
         datatable: ".datatables-history",
@@ -60,6 +63,8 @@ class HistoryManager {
                 url: CONFIG.endpoints.historyJson(CONFIG.eventId),
                 data: (d) => {
                     d.currency_id = $('#currency_filter').val();
+                    d.start_date = $('#start_date_filter').val();
+                    d.end_date = $('#end_date_filter').val();
                 }
             },
             dom: this.getDatatableDOM(),
@@ -70,6 +75,7 @@ class HistoryManager {
             drawCallback: this.updateTotals.bind(this),
             initComplete: () => {
                 this.setupCurrencyFilter();
+                this.setupDateFilter();
             }
         });
 
@@ -81,7 +87,8 @@ class HistoryManager {
         return '<"card-header d-flex border-top rounded-0 flex-wrap pb-md-0 pt-0"' +
             '<"d-flex align-items-center me-5"' +
                 '<"me-3"f>' +
-                '<"currency-filter">' +
+                '<"currency-filter me-3">' +
+                '<"date-filter">' +
             '>' +
             '<"ms-auto d-flex justify-content-end align-items-center gap-4"' +
                 '<"d-flex align-items-center"l>' +
@@ -117,7 +124,8 @@ class HistoryManager {
             {data: 'currency.name'},
             {data: 'club.name'},
             {data: 'supplier.name'},
-            {data: 'methodPayment.account_holder'}
+            {data: 'methodPayment.account_holder'},
+            {data: 'actions', orderable: false, searchable: false},
         ];
     }
 
@@ -171,7 +179,7 @@ class HistoryManager {
     getDatatableButtons() {
         return [{
             text: 'Nuevo Movimiento',
-            className: 'btn btn-primary',
+            className: 'btn btn-primary btn-new-movement',
             action: () => $(CONFIG.selectors.modals.movement).modal('show')
         }];
     }
@@ -201,15 +209,38 @@ class HistoryManager {
     updateTotals() {
         const data = this.datatable.data();
         let totals = {income: 0, expense: 0};
+        let currencyTotals = {};
 
         data.each(item => {
+            // Sumar totales generales
             if (item.type === 'Ingreso') totals.income += parseFloat(item.amount);
             if (item.type === 'Egreso') totals.expense += parseFloat(item.amount);
+
+            // Sumar por moneda
+            const currencyName = item.currency?.name;
+            if (currencyName) {
+                if (!currencyTotals[currencyName]) {
+                    currencyTotals[currencyName] = {income: 0, expense: 0};
+                }
+                if (item.type === 'Ingreso') {
+                    currencyTotals[currencyName].income += parseFloat(item.amount);
+                }
+                if (item.type === 'Egreso') {
+                    currencyTotals[currencyName].expense += parseFloat(item.amount);
+                }
+            }
         });
 
+        // Actualizar totales generales
         $(CONFIG.selectors.totals.balance).text(CONFIG.numberFormat.format(totals.income - totals.expense));
         $(CONFIG.selectors.totals.income).text(CONFIG.numberFormat.format(totals.income));
         $(CONFIG.selectors.totals.expense).text(CONFIG.numberFormat.format(totals.expense));
+
+        // Actualizar totales por moneda
+        for (const currency in currencyTotals) {
+            $(`#totalIngreso${currency}`).text(CONFIG.numberFormat.format(currencyTotals[currency].income));
+            $(`#totalEgreso${currency}`).text(CONFIG.numberFormat.format(currencyTotals[currency].expense));
+        }
     }
 
     // Estilos del DataTable
@@ -224,6 +255,8 @@ class HistoryManager {
         this.setupTypeChangeHandler();
         this.setupTypeIncomeChangeHandler();
         this.setupTypeExpenseChangeHandler();
+        this.setupAmountInputFormat();
+        this.setupFormConfirmation(); // <-- Agrega esto
     }
 
     // Manejador de cambio de moneda
@@ -241,7 +274,7 @@ class HistoryManager {
             const selectedType = $(CONFIG.selectors.forms.type).val();
             this.hideOptionalDivs();
             this.clearAllSelectors();
-            
+
             if (selectedType === 'Ingreso') {
                 $(CONFIG.selectors.divs.typeIncome).show();
             } else if (selectedType === 'Egreso') {
@@ -253,13 +286,22 @@ class HistoryManager {
     // Manejador de cambio de tipo de ingreso
     setupTypeIncomeChangeHandler() {
         $(CONFIG.selectors.forms.typeIncome).change(() => {
-            const selectedTypeIncome = $(CONFIG.selectors.forms.typeIncome).val();
-            $(CONFIG.selectors.divs.club).hide();
+            // Solo ocultar los divs relacionados con egresos y limpiar el club
+            this.hideExpenseRelatedDivs();
             $(CONFIG.selectors.forms.clubId).val('');
-            
-            if (selectedTypeIncome === 'Club') {
+
+            const selectedTypeIncome = $(CONFIG.selectors.forms.typeIncome).val();
+
+            // Siempre muestra el select de tipo de ingreso
+            $(CONFIG.selectors.divs.typeIncome).show();
+
+            if (selectedTypeIncome == 1) { // ID 1 = "Clubs"
+                this.loadClubsByCategory(selectedTypeIncome);
                 $(CONFIG.selectors.divs.club).show();
+            } else {
+                $(CONFIG.selectors.divs.club).hide();
             }
+            // Si hay más tipos de ingreso, puedes agregar lógica aquí
         });
     }
 
@@ -269,10 +311,12 @@ class HistoryManager {
             const selectedTypeExpense = $(CONFIG.selectors.forms.typeExpense).val();
             this.hideExpenseRelatedDivs();
             
-            if (selectedTypeExpense === 'Proveedor') {
-                $(CONFIG.selectors.divs.supplier).show();
-            } else if (selectedTypeExpense === 'Gasto') {
+            if (selectedTypeExpense == 1) { // ID 1 = "Gastos"
+                this.loadExpensesByCategory(selectedTypeExpense);
                 $(CONFIG.selectors.divs.expense).show();
+            } else if (selectedTypeExpense == 2) { // ID 2 = "Proveedores"
+                this.loadSuppliersByCategory(selectedTypeExpense);
+                $(CONFIG.selectors.divs.supplier).show();
             }
         });
     }
@@ -288,6 +332,139 @@ class HistoryManager {
             type: 'GET',
             success: this.handlePaymentMethodsResponse.bind(this),
             error: this.handlePaymentMethodsError
+        });
+    }
+
+    // Carga de clubs por categoría de ingreso
+    loadClubsByCategory(categoryIncomeId) {
+        $(CONFIG.selectors.forms.clubId)
+            .empty()
+            .append('<option value="">-- Seleccionar --</option>');
+
+        $.ajax({
+            url: CONFIG.endpoints.clubsByCategory(categoryIncomeId),
+            type: 'GET',
+            data: { event_id: CONFIG.eventId },
+            success: this.handleClubsResponse.bind(this),
+            error: this.handleClubsError.bind(this)
+        });
+    }
+
+    // Carga de gastos por categoría de egreso
+    loadExpensesByCategory(categoryEgressId) {
+        $(CONFIG.selectors.forms.expenseId)
+            .empty()
+            .append('<option value="">-- Seleccionar --</option>');
+
+        $.ajax({
+            url: CONFIG.endpoints.expensesByCategory(categoryEgressId),
+            type: 'GET',
+            success: this.handleExpensesResponse.bind(this),
+            error: this.handleExpensesError.bind(this)
+        });
+    }
+
+    loadExpensesByCategoryAndSelect(categoryEgressId, selectedExpenseId) {
+        const $expenseSelect = $(CONFIG.selectors.forms.expenseId);
+        $expenseSelect.empty().append('<option value="">-- Seleccionar --</option>');
+        $.ajax({
+            url: CONFIG.endpoints.expensesByCategory(categoryEgressId),
+            type: 'GET',
+            success: (expenses) => {
+                if (expenses?.length) {
+                    expenses.forEach(expense => {
+                        $expenseSelect.append(
+                            `<option value="${expense.id}">${expense.category_expense.name} - ${expense.subcategory_expense.name}</option>`
+                        );
+                    });
+                    if (selectedExpenseId) {
+                        $expenseSelect.val(selectedExpenseId).trigger('change');
+                    }
+                }
+            }
+        });
+    }
+
+    // Carga de proveedores por categoría de egreso
+    loadSuppliersByCategory(categoryEgressId) {
+        $(CONFIG.selectors.forms.supplierId)
+            .empty()
+            .append('<option value="">-- Seleccionar --</option>');
+
+        $.ajax({
+            url: CONFIG.endpoints.suppliersByCategory(categoryEgressId),
+            type: 'GET',
+            success: this.handleSuppliersResponse.bind(this),
+            error: this.handleSuppliersError.bind(this)
+        });
+    }
+
+    // Cargar proveedores por categoría y seleccionar el proveedor correspondiente
+    loadSuppliersByCategoryAndSelect(categoryEgressId, selectedSupplierId) {
+        const $supplierSelect = $(CONFIG.selectors.forms.supplierId);
+        $supplierSelect.empty().append('<option value="">-- Seleccionar --</option>');
+        $.ajax({
+            url: CONFIG.endpoints.suppliersByCategory(categoryEgressId),
+            type: 'GET',
+            success: (suppliers) => {
+                if (suppliers?.length) {
+                    suppliers.forEach(supplier => {
+                        $supplierSelect.append(
+                            `<option value="${supplier.id}">${supplier.name} - ${supplier.representant}</option>`
+                        );
+                    });
+                    if (selectedSupplierId) {
+                        $supplierSelect.val(selectedSupplierId).trigger('change');
+                    }
+                }
+            }
+        });
+    }
+
+    // Cargar clubs y seleccionar el club correspondiente
+    loadClubsByCategoryAndSelect(categoryIncomeId, selectedClubId) {
+        const $clubSelect = $(CONFIG.selectors.forms.clubId);
+        $clubSelect.empty().append('<option value="">-- Seleccionar --</option>');
+        $.ajax({
+            url: CONFIG.endpoints.clubsByCategory(categoryIncomeId),
+            type: 'GET',
+            data: { event_id: CONFIG.eventId },
+            success: (clubs) => {
+                if (clubs?.length) {
+                    clubs.forEach(club => {
+                        $clubSelect.append(
+                            `<option value="${club.id}">${club.name}</option>`
+                        );
+                    });
+                    if (selectedClubId) {
+                        $clubSelect.val(selectedClubId).trigger('change');
+                    }
+                }
+            }
+        });
+    }
+
+    // Cargar métodos de pago y seleccionar el método correspondiente
+    loadPaymentMethodsAndSelect(currencyId, selectedMethodId) {
+        const $methodSelect = $(CONFIG.selectors.forms.methodPaymentId);
+        $methodSelect.empty().append('<option value="">-- Seleccionar --</option>');
+        $.ajax({
+            url: CONFIG.endpoints.paymentMethods(currencyId),
+            type: 'GET',
+            success: (methods) => {
+                if (methods?.length) {
+                    methods.forEach(method => {
+                        $methodSelect.append(
+                            `<option value="${method.id}">
+                                ${method.account_holder} - ${method.entity.name} - ${method.type_account}
+                            </option>`
+                        );
+                    });
+                    if (selectedMethodId) {
+                        $methodSelect.val(selectedMethodId).trigger('change');
+                    }
+                }
+            }
         });
     }
 
@@ -307,6 +484,54 @@ class HistoryManager {
     // Manejo de error en métodos de pago
     handlePaymentMethodsError(xhr, status, error) {
         console.error('Error al obtener métodos de pago:', error);
+    }
+
+    // Manejo de respuesta de clubs
+    handleClubsResponse(clubs) {
+        if (clubs?.length) {
+            clubs.forEach(club => {
+                $(CONFIG.selectors.forms.clubId).append(
+                    `<option value="${club.id}">${club.name}</option>`
+                );
+            });
+        }
+    }
+
+    // Manejo de error en clubs
+    handleClubsError(xhr, status, error) {
+        console.error('Error al obtener clubs:', error);
+    }
+
+    // Manejo de respuesta de gastos
+    handleExpensesResponse(expenses) {
+        if (expenses?.length) {
+            expenses.forEach(expense => {
+                $(CONFIG.selectors.forms.expenseId).append(
+                    `<option value="${expense.id}">${expense.category_expense.name} - ${expense.subcategory_expense.name}</option>`
+                );
+            });
+        }
+    }
+
+    // Manejo de error en gastos
+    handleExpensesError(xhr, status, error) {
+        console.error('Error al obtener gastos:', error);
+    }
+
+    // Manejo de respuesta de proveedores
+    handleSuppliersResponse(suppliers) {
+        if (suppliers?.length) {
+            suppliers.forEach(supplier => {
+                $(CONFIG.selectors.forms.supplierId).append(
+                    `<option value="${supplier.id}">${supplier.name} - ${supplier.representant}</option>`
+                );
+            });
+        }
+    }
+
+    // Manejo de error en proveedores
+    handleSuppliersError(xhr, status, error) {
+        console.error('Error al obtener proveedores:', error);
     }
 
     // Ocultar todos los divs opcionales
@@ -329,7 +554,6 @@ class HistoryManager {
             CONFIG.selectors.forms.typeExpense,
             CONFIG.selectors.forms.clubId,
             CONFIG.selectors.forms.supplierId,
-            CONFIG.selectors.forms.expenseId
         ].forEach(selector => $(selector).val(''));
     }
 
@@ -377,9 +601,220 @@ class HistoryManager {
         console.error('Error al obtener las monedas:', error);
         $('.currency-filter').html('<span class="text-danger small">Error al cargar monedas</span>');
     }
+
+    // Configurar el filtro de fechas
+    setupDateFilter() {
+        const dateFilterHTML = `
+            <div class="d-flex align-items-center" style="min-width: 300px;">
+                <div class="me-2">
+                    <div class="form-floating form-floating-outline">
+                        <input type="date" id="start_date_filter" class="form-control form-control-sm" style="width: 130px;">
+                        <label class="small">Desde:</label>
+                    </div>
+                </div>
+                <div class="me-2">
+                    <div class="form-floating form-floating-outline">
+                        <input type="date" id="end_date_filter" class="form-control form-control-sm" style="width: 130px;">
+                        <label class="small">Hasta:</label>
+                    </div>
+                </div>
+                <div class="d-flex align-items-end">
+                    <button id="clear_date_filter" class="btn btn-outline-secondary btn-sm" style="height: 32px;">
+                        <i class="ri-refresh-line"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        $('.date-filter').html(dateFilterHTML);
+
+        // Configurar event listeners para el filtro de fechas
+        $('#start_date_filter, #end_date_filter').on('change', () => {
+            this.validateDateRange();
+            this.datatable.ajax.reload();
+        });
+
+        // Botón para limpiar filtros de fecha
+        $('#clear_date_filter').on('click', () => {
+            $('#start_date_filter').val('');
+            $('#end_date_filter').val('');
+            this.datatable.ajax.reload();
+        });
+    }
+
+    // Validar rango de fechas
+    validateDateRange() {
+        const startDate = $('#start_date_filter').val();
+        const endDate = $('#end_date_filter').val();
+        
+        if (startDate && endDate && startDate > endDate) {
+            Swal.fire({
+                title: 'Error en fechas',
+                text: 'La fecha de inicio no puede ser mayor que la fecha de fin',
+                icon: 'error',
+                confirmButtonText: 'Entendido'
+            });
+            $('#end_date_filter').val('');
+        }
+    }
+
+    // Abre el modal para editar un movimiento
+    openEditModal(movement) {
+        const modal = $(CONFIG.selectors.modals.movement);
+
+        modal.find('input[name="id"]').remove();
+        modal.find('form').prepend(`<input type="hidden" name="id" value="${movement.id}">`);
+        modal.find('textarea[name="description"]').val(movement.description ?? '');
+        modal.find('input[name="date"]').val(movement.date ?? '');
+        modal.find('select[name="type"]').val(movement.type ?? '').trigger('change');
+        modal.find('select[name="type_income"]').val(movement.category_income_id ?? '').trigger('change');
+        modal.find('select[name="type_expense"]').val(movement.category_egress_id ?? '').trigger('change');
+        modal.find('select[name="expense_id"]').val(movement.expense_id ?? '').trigger('change');
+        modal.find('select[name="currency_id"]').val(movement.currency_id ?? '').trigger('change');
+        modal.find('input[name="amount"]').val(movement.amount ?? '');
+
+        // Clubs dependiente de tipo de ingreso
+        if (movement.type === 'Ingreso' && movement.category_income_id) {
+            this.loadClubsByCategoryAndSelect(movement.category_income_id, movement.club_id);
+        }
+
+        // Proveedores dependiente de tipo de egreso
+        if (movement.type === 'Egreso' && movement.category_egress_id) {
+            this.loadSuppliersByCategoryAndSelect(movement.category_egress_id, movement.supplier_id);
+            this.loadExpensesByCategoryAndSelect(movement.category_egress_id, movement.expense_id); // <-- agrega esto
+        }
+
+        // Método de pago dependiente de moneda
+        if (movement.currency_id) {
+            this.loadPaymentMethodsAndSelect(movement.currency_id, movement.method_payment_id);
+        }
+
+        // Muestra/oculta los divs según el tipo de movimiento
+        this.hideOptionalDivs();
+        if (movement.type === 'Ingreso') {
+            $(CONFIG.selectors.divs.typeIncome).show();
+            if (movement.club_id) $(CONFIG.selectors.divs.club).show();
+        } else if (movement.type === 'Egreso') {
+            $(CONFIG.selectors.divs.typeExpense).show();
+            if (movement.supplier_id) $(CONFIG.selectors.divs.supplier).show();
+            if (movement.expense_id) $(CONFIG.selectors.divs.expense).show();
+        }
+
+        modal.find('.modal-title').text('Editar Movimiento de Ingreso/Egreso');
+        modal.find('button[type="submit"]').text('Actualizar'); 
+        modal.find('form').attr('action', `/eventos/${movement.id}/update-history`);
+        modal.modal('show');
+    }
+
+    // Limpiar el formulario del modal de movimiento
+    clearMovementModal() {
+        const modal = $(CONFIG.selectors.modals.movement);
+        modal.find('form')[0].reset();
+        modal.find('input[name="id"]').remove();
+        modal.find('select').val('').trigger('change');
+        this.hideOptionalDivs();
+        modal.find('.modal-title').text('Crear Movimiento de Ingreso/Egreso');
+        modal.find('button[type="submit"]').text('Crear');
+        modal.find('form').attr('action', $('#formMovimiento').data('action-create') || $('#formMovimiento').attr('action'));
+    }
+
+    // Eliminar movimiento
+    deleteMovement(movementId) {
+        
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: 'Esta acción eliminará el movimiento de forma permanente.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            customClass: {
+                confirmButton: 'btn btn-primary me-3 waves-effect waves-light',
+                cancelButton: 'btn btn-outline-danger waves-effect'
+            },
+            buttonsStyling: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = `/eventos/${movementId}/destroy-history`;
+            }
+        });
+    }
+
+    // Validar confirmación antes de crear o editar movimiento
+    setupFormConfirmation() {
+        const modal = $(CONFIG.selectors.modals.movement);
+        const $form = modal.find('form');
+
+        $form.off('submit').on('submit', function(e) {
+            e.preventDefault();
+
+            // Detectar si es crear o editar según el texto del botón
+            const isEdit = modal.find('button[type="submit"]').text().trim().toLowerCase() === 'actualizar';
+            const actionText = isEdit ? 'Actualizar' : 'Crear';
+
+            Swal.fire({
+                title: `¿Está seguro de ${actionText} el movimiento?`,
+                text: `Esta acción ${isEdit ? 'modificará' : 'creará'} el movimiento en el historial.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: `Sí, ${actionText}`,
+                cancelButtonText: 'No, revisar',
+                customClass: {
+                    confirmButton: 'btn btn-primary me-3 waves-effect waves-light',
+                    cancelButton: 'btn btn-outline-secondary waves-effect'
+                },
+                buttonsStyling: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $form.off('submit'); // Evita loop infinito
+                    $form.submit();
+                }
+                // Si cancela, no hace nada y el modal sigue abierto para edición
+            });
+        });
+    }
+
+    // Formatear el campo de monto en tiempo real
+    setupAmountInputFormat() {
+        const $amountInput = $(CONFIG.selectors.modals.movement).find('input[name="amount"]');
+        $amountInput.on('input', function () {
+            let value = $(this).val();
+
+            // Eliminar todo excepto números y punto
+            value = value.replace(/[^0-9.]/g, '');
+
+            // Separar parte entera y decimal
+            let [integer, decimal] = value.split('.');
+            integer = integer ? integer.replace(/^0+/, '') : '';
+
+            // Formatear miles
+            if (integer.length) {
+                integer = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+
+            // Limitar a dos decimales
+            if (decimal !== undefined) {
+                decimal = decimal.substring(0, 2);
+                value = integer + '.' + decimal;
+            } else {
+                value = integer;
+            }
+
+            $(this).val(value);
+        });
+    }
 }
 
 // Inicialización cuando el documento está listo
 $(function() {
-    new HistoryManager();
+    window.historyManager = new HistoryManager();
+
+    // Botón "Nuevo Movimiento"
+    $(document).on('click', '.btn-new-movement', function() {
+        // Solo si es el botón de "Nuevo Movimiento"
+        if ($(this).text().trim() === 'Nuevo Movimiento') {
+            window.historyManager.clearMovementModal();
+            $(CONFIG.selectors.modals.movement).modal('show');
+        }
+    });
 });

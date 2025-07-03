@@ -15,11 +15,12 @@ return new class extends Migration
         Schema::create('clubs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('event_id')->constrained('events')->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignId('category_income_id')->constrained('category_incomes')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('currency_id')->constrained('currencies')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->onUpdate('cascade')->onDelete('cascade');
             $table->string('name');
             $table->string('logo');
-            $table->string('cuit');
+            $table->string('cuit')->nullable();
             $table->string('responsible');
             $table->string('phone')->nullable();
             $table->string('email')->nullable();

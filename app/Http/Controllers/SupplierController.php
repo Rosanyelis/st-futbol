@@ -33,6 +33,17 @@ class SupplierController extends Controller
                 );
 
             return DataTables::of($data)
+                ->filter(function ($query) use ($request) {
+                    if ($request->has('search') && $request->search['value'] != '') {
+                        $search = $request->search['value'];
+                        $query->where(function ($q) use ($search) {
+                            $q->where('suppliers.name', 'like', "%{$search}%")
+                                ->orWhere('category_suppliers.name', 'like', "%{$search}%")
+                                ->orWhere('subcategory_suppliers.name', 'like', "%{$search}%")
+                                ->orWhere('currencies.name', 'like', "%{$search}%");
+                        });
+                    }
+                })
                 ->addColumn('actions', function ($data) {
                     return view('suppliers.actions', ['id' => $data->id]);
                 })
@@ -48,9 +59,9 @@ class SupplierController extends Controller
     public function create()
     {
         $events = Event::all();
-        $categorySuppliers = CategorySupplier::all();
         $currencies = Currency::all();
-        return view('suppliers.create', compact('events', 'categorySuppliers', 'currencies'));
+        $categorySuppliers = CategorySupplier::all();
+        return view('suppliers.create', compact('events', 'currencies', 'categorySuppliers'));
     }
 
     /**
@@ -63,10 +74,11 @@ class SupplierController extends Controller
             $data['amount'] = str_replace(',', '', $data['amount']);
             $data['amount'] = str_replace('.', '', $data['amount']);
             $data['amount'] = floatval($data['amount']);
+            $data['category_egress_id'] = 2; // Egreso de proveedores
             $supplier = Supplier::create($data);
             return redirect()->route('supplier.index')->with('success', 'Proveedor creado correctamente');
         } catch (\Exception $e) {
-            return redirect()->route('supplier.index')->with('error', 'Error al crear el proveedor');
+            return redirect()->route('supplier.index')->with('error', 'Error al crear el proveedor: ' . $e->getMessage());
         }
     }
 

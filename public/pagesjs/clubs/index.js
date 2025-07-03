@@ -38,28 +38,6 @@ const initClubsTable = () => {
         columns: [
             { data: 'name', name: 'name' },
             { data: 'event', name: 'event' },
-            { data: 'responsible', name: 'responsible' },
-            { data: 'phone', name: 'phone' },
-            { data: 'email', name: 'email' },
-            { data: 'country', name: 'country' },
-            { data: 'supplier', name: 'supplier' },
-            { data: 'category_supplier', name: 'category_supplier' },
-            { data: 'currency', name: 'currency' },
-            { data: 'players_quantity', name: 'players_quantity' },
-            { data: 'player_price', name: 'player_price' },
-            { data: 'total_players', name: 'total_players' },
-            { data: 'teachers_quantity', name: 'teachers_quantity' },
-            { data: 'teacher_price', name: 'teacher_price' },
-            { data: 'total_teachers', name: 'total_teachers' },
-            { data: 'companions_quantity', name: 'companions_quantity' },
-            { data: 'companion_price', name: 'companion_price' },
-            { data: 'total_companions', name: 'total_companions' },
-            { data: 'drivers_quantity', name: 'drivers_quantity' },
-            { data: 'driver_price', name: 'driver_price' },
-            { data: 'total_drivers', name: 'total_drivers' },
-            { data: 'liberated_quantity', name: 'liberated_quantity' },
-            { data: 'total_people', name: 'total_people' },
-            { data: 'total_amount', name: 'total_amount' },
             { 
                 data: 'actions', 
                 name: 'actions', 
@@ -77,11 +55,11 @@ const initClubsTable = () => {
                     <div class="d-flex justify-content-start align-items-center user-name">
                         <div class="avatar-wrapper">
                             <div class="avatar avatar-sm me-4">
-                                <img src="${row.logo}" alt="${row.name}" class="rounded-circle">
+                                <img src="storage/${row.logo}" alt="${row.name}" class="rounded-circle">
                             </div>
                         </div>  
                         <div class="d-flex flex-column">
-                            <a href="app-user-view-account.html" class="text-heading text-truncate">
+                            <a href="/clubs/${row.id}/show" class="text-heading text-truncate">
                                 <span class="fw-medium">${row.name}</span>
                             </a>
                         </div>
@@ -89,15 +67,6 @@ const initClubsTable = () => {
                     `;
                 }
             },
-            {
-                targets: [10, 11, 13, 14, 16, 17, 19, 20, 23],
-                searchable: true,
-                render: function(data, type, row) {
-                    return `
-                    <span>${numberFormat.format(data)}</span>
-                    `;
-                }
-            }
         ]
     });
 };

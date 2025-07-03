@@ -7,12 +7,15 @@ use App\Models\Event;
 use App\Models\Expense;
 use App\Models\Currency;
 use App\Models\Supplier;
+use App\Models\ClubPayment;
 use Illuminate\Http\Request;
 use App\Models\EventMovement;
 use App\Models\MethodPayment;
-use App\Models\ClubPayment;
+use App\Models\CategoryEgress;
+use App\Models\CategoryIncome;
 use App\Models\SupplierPayment;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\Events\StoreEventRequest;
@@ -72,6 +75,13 @@ class EventController extends Controller
                         $query->where('currency_id', $request->get('currency_id'));
                     }
 
+                    if ($request->filled('start_date')) {
+                        $query->where('date', '>=', $request->get('start_date'));
+                    }
+                    if ($request->filled('end_date')) {
+                        $query->where('date', '<=', $request->get('end_date'));
+                    }
+
                     // Búsqueda global
                     if ($request->has('search') && !empty($request->get('search')['value'])) {
                         $searchValue = $request->get('search')['value'];
@@ -109,6 +119,9 @@ class EventController extends Controller
                         });
                     }
                 })
+                ->addColumn('actions', function ($data) {
+                    return view('events.history_actions', ['data' => $data]);
+                })
                 ->make(true);
         }
     }
@@ -118,9 +131,12 @@ class EventController extends Controller
         $event = Event::find($event);
         $clubs = Club::all();
         $suppliers = Supplier::all();
-        $expenses = Expense::all();
+        $expenses = Expense::with('categoryExpense', 'subcategoryExpense')->get();
         $currencies = Currency::all();
-        return view('events.history', compact('event', 'clubs', 'suppliers', 'expenses', 'currencies'));
+        $categoryIncomes = CategoryIncome::all();
+        $categoryEgress = CategoryEgress::all();
+        
+        return view('events.history', compact('event', 'clubs', 'suppliers', 'expenses', 'currencies', 'categoryIncomes', 'categoryEgress'));
     }
 
     public function paymentMethods($currencyId)
@@ -135,31 +151,74 @@ class EventController extends Controller
         return response()->json($currencies);
     }
 
+    /**
+     * Obtener clubs por categoría de ingreso
+     */
+    public function getClubsByCategory($categoryIncomeId)
+    {
+        if ($categoryIncomeId == 1) { // ID 1 = "Clubs"
+            $clubs = Club::where('event_id', request()->get('event_id'))->get();
+            return response()->json($clubs);
+        }
+        
+        return response()->json([]);
+    }
+
+    /**
+     * Obtener gastos por categoría de egreso
+     */
+    public function getExpensesByCategory($categoryEgressId)
+    {
+        if ($categoryEgressId == 1) { // ID 1 = "Gastos"
+            $expenses = Expense::with('categoryExpense', 'subcategoryExpense')->where('category_egress_id', $categoryEgressId)->get();
+            return response()->json($expenses);
+        }
+        
+        return response()->json([]);
+    }
+
+    /**
+     * Obtener proveedores por categoría de egreso
+     */
+    public function getSuppliersByCategory($categoryEgressId)
+    {
+        if ($categoryEgressId == 2) { // ID 2 = "Proveedores"
+            $suppliers = Supplier::where('category_egress_id', $categoryEgressId)->get();
+            return response()->json($suppliers);
+        }
+        
+        return response()->json([]);
+    }
+
     public function storeTransaction(Request $request, $event)
     {
         DB::beginTransaction();
         try {
             $data = $request->all();
 
-            $data['event_id'] = $event;
-            $data['date'] = date('Y-m-d H:i:s');
-            $data['status'] = 'Pagado';
+            // Limpiar comas del monto antes de guardar
+            $data['amount'] = str_replace(',', '', $data['amount']);
 
+            $data['event_id'] = $event;
+            $data['category_egress_id'] = $data['type_expense'] ?? null; 
+            $data['category_income_id'] = $data['type_income'] ?? null;
+            $data['user_id'] = Auth::user()->id;
+           
             // Crear el movimiento del evento
             $movement = EventMovement::create($data);
 
             // Actualizar el balance del método de pago
-            if ($data['method_payment_id']) {
+            if (!empty($data['method_payment_id'])) {
                 $this->updatePaymentMethodBalance($data['method_payment_id'], $data['amount'], $data['type']);
             }
 
             // Si es un ingreso de club, crear el movimiento de abono
-            if ($data['type'] === 'Ingreso' && $data['type_income'] === 'Club' && isset($data['club_id'])) {
+            if ($data['type'] === 'Ingreso' && $data['type_income'] === '1' && isset($data['club_id'])) {
                 $this->createClubPayment($data);
             }
 
-            // si es un egreso de proveedor, crear el movimiento de gasto
-            if ($data['type'] === 'Egreso' && $data['type_expense'] === 'Proveedor' && isset($data['supplier_id'])) {
+            // Si es un egreso de proveedor, crear el movimiento de gasto
+            if ($data['type'] === 'Egreso' && $data['type_expense'] === '2' && isset($data['supplier_id'])) {
                 $this->createSupplierPayment($data);
             }
 
@@ -203,6 +262,8 @@ class EventController extends Controller
         ClubPayment::create([
             'club_id' => $data['club_id'],
             'currency_id' => $data['currency_id'],
+            'method_payment_id' => $data['method_payment_id'] ?? null,
+            'date' => $data['date'],
             'amount' => $data['amount'],
         ]);
     }
@@ -212,7 +273,24 @@ class EventController extends Controller
         SupplierPayment::create([
             'supplier_id' => $data['supplier_id'],
             'currency_id' => $data['currency_id'],
+            'method_payment_id' => $data['method_payment_id'] ?? null,
+            'date' => $data['date'],
             'amount' => $data['amount'],
+        ]);
+    }
+
+    public function editHistory($id)
+    {
+        $data = EventMovement::with('club', 'supplier', 'expense', 'currency', 'categoryIncome', 'categoryEgress')->find($id);
+
+        return response()->json([
+            'data' => $data,
+            'clubs' => Club::all(),
+            'suppliers' => Supplier::all(),
+            'expenses' => Expense::with('categoryExpense', 'subcategoryExpense')->get(),
+            'currencies' => Currency::all(),
+            'categoryIncomes' => CategoryIncome::all(),
+            'categoryEgress' => CategoryEgress::all(),
         ]);
     }
 
@@ -286,6 +364,94 @@ class EventController extends Controller
             return $path . $fileName;
         } catch (\Exception $e) {
             throw new \Exception('Error al guardar la imagen: ' . $e->getMessage());
+        }
+    }
+
+    public function updateHistory(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $movement = EventMovement::findOrFail($id);
+            $oldAmount = floatval($movement->amount);
+            $oldType = $movement->type;
+            $oldMethodPaymentId = $movement->method_payment_id;
+
+            $data = $request->all();
+
+            // Limpiar comas del monto antes de actualizar
+            $data['amount'] = str_replace(',', '', $data['amount']);
+
+            // 1. Revertir el saldo anterior si tenía método de pago
+            if ($oldMethodPaymentId) {
+                $methodPayment = MethodPayment::findOrFail($oldMethodPaymentId);
+                if ($oldType === 'Ingreso') {
+                    // Si era ingreso, restar el monto anterior
+                    $methodPayment->current_balance -= $oldAmount;
+                } elseif ($oldType === 'Egreso') {
+                    // Si era egreso, sumar el monto anterior
+                    $methodPayment->current_balance += $oldAmount;
+                }
+                $methodPayment->save();
+            }
+
+            // 2. Actualizar el movimiento con los nuevos datos
+            $movement->update($data);
+
+            // 3. Aplicar el nuevo saldo si tiene método de pago
+            if (!empty($data['method_payment_id'])) {
+                $newMethodPayment = MethodPayment::findOrFail($data['method_payment_id']);
+                $newAmount = floatval($data['amount']);
+                $newType = $data['type'];
+
+                if ($newType === 'Ingreso') {
+                    $newMethodPayment->current_balance += $newAmount;
+                } elseif ($newType === 'Egreso') {
+                    if ($newMethodPayment->current_balance < $newAmount) {
+                        throw new \Exception('Saldo insuficiente en el método de pago');
+                    }
+                    $newMethodPayment->current_balance -= $newAmount;
+                }
+                $newMethodPayment->save();
+            }
+
+            DB::commit();
+            return redirect()->route('event.history', $movement->event_id)->with('success', 'Movimiento actualizado correctamente');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('event.history', $movement->event_id)->with('error', 'Error al actualizar el movimiento: ' . $e->getMessage());
+        }
+    }
+
+    public function destroyHistory($id)
+    {
+        DB::beginTransaction();
+        try {
+            $movement = EventMovement::findOrFail($id);
+
+            // Solo si tiene método de pago
+            if ($movement->method_payment_id) {
+                $methodPayment = MethodPayment::find($movement->method_payment_id);
+                $amount = floatval($movement->amount);
+
+                if ($methodPayment) {
+                    if ($movement->type === 'Ingreso') {
+                        $methodPayment->current_balance -= $amount;
+                    } elseif ($movement->type === 'Egreso') {
+                        $methodPayment->current_balance += $amount;
+                    }
+                    $methodPayment->save();
+                }
+                // Si no existe el método de pago, simplemente continúa (o puedes registrar un log)
+            }
+
+            $eventId = $movement->event_id;
+            $movement->delete();
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Movimiento eliminado correctamente');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Error al eliminar el movimiento: ' . $e->getMessage());
         }
     }
 }

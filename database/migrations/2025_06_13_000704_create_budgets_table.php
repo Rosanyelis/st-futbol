@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('bussines_id')->nullable()->constrained('bussines')->onUpdate('cascade')->onDelete('cascade');
             $table->date('start_date');
             $table->date('end_date');
-            $table->decimal('total_amount');
+            $table->decimal('total_amount', 18, 2);
             $table->timestamps();
         });
     }
