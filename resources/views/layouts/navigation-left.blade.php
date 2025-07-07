@@ -338,46 +338,53 @@
                     </ul>
                 </li>
                 <li class="menu-item
+                    @if (Route::currentRouteName() == 'report.incomeStatement' ||
+                        Route::currentRouteName() == 'report.expenseStatement' ||
+                        Route::currentRouteName() == 'report.index' ||
+                        Route::currentRouteName() == 'report.eventCurrencyStatement' ||
+                        Route::currentRouteName() == 'report.generalStatement' ||
+                        Route::currentRouteName() == 'report.movementsStatement') active open @endif
                     ">
                     <a href="javascript:void(0);" class="menu-link menu-toggle">
                         <i class="menu-icon tf-icons ri-file-pdf-2-fill"></i>
                         <div data-i18n="Informes">Informes</div>
                     </a>
                     <ul class="menu-sub">
-                        <li class="menu-item ">
-                            <a href="javascript:void(0);" class="menu-link">
+                        <li class="menu-item 
+                            @if (Route::currentRouteName() == 'report.incomeStatement') active @endif">
+                            <a href="{{ route('report.incomeStatement') }}" class="menu-link">
                                 <div data-i18n="Estado de Ingresos">Estado de Ingresos</div>
                             </a>
                         </li>
-                        <li class="menu-item ">
-                            <a href="javascript:void(0);" class="menu-link">
+                        <li class="menu-item 
+                            @if (Route::currentRouteName() == 'report.expenseStatement') active @endif">
+                            <a href="{{ route('report.expenseStatement') }}" class="menu-link">
                                 <div data-i18n="Estado de Egresos">Estado de Egresos</div>
                             </a>
                         </li>
                         
-                        <li class="menu-item ">
-                            <a href="javascript:void(0);" class="menu-link">
-                                <div data-i18n="Estado de Pres. Comparativos">Estado de Pres. Comparativos</div>
-                            </a>
-                        </li>
-                        <li class="menu-item ">
-                            <a href="javascript:void(0);" class="menu-link">
+                        <li class="menu-item 
+                            @if (Route::currentRouteName() == 'report.index') active @endif">
+                            <a href="{{ route('report.index') }}" class="menu-link">
                                 <div data-i18n="Estado de Ctas. por Cobrar">Estado de Ctas. por Cobrar</div>
                             </a>
                         </li>
-                        <li class="menu-item ">
-                            <a href="javascript:void(0);" class="menu-link">
+                        <li class="menu-item 
+                            @if (Route::currentRouteName() == 'report.movementsStatement') active @endif">
+                            <a href="{{ route('report.eventCurrencyStatement') }}" class="menu-link">
                                 <div data-i18n="Estado de Res. por Evento y Moneda">Estado de Res. por Evento y Moneda</div>
                             </a>
                         </li>
                         
-                        <li class="menu-item ">
-                            <a href="javascript:void(0);" class="menu-link">
+                        <li class="menu-item 
+                            @if (Route::currentRouteName() == 'report.generalStatement') active @endif">
+                            <a href="{{ route('report.generalStatement') }}" class="menu-link">
                                 <div data-i18n="Estado de Res. General y Moneda">Estado de Res. General y Moneda</div>
                             </a>
                         </li>
-                        <li class="menu-item ">
-                            <a href="javascript:void(0);" class="menu-link">
+                        <li class="menu-item 
+                            @if (Route::currentRouteName() == 'report.movementsStatement') active @endif">
+                            <a href="{{ route('report.movementsStatement') }}" class="menu-link">
                                 <div data-i18n="Estado de Res. Cuentas">Estado de Res. Cuentas</div>
                             </a>
                         </li>

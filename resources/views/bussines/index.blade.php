@@ -20,54 +20,7 @@
     
         <div class="card-widget-separator-wrapper">
             <div class="card-body card-widget-separator">
-                <div class="row gy-4 gy-sm-1" id="eventos">
-                    <div class="col-sm-6 col-lg-3">
-                        <div
-                            class="d-flex justify-content-between align-items-start card-widget-1 border-end pb-4 pb-sm-0">
-                            <div>
-                                <p class="mb-1">Balance Actual</p>
-                                <h4 id="totalBalance" class="mb-1 text-success">0</h4>
-                            </div>
-                            <div class="avatar me-sm-6">
-                                <span class="avatar-initial rounded text-heading">
-                                    <i class="ri-money-dollar-circle-fill ri-26px"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <hr class="d-none d-sm-block d-lg-none me-6" />
-                    </div>
-                    <div class="col-sm-6 col-lg-3">
-                        <div
-                            class="d-flex justify-content-between align-items-start card-widget-1 border-end pb-4 pb-sm-0">
-                            <div>
-                                <p class="mb-1">Ingresos</p>
-                                <h4 id="totalIngresos" class="mb-1 text-success">0</h4>
-                            </div>
-                            <div class="avatar me-sm-6">
-                                <span class="avatar-initial rounded text-heading">
-                                    <i class="ri-money-dollar-circle-fill ri-26px"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <hr class="d-none d-sm-block d-lg-none me-6" />
-                    </div>
-                    <div class="col-sm-6 col-lg-3">
-                        <div
-                            class="d-flex justify-content-between align-items-start card-widget-1 border-end pb-4 pb-sm-0">
-                            <div>
-                                <p class="mb-1">Egresos</p>
-                                <h4 id="totalEgresos" class="mb-1 text-danger">0</h4>
-                            </div>
-                            <div class="avatar me-sm-6">
-                                <span class="avatar-initial rounded text-heading">
-                                    <i class="ri-money-dollar-circle-fill ri-26px"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <hr class="d-none d-sm-block d-lg-none me-6" />
-                    </div>
-                </div>
-                <hr>
+                
                 <div class="row gy-4 gy-sm-1" id="monedas">
                     @foreach ($currencies as $currency)
                     <div class="col-sm-6 col-lg-3">
@@ -105,6 +58,7 @@
                         <th>Club</th>
                         <th>Proveedor</th>
                         <th>Cuenta</th>
+                        <th></th>
                     </tr>
                 </thead>
             </table>
@@ -121,5 +75,5 @@
 <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.js') }}"></script>
-<script src="{{ asset('pagesjs/bussines/index.js') }}"></script>
+<script src="{{ asset('pagesjs/bussines/index.js?v=1.0.0') }}"></script>
 @endsection

@@ -13,6 +13,7 @@ class ClubPayment extends Model
         'method_payment_id',
         'date',
         'amount',
+        'description',
     ];
 
     public function club(): BelongsTo

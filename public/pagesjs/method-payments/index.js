@@ -22,7 +22,7 @@ const initMethodPaymentsTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/metodos-pago",
         type: "POST",
         dataType: 'json',

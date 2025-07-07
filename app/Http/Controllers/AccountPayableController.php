@@ -51,15 +51,8 @@ class AccountPayableController extends Controller
         }
         $paymentMethods = MethodPayment::all();
         // obtener los totales pendientes por moneda y las que no tengan datos declararlas en cero
-        $totalesPendientes = Currency::leftJoin('suppliers', 'currencies.id', '=', 'suppliers.currency_id')
-            ->leftJoin('supplier_payments', 'suppliers.id', '=', 'supplier_payments.supplier_id')
-            ->select(
-                'currencies.name as currency_name',
-                DB::raw('COALESCE(SUM(suppliers.amount - IFNULL((SELECT SUM(amount) FROM supplier_payments sp WHERE sp.supplier_id = suppliers.id), 0)), 0) as total_pendiente')
-            )
-            ->groupBy('currencies.name')
-            ->get();
-        return view('account-payable.index', compact('paymentMethods', 'totalesPendientes'));
+        $currencies = Currency::all();
+        return view('account-payable.index', compact('paymentMethods', 'currencies'));
     }
 
     public function processPayment(ProcessPaymentRequest $request)

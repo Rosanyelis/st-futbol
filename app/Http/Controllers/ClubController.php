@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\City;
 use App\Models\Club;
 use App\Models\Event;
-use App\Models\Currency;
-use App\Models\Supplier;
 use App\Models\Country;
+use App\Models\Currency;
 use App\Models\Province;
-use App\Models\City;
+use App\Models\Supplier;
+use App\Models\ClubPayment;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\Clubs\StoreClubRequest;
 use App\Http\Requests\Clubs\UpdateClubRequest;
-use Yajra\DataTables\Facades\DataTables;
 
 class ClubController extends Controller
 {
@@ -214,5 +216,12 @@ class ClubController extends Controller
         }
     }
 
-
+    public function showPayment($club, $payment)
+    {
+        $club = Club::with(['currency', 'payments'])->findOrFail($club);
+        $payment = ClubPayment::with(['methodPayment', 'currency'])->findOrFail($payment);
+        return Pdf::loadView('clubs.recibo', compact('club', 'payment'))
+            // ->setPaper([0,0,150,1000])
+            ->stream(''.config('app.name', 'Laravel').' - Recibo de Club ' . $club->name. ' nro ' . $payment->id . '.pdf');
+    }
 }

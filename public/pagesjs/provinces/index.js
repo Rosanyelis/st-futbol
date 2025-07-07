@@ -22,7 +22,7 @@ const initProvincesTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/provincias",
         type: "POST",
         dataType: 'json',

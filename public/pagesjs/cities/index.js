@@ -22,7 +22,7 @@ const initCitiesTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/ciudades",
         type: "POST",
         dataType: 'json',

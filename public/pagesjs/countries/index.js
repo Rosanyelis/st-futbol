@@ -22,7 +22,7 @@ const initCountriesTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/paises",
         type: "POST",
         dataType: 'json',

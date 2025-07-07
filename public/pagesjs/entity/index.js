@@ -22,7 +22,7 @@ const initEntitiesTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/entidades",
         type: "POST",
         dataType: 'json',

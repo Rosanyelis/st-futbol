@@ -21,6 +21,12 @@
                         </div>
                         <div class="col-md-12">
                             <div class="form-floating form-floating-outline">
+                                <input type="date" id="date" name="date" class="form-control"  />
+                                <label for="date">Fecha</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-floating form-floating-outline">
                                 <select id="type" name="type"
                                     class="form-select select2"
                                     placeholder="Selecione Tipo de Movimiento"
@@ -129,7 +135,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary" id="btnPayOrder">Pagar</button>
+                    <button type="submit" class="btn btn-primary" id="btnPayOrder">Crear</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </form>

@@ -22,7 +22,7 @@ const initCategoryPaymentMethodsTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/categorias-metodo-pago",
         type: "POST",
         dataType: 'json',

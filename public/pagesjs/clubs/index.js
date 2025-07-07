@@ -23,7 +23,7 @@ const initClubsTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/clubs",
         type: "POST",
         dataType: 'json',

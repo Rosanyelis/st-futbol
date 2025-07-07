@@ -26,9 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return $(dtElement).DataTable({
             processing: true,
-            serverSide: true,
-            url: "/cuenta-por-cobrar",
-            type: "POST",
+            ajax: {
+                url: "/cuenta-por-cobrar",
+            },
             dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>><"table-responsive"t><"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
             language: {
                 url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json",
@@ -62,8 +62,37 @@ document.addEventListener('DOMContentLoaded', () => {
         $(SELECTORS.payOrderModal).modal('show');
     };
 
+    // Suma el total pendiente por moneda y actualiza los elementos por id
+    function updateTotalPendientePorMoneda(data) {
+        const totales = {};
+
+        data.forEach(item => {
+            const moneda = item.currency_name || 'Desconocida';
+            if (!totales[moneda]) totales[moneda] = 0;
+            totales[moneda] += parseFloat(item.pendiente || 0);
+        });
+
+        Object.entries(totales).forEach(([moneda, total]) => {
+            // Elimina espacios y acentos para el id
+            const id = 'totalPendiente' + moneda.normalize("NFD").replace(/[\u0300-\u036f\s]/g, '');
+            const $el = document.getElementById(id);
+            if ($el) {
+                $el.textContent = `$ ${numberFormat.format(total)}`;
+            }
+        });
+    }
+
     // Inicialización
     const dataTable = initDataTable();
+
+    if (dataTable) {
+        dataTable.on('xhr', function () {
+            const json = dataTable.ajax.json();
+            if (json && json.data) {
+                updateTotalPendientePorMoneda(json.data);
+            }
+        });
+    }
 
     // Hacer la función payOrder accesible globalmente si es necesario
     window.payOrder = payOrder;

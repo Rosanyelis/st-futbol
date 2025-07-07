@@ -22,7 +22,7 @@ const initCategorySuppliersTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/categorias-proveedores",
         type: "POST",
         dataType: 'json',

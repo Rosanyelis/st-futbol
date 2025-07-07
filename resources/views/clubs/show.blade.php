@@ -160,6 +160,7 @@
                                     <th>Titular</th>
                                     <th>Entidad</th>
                                     <th>Tipo de cuenta</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -171,6 +172,11 @@
                                         <td>{{ $payment->methodPayment->account_holder }}</td>
                                         <td>{{ $payment->methodPayment->entity->name }} </td>
                                         <td>{{ $payment->methodPayment->type_account }}</td>
+                                        <td>
+                                            <a href="{{ route('club.payments.show', [$club->id, $payment->id]) }}" target="_blank" class="btn btn-sm btn-icon btn-text-secondary rounded-pill" data-bs-toggle="tooltip" title="Ver Recibo">
+                                                <i class="ri-eye-line ri-20px"></i>
+                                            </a>
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>

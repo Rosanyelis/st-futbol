@@ -58,7 +58,6 @@ class HistoryManager {
 
         this.datatable = table.DataTable({
             processing: true,
-            serverSide: true,
             ajax: {
                 url: CONFIG.endpoints.historyJson(CONFIG.eventId),
                 data: (d) => {

@@ -22,7 +22,7 @@ const initCurrenciesTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/monedas",
         type: "POST",
         dataType: 'json',

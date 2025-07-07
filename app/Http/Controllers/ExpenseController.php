@@ -66,15 +66,15 @@ class ExpenseController extends Controller
     public function show($expense)
     {
         $expense = Expense::find($expense);
-        $categoryExpenses = CategoryExpense::all();
-        $subcategoryExpenses = SubcategoryExpense::all();
+        $categoryExpenses = CategoryExpense::orderBy('name', 'asc')->get();
+        $subcategoryExpenses = SubcategoryExpense::orderBy('name', 'asc')->get();
         return view('expenses.edit', compact('expense', 'categoryExpenses', 'subcategoryExpenses'));
     }
 
     public function edit($expense)
     {
         $expense = Expense::find($expense);
-        $categoryExpenses = CategoryExpense::all();
+        $categoryExpenses = CategoryExpense::orderBy('name', 'asc')->get();
         return view('expenses.edit', compact('expense', 'categoryExpenses'));
     }
 

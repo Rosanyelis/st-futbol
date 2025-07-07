@@ -22,8 +22,9 @@ const initEventsTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
-        url: "/eventos",
+            ajax: {
+                url: "/eventos",
+            },
         type: "POST",
         dataType: 'json',
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>><"table-responsive"t><"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',

@@ -22,7 +22,7 @@ const initCategoryIncomesTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/categorias-ingresos",
         type: "POST",
         dataType: 'json',

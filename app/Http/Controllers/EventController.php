@@ -129,8 +129,8 @@ class EventController extends Controller
     public function history($event)
     {
         $event = Event::find($event);
-        $clubs = Club::all();
-        $suppliers = Supplier::all();
+        $clubs = Club::orderBy('name', 'asc')->get();
+        $suppliers = Supplier::orderBy('name', 'asc')->get();
         $expenses = Expense::with('categoryExpense', 'subcategoryExpense')->get();
         $currencies = Currency::all();
         $categoryIncomes = CategoryIncome::all();
@@ -265,6 +265,7 @@ class EventController extends Controller
             'method_payment_id' => $data['method_payment_id'] ?? null,
             'date' => $data['date'],
             'amount' => $data['amount'],
+            'description' => $data['description'] ?? null,
         ]);
     }
 

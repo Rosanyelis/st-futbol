@@ -22,7 +22,7 @@ const initExpensesTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/gastos",
         type: "POST",
         dataType: 'json',

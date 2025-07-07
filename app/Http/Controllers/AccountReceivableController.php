@@ -57,15 +57,8 @@ class AccountReceivableController extends Controller
 
         $paymentMethods = MethodPayment::all();
         // obtener los totales pendientes por moneda y las que no tengan datos declararlas en cero
-        $totalesPendientes = Currency::leftJoin('clubs', 'currencies.id', '=', 'clubs.currency_id')
-            ->leftJoin('club_payments', 'clubs.id', '=', 'club_payments.club_id')
-            ->select(
-                'currencies.name as currency_name',
-                DB::raw('COALESCE(SUM(clubs.total_amount - IFNULL((SELECT SUM(amount) FROM club_payments cp WHERE cp.club_id = clubs.id), 0)), 0) as total_pendiente')
-            )
-            ->groupBy('currencies.name')
-            ->get();
-        return view('account-receivable.index', compact('paymentMethods',  'totalesPendientes'));
+        $currencies = Currency::all();
+        return view('account-receivable.index', compact('paymentMethods', 'currencies'));
     }
 
 
@@ -108,6 +101,7 @@ class AccountReceivableController extends Controller
                 'currency_id' => $club->currency_id,
                 'method_payment_id' => $request->method_payment_id,
                 'amount' => $request->amount,
+                'description' => $request->description ?? "Pago de cuenta por cobrar del club {$club->name}",
             ]);
 
     

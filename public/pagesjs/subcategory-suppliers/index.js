@@ -22,7 +22,7 @@ const initSubcategorySuppliersTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        serverSide: true,
+        
         url: "/subcategorias-proveedores",
         type: "POST",
         dataType: 'json',

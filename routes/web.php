@@ -5,6 +5,7 @@ use App\Http\Controllers\CityController;
 use App\Http\Controllers\ClubController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EntityController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CountryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ProfileController;
@@ -45,7 +46,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/negocio/clubs-by-category/{categoryIncomeId}', [BussinesController::class, 'getClubsByCategory'])->name('bussines.getClubsByCategory');
     Route::get('/negocio/expenses-by-category/{categoryEgressId}', [BussinesController::class, 'getExpensesByCategory'])->name('bussines.getExpensesByCategory');
     Route::get('/negocio/suppliers-by-category/{categoryEgressId}', [BussinesController::class, 'getSuppliersByCategory'])->name('bussines.getSuppliersByCategory');
-
+    Route::get('/negocio/{id}/edit-history', [BussinesController::class, 'editHistory'])->name('bussines.history.edit');
+    Route::post('/negocio/{id}/update-history', [BussinesController::class, 'updateHistory'])->name('bussines.history.update');
+    Route::get('/negocio/{id}/destroy-history', [BussinesController::class, 'destroyHistory'])->name('bussines.history.destroy');
     # Eventos
     Route::get('/eventos', [EventController::class, 'index'])->name('event.index');
     Route::get('/eventos/create', [EventController::class, 'create'])->name('event.create');
@@ -148,6 +151,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/clubs/get-provinces', [ClubController::class, 'getProvinces'])->name('club.get-provinces');
     Route::post('/clubs/get-cities', [ClubController::class, 'getCities'])->name('club.get-cities');
     Route::post('/clubs/get-suppliers', [ClubController::class, 'getSuppliersByEvent'])->name('club.get-suppliers');
+    Route::get('/clubs/{club}/payments/{payment}/show', [ClubController::class, 'showPayment'])->name('club.payments.show');
     # Monedas
     Route::get('/monedas', [CurrencyController::class, 'index'])->name('currency.index');
     Route::get('/monedas/create', [CurrencyController::class, 'create'])->name('currency.create');
@@ -189,6 +193,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/cuenta-por-cobrar', [AccountReceivableController::class, 'index'])->name('account-receivable.index');
     Route::get('/cuenta-por-cobrar/json', [AccountReceivableController::class, 'indexJson'])->name('account-receivable.indexJson');
     Route::post('/cuenta-por-cobrar/procesar-pago', [AccountReceivableController::class, 'processPayment'])->name('account-receivable.processPayment');
+
+    # reportes
+    #lisya de eventos
+    Route::get('/reportes/eventos', [ReportController::class, 'listEvent'])->name('report.events');
+    # Estado de Ingresos
+    Route::get('/reportes/estado-ingresos', [ReportController::class, 'incomeStatement'])->name('report.incomeStatement');
+    # Estado de Egresos
+    Route::get('/reportes/estado-egresos', [ReportController::class, 'expenseStatement'])->name('report.expenseStatement');
+    # Estado de cuentas por cobrar
+    Route::get('/reportes/cuentas-por-cobrar', [ReportController::class, 'index'])->name('report.index');
+    # Estado de resultado por evento y moneda
+    Route::get('/reportes/estado-evento-moneda', [ReportController::class, 'eventCurrencyStatement'])->name('report.eventCurrencyStatement');
+    # Estado de resultado general por moneda
+    Route::get('/reportes/estado-general', [ReportController::class, 'generalStatement'])->name('report.generalStatement');
+    # Estado de resultado de cuentas
+    Route::get('/reportes/estado-cuentas', [ReportController::class, 'accountsStatement'])->name('report.accountsStatement');
+    # Estado de movimientos general
+    Route::get('/reportes/estado-movimientos', [ReportController::class, 'movementsStatement'])->name('report.movementsStatement');
+
 });
 
 require __DIR__.'/auth.php';

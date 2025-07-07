@@ -19,6 +19,16 @@
                             <label for="amount">Monto</label>
                         </div>
                     </div>
+                    <div class="col-md-12"> 
+                            <div class="form-floating form-floating-outline">
+                                <textarea name="description" class="form-control h-px-100"
+                                    id="description"
+                                    cols="30" rows="10"
+                                    required
+                                    ></textarea>
+                                <label for="code">Descripción del Movimiento</label>
+                            </div>
+                        </div>
                     <div class="col-md-12">
                         <div class="form-floating form-floating-outline">
                             <input type="date" id="date" name="date" class="form-control" value="" />
