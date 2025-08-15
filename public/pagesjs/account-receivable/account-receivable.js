@@ -7,17 +7,27 @@ document.addEventListener('DOMContentLoaded', () => {
         datatable: '.datatables',
         payOrderModal: '#PayOrderModal',
         preorderId: '#modalpreorden_id',
-        orderId: '#order_id',
-        clubId: '#club_id',
+        receivableId: '#receivable_id',
         amountInput: '#amount',
         modalAmount: '#modalamount',
         formAction: '#formPayOrder',
-        totalPendiente: '#totalPendiente'
+        totalPendiente: '#totalPendiente',
+        eventFilter: '#event_filter',
+        statusFilter: '#status_filter'
     };
 
     // Funciones utilitarias
     const formatCurrency = data => `$ ${numberFormat.format(data)}`;
-    
+    const formatDate = data => moment(data).format('DD/MM/YYYY');
+    const formatStatus = (data, type, row) => {
+        const statusClasses = {
+            'Pendiente': 'badge bg-label-warning',
+            'Parcial': 'badge bg-label-info',
+            'Pagado': 'badge bg-label-success',
+            'Vencido': 'badge bg-label-danger'
+        };
+        return `<span class="${statusClasses[data] || 'badge bg-label-secondary'}">${data}</span>`;
+    };
 
     // Configuración DataTable
     const initDataTable = () => {
@@ -28,6 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
             processing: true,
             ajax: {
                 url: "/cuenta-por-cobrar",
+                data: function(d) {
+                    d.event_id = $(SELECTORS.eventFilter).val();
+                    d.status = $(SELECTORS.statusFilter).val();
+                }
             },
             dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>><"table-responsive"t><"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
             language: {
@@ -39,12 +53,15 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             lengthMenu: [10, 25, 50, 75, 100],
             columns: [
+                { data: 'club_name', name: 'club_name' },
                 { data: 'event_name', name: 'event_name' },
-                { data: 'name', name: 'name' },
                 { data: 'currency_name', name: 'currency_name' },
                 { data: 'total_amount', render: formatCurrency, name: 'total_amount' },
-                { data: 'saldo', render: formatCurrency, name: 'saldo' },
-                { data: 'pendiente', render: formatCurrency, name: 'pendiente' },
+                { data: 'paid_amount', render: formatCurrency, name: 'paid_amount' },
+                { data: 'pending_amount', render: formatCurrency, name: 'pending_amount' },
+                { data: 'status', render: formatStatus, name: 'status' },
+                { data: 'due_date', render: formatDate, name: 'due_date' },
+                { data: 'payment_percentage', name: 'payment_percentage' },
                 { data: 'actions', orderable: false, searchable: false, name: 'actions' }
             ],
         });
@@ -58,8 +75,18 @@ document.addEventListener('DOMContentLoaded', () => {
         $(SELECTORS.preorderId).text(id);
         $(SELECTORS.amountInput).val(amount);
         $(SELECTORS.modalAmount).text(formattedAmount);
-        $(SELECTORS.clubId).val(id);
+        $(SELECTORS.receivableId).val(id);
         $(SELECTORS.payOrderModal).modal('show');
+    };
+
+    // Función para ver pagos
+    const viewPayments = (id) => {
+        // Implementar vista de pagos
+        Swal.fire({
+            title: 'Historial de Pagos',
+            text: 'Funcionalidad en desarrollo',
+            icon: 'info'
+        });
     };
 
     // Suma el total pendiente por moneda y actualiza los elementos por id
@@ -69,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         data.forEach(item => {
             const moneda = item.currency_name || 'Desconocida';
             if (!totales[moneda]) totales[moneda] = 0;
-            totales[moneda] += parseFloat(item.pendiente || 0);
+            totales[moneda] += parseFloat(item.pending_amount || 0);
         });
 
         Object.entries(totales).forEach(([moneda, total]) => {
@@ -92,8 +119,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateTotalPendientePorMoneda(json.data);
             }
         });
+
+        // Filtros
+        $(SELECTORS.eventFilter).on('change', function() {
+            dataTable.ajax.reload();
+        });
+
+        $(SELECTORS.statusFilter).on('change', function() {
+            dataTable.ajax.reload();
+        });
     }
 
-    // Hacer la función payOrder accesible globalmente si es necesario
+    // Manejar envío del formulario de pago
+    $(SELECTORS.formAction).on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire('Éxito', response.message, 'success');
+                    $(SELECTORS.payOrderModal).modal('hide');
+                    dataTable.ajax.reload();
+                }
+            },
+            error: function(xhr) {
+                const response = xhr.responseJSON;
+                Swal.fire('Error', response.message || 'Error al procesar el pago', 'error');
+            }
+        });
+    });
+
+    // Hacer las funciones accesibles globalmente
     window.payOrder = payOrder;
+    window.viewPayments = viewPayments;
 });

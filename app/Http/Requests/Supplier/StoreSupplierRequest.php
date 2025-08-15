@@ -24,11 +24,9 @@ class StoreSupplierRequest extends FormRequest
         return [
             'category_supplier_id' => 'required|exists:category_suppliers,id',
             'subcategory_supplier_id' => 'required|exists:subcategory_suppliers,id',
-            'currency_id' => 'required|exists:currencies,id',
             'representant' => 'required',
             'phone' => 'required',
             'email' => 'nullable|email',
-            'amount' => 'nullable|numeric|min:0',
             'description' => 'nullable',
         ];
     }
@@ -42,10 +40,6 @@ class StoreSupplierRequest extends FormRequest
             'category_supplier_id.exists' => 'La categoría no existe',
             'subcategory_supplier_id.required' => 'La subcategoría es requerida',
             'subcategory_supplier_id.exists' => 'La subcategoría no existe',
-            'currency_id.required' => 'La moneda es requerida',
-            'currency_id.exists' => 'La moneda no existe',
-            'amount.numeric' => 'El monto debe ser un número',
-            'amount.min' => 'El monto debe ser mayor a 0',
         ];
     }
 }

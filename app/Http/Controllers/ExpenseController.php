@@ -5,9 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Expense\StoreExpenseRequest;
 use App\Http\Requests\Expense\UpdateExpenseRequest;
 use App\Models\CategoryExpense;
-use App\Models\CategoryEgress;
 use App\Models\Expense;
-use App\Models\SubcategoryExpense;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -19,7 +17,7 @@ class ExpenseController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = Expense::with('categoryExpense', 'subcategoryExpense')->get();
+            $data = Expense::with('categoryExpense')->get();
             return DataTables::of($data)
                 ->addColumn('actions', function ($row) {
                     return view('expenses.actions', compact('row'));
@@ -54,12 +52,6 @@ class ExpenseController extends Controller
         }
     }
 
-    public function getSubcategoryExpenses(Request $request)
-    {
-        $subcategoryExpenses = SubcategoryExpense::where('category_expense_id', $request->category_expense_id)->get();
-        return response()->json($subcategoryExpenses);
-    }
-
     /**
      * Display the specified resource.
      */
@@ -67,8 +59,7 @@ class ExpenseController extends Controller
     {
         $expense = Expense::find($expense);
         $categoryExpenses = CategoryExpense::orderBy('name', 'asc')->get();
-        $subcategoryExpenses = SubcategoryExpense::orderBy('name', 'asc')->get();
-        return view('expenses.edit', compact('expense', 'categoryExpenses', 'subcategoryExpenses'));
+        return view('expenses.edit', compact('expense', 'categoryExpenses'));
     }
 
     public function edit($expense)

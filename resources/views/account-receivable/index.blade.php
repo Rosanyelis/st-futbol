@@ -40,21 +40,45 @@
             <div class="card-header-elements ms-auto">
             </div>
         </div>
+        <div class="card-body">
+            <!-- Filtros -->
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label for="event_filter" class="form-label">Filtrar por Evento</label>
+                    <select class="form-select" id="event_filter">
+                        <option value="">Todos los eventos</option>
+                        @foreach($events as $event)
+                            <option value="{{ $event->id }}">{{ $event->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="status_filter" class="form-label">Filtrar por Estado</label>
+                    <select class="form-select" id="status_filter">
+                        <option value="">Todos los estados</option>
+                        @foreach($statuses as $status)
+                            <option value="{{ $status }}">{{ $status }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+        </div>
         <div class="card-datatable text-nowrap">
             <table class="datatables table table-sm">
                 <thead>
                     <tr>
-                        <th>Evento</th>
                         <th>Club</th>
+                        <th>Evento</th>
                         <th>Moneda</th>
                         <th>Total</th>
                         <th>Pagado</th>
                         <th>Pendiente</th>
+                        <th>Estado</th>
+                        <th>Vencimiento</th>
+                        <th>% Pago</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
-                <tbody> </tbody>
-                
             </table>
         </div>
     </div>
@@ -70,6 +94,6 @@
     <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.js') }}"></script>
     <!-- Page JS -->
-    <script src="{{ asset('pagesjs/account-receivable/account-receivable.js?v=1.0.0') }}"></script>
+    <script src="{{ asset('pagesjs/account-receivable/account-receivable.js?v=1.0') }}"></script>
 
 @endsection

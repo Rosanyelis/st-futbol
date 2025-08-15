@@ -16,8 +16,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('category_egress_id')->constrained('category_egresses')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('category_expense_id')->constrained('category_expenses')->onUpdate('cascade')->onDelete('cascade');
-            $table->foreignId('subcategory_expense_id')->constrained('subcategory_expenses')->onUpdate('cascade')->onDelete('cascade');
-
+            $table->string('name');
             $table->text('description')->nullable();
             $table->timestamps();
         });

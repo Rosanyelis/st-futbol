@@ -29,8 +29,11 @@ class EventController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = Event::all();
+            $data = Event::withCount('clubs')->get();
             return DataTables::of($data)
+                ->addColumn('clubs_count', function ($data) {
+                    return $data->clubs_count ?? 0;
+                })
                 ->addColumn('actions', function ($data) {
                     return view('events.actions', ['id' => $data->id]);
                 })
@@ -126,10 +129,14 @@ class EventController extends Controller
         }
     }
 
+    /**
+     * Mostrar el historial de movimientos de un evento
+     */
     public function history($event)
     {
         $event = Event::find($event);
-        $clubs = Club::orderBy('name', 'asc')->get();
+        // Obtener clubs asignados al evento para el año del evento
+        $clubs = $event->clubsByYear($event->year)->orderBy('name', 'asc')->get();
         $suppliers = Supplier::orderBy('name', 'asc')->get();
         $expenses = Expense::with('categoryExpense', 'subcategoryExpense')->get();
         $currencies = Currency::all();
@@ -153,12 +160,19 @@ class EventController extends Controller
 
     /**
      * Obtener clubs por categoría de ingreso
+     * Ahora obtiene clubs asignados al evento para el año específico
      */
     public function getClubsByCategory($categoryIncomeId)
     {
         if ($categoryIncomeId == 1) { // ID 1 = "Clubs"
-            $clubs = Club::where('event_id', request()->get('event_id'))->get();
-            return response()->json($clubs);
+            $eventId = request()->get('event_id');
+            $event = Event::find($eventId);
+            
+            if ($event) {
+                // Obtener clubs asignados al evento para el año del evento
+                $clubs = $event->clubsByYear($event->year)->get();
+                return response()->json($clubs);
+            }
         }
         
         return response()->json([]);
@@ -342,32 +356,6 @@ class EventController extends Controller
         }
     }
 
-    private function saveFile($file, $path)
-    {
-        try {
-            if (!$file) {
-                return null;
-            }
-
-            // Generar un nombre único para el archivo
-            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            
-            // Crear el directorio si no existe
-            $fullPath = storage_path('app/public/' . $path);
-            if (!file_exists($fullPath)) {
-                mkdir($fullPath, 0755, true);
-            }
-
-            // Mover el archivo al directorio de almacenamiento
-            $file->move($fullPath, $fileName);
-
-            // Retornar la ruta relativa para guardar en la base de datos
-            return $path . $fileName;
-        } catch (\Exception $e) {
-            throw new \Exception('Error al guardar la imagen: ' . $e->getMessage());
-        }
-    }
-
     public function updateHistory(Request $request, $id)
     {
         DB::beginTransaction();
@@ -453,6 +441,97 @@ class EventController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Error al eliminar el movimiento: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener clubs disponibles para asignar a un evento
+     */
+    public function getAvailableClubs($eventId)
+    {
+        try {
+            $event = Event::findOrFail($eventId);
+            
+            // Obtener todos los clubs
+            $allClubs = Club::orderBy('name', 'asc')->get();
+            
+            // Obtener clubs ya asignados al evento
+            $assignedClubs = $event->clubs()->pluck('clubs.id')->toArray();
+            
+            // Filtrar clubs no asignados
+            $availableClubs = $allClubs->whereNotIn('id', $assignedClubs);
+            
+            return response()->json($availableClubs->values());
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al obtener clubs disponibles'], 500);
+        }
+    }
+
+    /**
+     * Asignar un club a un evento
+     */
+    public function assignClubToEvent(Request $request, $eventId)
+    {
+        try {
+            $event = Event::findOrFail($eventId);
+            $clubId = $request->input('club_id');
+            $year = $request->input('year');
+            
+            // Validar que el club existe
+            $club = Club::findOrFail($clubId);
+            
+            // Verificar si ya está asignado para ese año
+            $existingAssignment = $event->clubs()
+                ->where('clubs.id', $clubId)
+                ->wherePivot('year', $year)
+                ->exists();
+            
+            if ($existingAssignment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este club ya está asignado al evento para el año ' . $year
+                ], 400);
+            }
+            
+            // Asignar el club al evento
+            $event->assignClub($club, $year);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Club asignado correctamente al evento'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al asignar el club: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function saveFile($file, $path)
+    {
+        try {
+            if (!$file) {
+                return null;
+            }
+
+            // Generar un nombre único para el archivo
+            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            
+            // Crear el directorio si no existe
+            $fullPath = storage_path('app/public/' . $path);
+            if (!file_exists($fullPath)) {
+                mkdir($fullPath, 0755, true);
+            }
+
+            // Mover el archivo al directorio de almacenamiento
+            $file->move($fullPath, $fileName);
+
+            // Retornar la ruta relativa para guardar en la base de datos
+            return $path . $fileName;
+        } catch (\Exception $e) {
+            throw new \Exception('Error al guardar la imagen: ' . $e->getMessage());
         }
     }
 }

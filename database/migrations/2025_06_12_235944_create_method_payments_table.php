@@ -14,9 +14,9 @@ return new class extends Migration
     
         Schema::create('method_payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('category_method_payment_id')->constrained('category_method_payments')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('entity_id')->constrained('entities')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('currency_id')->constrained('currencies')->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignId('category_method_payment_id')->constrained('category_method_payments')->onUpdate('cascade')->onDelete('cascade');
             $table->string('account_holder');
             $table->string('account_number')->nullable();
             $table->string('cbu_cvu')->nullable();

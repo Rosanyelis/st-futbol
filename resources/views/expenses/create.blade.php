@@ -44,12 +44,10 @@
                                 </div>
                                 <div class="col-md-4 ">
                                     <div class="form-floating form-floating-outline">
-                                        <select class="form-select @error('subcategory_expense_id') is-invalid @enderror select2" 
-                                        id="subcategory_expense_id" name="subcategory_expense_id" required>
-                                            <option value="">Seleccione una Subcategoria</option>
-                                        </select>
-                                        <label for="subcategory_expense_id">Subcategoria *</label>
-                                        @error('subcategory_expense_id')
+                                        <input type="text" class="form-control @error('name') is-invalid @enderror"     
+                                        id="name" name="name" value="{{ old('name') }}" required>
+                                        <label for="name">Gasto *</label>
+                                        @error('name')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>

@@ -30,8 +30,6 @@
                         <th>Proveedor</th>
                         <th>Encargado</th>
                         <th>Teléfono</th>
-                        <th>Monto</th>
-                        <th>Moneda</th>
                         <th>Observaciones</th>
                         <th style="width: 10px"></th>
                     </tr>
@@ -50,5 +48,5 @@
     <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
     <!-- Page JS -->
-    <script src="{{ asset('pagesjs/suppliers/index.js') }}"></script>
+    <script src="{{ asset('pagesjs/suppliers/index.js?v=1.0') }}"></script>
 @endsection

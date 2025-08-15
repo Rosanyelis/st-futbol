@@ -14,12 +14,12 @@ class CountrySeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ['name' => 'Argentina','code' => 'ARG'  ],
-            ['name' => 'Brasil','code' => 'BRA'  ],
-            ['name' => 'Uruguay','code' => 'URU'  ],
-            ['name' => 'Paraguay','code' => 'PAR'  ],
-            ['name' => 'Bolivia','code' => 'BOL'  ],
-            ['name' => 'Chile','code' => 'CHI'  ],
+            ['name' => 'Argentina','code' => 'ARG', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Brasil','code' => 'BRA', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Uruguay','code' => 'URU', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Paraguay','code' => 'PAR', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Bolivia','code' => 'BOL', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Chile','code' => 'CHI', 'created_at' => now(), 'updated_at' => now()],
         ];
         
         Country::insert($data);

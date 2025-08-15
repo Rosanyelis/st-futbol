@@ -21,22 +21,42 @@
             </div>
         </div>
         <div class="card-header d-flex align-items-center border-bottom">
-            <div class="row w-100">
-                <div class="col-md-4">
-                    <label for="evento" class="form-label">Evento</label>
-                    <select id="evento" class="form-select select2" data-allow-clear="true">
-                        <option value="">Seleccione un evento</option>
-                        @foreach($events as $evento)
-                            <option value="{{ $evento->id }}">{{ $evento->name }}</option>
-                        @endforeach
-                    </select>
+            <form action="{{ route('report.eventCurrencyStatement') }}" method="GET" 
+                class="d-flex align-items-center w-100">
+                @csrf
+                <div class="row w-100">
+                    <div class="col-md-3">
+                        <div class="form-floating form-floating-outline">
+                            <select id="evento" class="form-select form-select-sm select2" 
+                            data-allow-clear="true" name="event_id">
+                                <option value="">Seleccione un evento</option>
+                                @foreach($events as $evento)
+                                    <option value="{{ $evento->id }}" @if( $evento->id == request('event_id') ) selected @endif>{{ $evento->name }} - {{ $evento->year }}</option>
+                                @endforeach
+                            </select>
+                            <label for="evento">Evento</label>
+                        </div>  
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-floating form-floating-outline">
+                            <input type="date" id="start_date" class="form-control form-control-sm" 
+                            placeholder="Seleccione un rango de fecha" name="start_date" value="{{ request('start_date') }}" />
+                            <label for="start_date">Desde</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-floating form-floating-outline">
+                            <input type="date" id="end_date" class="form-control form-control-sm" 
+                            placeholder="Seleccione un rango de fecha" name="end_date" value="{{ request('end_date') }}" />
+                            <label for="end_date">hasta</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+                        <button type="reset" class="btn btn-secondary btn-sm">Limpiar</button>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <!-- rango de fecha -->
-                    <label for="rango-fecha" class="form-label">Rango de Fecha</label>
-                    <input type="text" id="rango-fecha" class="form-control flatpickr" placeholder="Seleccione un rango de fecha" />
-                </div>
-            </div>
+            </form>
         </div>
         <div class="card-datatable text-nowrap">
             <table class="datatables-history table table-sm">
@@ -166,6 +186,19 @@
     <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.js') }}"></script>
-    
+    <script>
+        $(document).ready(function() {
+            // cuando haga click en el boton reset que se limpie los campos y recargue el sitio sin datos de busqueda
+            $('form').on('reset', function() {
+                // Recargar la página sin parámetros de búsqueda
+                window.location.href = "{{ route('report.eventCurrencyStatement') }}";
+            });
+
+            $('.select2').select2({
+                placeholder: 'Seleccione una opción',
+                allowClear: true
+            });
+        });
+    </script>
 
 @endsection

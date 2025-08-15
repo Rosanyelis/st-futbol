@@ -16,3 +16,9 @@
     onclick="deleteRecord({{ $id }})">
     <i class="ri-delete-bin-7-line ri-20px"></i>
 </a>
+
+<a href="storage/{{ $club->logo }}" target="_blank" class="btn btn-sm btn-icon btn-text-secondary
+    rounded-pill text-success"
+    data-bs-toggle="tooltip" title="Descargar Logo">
+    <i class="ri-download-2-line ri-20px"></i>
+</a>

@@ -14,16 +14,20 @@ class ProvinceSeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ['country_id' => 1, 'name' => 'Buenos Aires'],
-            ['country_id' => 1, 'name' => 'Rio Negro'],
-            ['country_id' => 1, 'name' => 'Santa Cruz'],
-            ['country_id' => 1, 'name' => 'Chubut'],
-            ['country_id' => 1, 'name' => 'Cordoba'],
-            ['country_id' => 1, 'name' => 'Salta'],
-            ['country_id' => 1, 'name' => 'Misiones'],
-            ['country_id' => 1, 'name' => 'La Pampa'],
-            ['country_id' => 2, 'name' => 'Santa Catarina'],
-            ['country_id' => 2, 'name' => 'Rio Grande do Sul'],
+            ['country_id' => 1, 'name' => 'Buenos Aires', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 1, 'name' => 'Rio Negro', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 1, 'name' => 'Santa Cruz', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 1, 'name' => 'Chubut', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 1, 'name' => 'Cordoba', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 1, 'name' => 'Salta', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 1, 'name' => 'Misiones', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 1, 'name' => 'La Pampa', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 2, 'name' => 'Santa Catarina', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 2, 'name' => 'Rio Grande do Sul', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 1, 'name' => 'Neuquen', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 1, 'name' => 'CABA', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 6, 'name' => 'Concepcion', 'created_at' => now(), 'updated_at' => now()],
+            ['country_id' => 6, 'name' => 'Region de los rios', 'created_at' => now(), 'updated_at' => now()],  
         ];
 
         Province::insert($data);

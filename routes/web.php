@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\ClubController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\EventClubController;
 use App\Http\Controllers\EntityController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CountryController;
@@ -67,6 +68,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/eventos/{id}/edit-history', [EventController::class, 'editHistory'])->name('event.history.edit');
     Route::post('/eventos/{id}/update-history', [EventController::class, 'updateHistory'])->name('event.history.update');
     Route::get('/eventos/{id}/destroy-history', [EventController::class, 'destroyHistory'])->name('event.history.destroy');
+    
+    # Rutas para asignación de clubs a eventos
+    Route::get('/eventos/{id}/assign-clubs', [EventClubController::class, 'assignClubs'])->name('event.assign-clubs');
+    Route::get('/eventos/{id}/assigned-clubs', [EventClubController::class, 'getAssignedClubs'])->name('event.assigned-clubs');
+    Route::post('/eventos/{id}/assign-club', [EventClubController::class, 'store'])->name('event.assign-club');
+    Route::delete('/eventos/{eventId}/clubs/{clubId}/detach', [EventClubController::class, 'destroy'])->name('event.detach-club');
+    Route::get('/eventos/{id}/available-clubs', [EventClubController::class, 'getAvailableClubs'])->name('event.available-clubs');
+    
+    # Nuevas rutas para asignación de clubs desde modal
+    Route::get('/eventos/{id}/available-clubs-modal', [EventController::class, 'getAvailableClubs'])->name('event.available-clubs-modal');
+    Route::post('/eventos/{id}/assign-club-modal', [EventController::class, 'assignClubToEvent'])->name('event.assign-club-modal');
 
     # Categorías de proveedores
     Route::get('/categorias-proveedores', [CategorySupplierController::class, 'index'])->name('category-supplier.index');
@@ -171,6 +183,7 @@ Route::middleware('auth')->group(function () {
     # Provincias
     Route::get('/provincias', [ProvinceController::class, 'index'])->name('province.index');
     Route::get('/provincias/create', [ProvinceController::class, 'create'])->name('province.create');
+    Route::get('/provincias/get-provinces', [ProvinceController::class, 'getProvinces'])->name('province.get-provinces');
     Route::post('/provincias', [ProvinceController::class, 'store'])->name('province.store');
     Route::get('/provincias/{id}/edit', [ProvinceController::class, 'edit'])->name('province.edit');
     Route::put('/provincias/{id}/update', [ProvinceController::class, 'update'])->name('province.update');

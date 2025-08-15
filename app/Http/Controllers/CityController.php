@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\City;
+use App\Models\Country;
 use App\Models\Province;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -17,7 +18,7 @@ class CityController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $cities = City::with('province');
+            $cities = City::with('province', 'province.country');
             return DataTables::of($cities)
                 ->addColumn('actions', function ($city) {
                     return view('cities.actions', compact('city'));
@@ -32,8 +33,14 @@ class CityController extends Controller
      */
     public function create()
     {
-        $provinces = Province::all();
-        return view('cities.create', compact('provinces'));
+        $countries = Country::orderBy('name', 'asc')->get();
+        return view('cities.create', compact('countries'));
+    }
+
+    public function getProvinces(Request $request)
+    {
+        $provinces = Province::where('country_id', $request->country_id)->orderBy('name', 'asc')->get();
+        return response()->json($provinces);
     }
 
     /**
@@ -56,8 +63,8 @@ class CityController extends Controller
     public function edit(string $id)
     {
         $city = City::find($id);
-        $provinces = Province::all();
-        return view('cities.edit', compact('city', 'provinces'));
+        $countries = Country::orderBy('name', 'asc')->get();
+        return view('cities.edit', compact('city', 'countries'));
     }
 
     /**

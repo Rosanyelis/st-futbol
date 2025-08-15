@@ -29,6 +29,7 @@
                         <th>Fecha de inicio</th>
                         <th>Fecha de fin</th>
                         <th>Año</th>
+                        <th>Clubes</th>
                         <th style="width: 10px"></th>
                     </tr>
                 </thead>
@@ -36,6 +37,45 @@
         </div>
     </div>
     <!--/ Ajax Sourced Server-side -->
+</div>
+
+<!-- Modal para asignar clubs -->
+<div class="modal fade" id="assignClubsModal" tabindex="-1" aria-labelledby="assignClubsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignClubsModalLabel">Asignar Clubs al Evento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignClubsForm">
+                    <input type="hidden" id="eventId" name="event_id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="clubSelect" class="form-label">Seleccionar Club</label>
+                                <select class="form-select" id="clubSelect" name="club_id" required>
+                                    <option value="">Seleccione un club...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="yearSelect" class="form-label">Año</label>
+                                <select class="form-select" id="yearSelect" name="year" required>
+                                    <option value="">Seleccione un año...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="assignClubToEvent()">Asignar Club</button>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
@@ -46,5 +86,5 @@
     <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
     <!-- Page JS -->
-    <script src="{{ asset('pagesjs/events/index.js?v=1.0.0') }}"></script>
+    <script src="{{ asset('pagesjs/events/index.js?v=1.0') }}"></script>
 @endsection

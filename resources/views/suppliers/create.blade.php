@@ -24,23 +24,7 @@
                         <form id="formTask" class="needs-validation" action="{{ route('supplier.store') }}" method="POST">
                             @csrf
                             <div class="row gy-5">
-                                <div class="col-md-4">
-                                    <div class="form-floating form-floating-outline">
-                                        <select class="form-select @error('event_id') is-invalid @enderror select2" 
-                                        id="event_id" name="event_id" required>
-                                            <option value="">Seleccione un evento</option>
-                                            @foreach($events as $event)
-                                                <option value="{{ $event->id }}" {{ old('event_id') == $event->id ? 'selected' : '' }}>
-                                                    {{ $event->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <label for="event_id">Evento *</label>
-                                        @error('event_id')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
+                                
                                 <div class="col-md-4 ">
                                     <div class="form-floating form-floating-outline">
                                         <select class="form-select @error('category_supplier_id') is-invalid @enderror select2" 
@@ -70,23 +54,7 @@
                                         @enderror
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="form-floating form-floating-outline">
-                                        <select class="form-select @error('currency_id') is-invalid @enderror select2" 
-                                        id="currency_id" name="currency_id" required>
-                                            <option value="">Seleccione una moneda</option>
-                                            @foreach($currencies as $currency)
-                                                <option value="{{ $currency->id }}" {{ old('currency_id') == $currency->id ? 'selected' : '' }}>
-                                                    {{ $currency->name }} ({{ $currency->symbol }})
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <label for="currency_id">Moneda *</label>
-                                        @error('currency_id')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
+                               
                                 <div class="col-md-4">
                                     <div class="form-floating form-floating-outline">
                                         <input
@@ -144,24 +112,6 @@
                                         @endif
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="form-floating form-floating-outline">
-                                        <input
-                                            type="text"
-                                            class="form-control form-control-sm {{ $errors->has('amount') ? 'is-invalid' : '' }}"
-                                            id="amount"
-                                            name="amount"
-                                            placeholder="Ingrese monto"
-                                            value="{{ old('amount') }}"
-                                            autofocus>
-                                        <label for="amount">Monto</label>   
-                                        @if($errors->has('amount'))
-                                        <div class="invalid-feedback">
-                                            {{ $errors->first('amount') }}
-                                        </div>
-                                        @endif
-                                    </div>
-                                </div>      
                                 <div class="col-md-12">
                                     <div class="form-floating form-floating-outline">
                                         <textarea

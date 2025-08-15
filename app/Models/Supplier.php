@@ -16,27 +16,14 @@ class Supplier extends Model
      * @var array
      */
     protected $fillable = [
-        'category_egress_id',
-        'event_id',
         'category_supplier_id',
         'subcategory_supplier_id',
         'currency_id',
         'name',
         'representant',
         'phone',
-        'amount',
         'description',
     ];
-
-    public function categoryEgress(): BelongsTo
-    {
-        return $this->belongsTo(CategoryEgress::class, 'category_egress_id', 'id');
-    }
-
-    public function event(): BelongsTo
-    {
-        return $this->belongsTo(Event::class, 'event_id', 'id');
-    }
 
     public function categorySupplier(): BelongsTo
     {
@@ -48,8 +35,4 @@ class Supplier extends Model
         return $this->belongsTo(SubcategorySupplier::class, 'subcategory_supplier_id', 'id');
     }
 
-    public function currency(): BelongsTo
-    {
-        return $this->belongsTo(Currency::class, 'currency_id', 'id');
-    }
 }

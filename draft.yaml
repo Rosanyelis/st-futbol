@@ -125,10 +125,9 @@ models:
       belongsTo: Province
       hasMany: Club, Bussines
 
-  # Club - Club, relacionado con eventos y moneda
+  # Club - Club, relacionado con moneda y ubicación
   Club:
     id: bigint primary_key auto_increment
-    event_id: bigint foreign:Event.id
     currency_id: bigint foreign:Currency.id
     name: string
     logo: string
@@ -142,8 +141,18 @@ models:
     hosting: boolean false
     total_amount: decimal nullable
     relationships:
-      belongsTo: Event, Currency, Country, Province, City
+      belongsTo: Currency, Country, Province, City
       hasMany: ClubItem, EventMovement
+      belongsToMany: Event
+
+  # EventClub - Tabla pivot para relación muchos a muchos entre eventos y clubs
+  EventClub:
+    id: bigint primary_key auto_increment
+    event_id: bigint foreign:Event.id
+    club_id: bigint foreign:Club.id
+    year: string
+    relationships:
+      belongsTo: Event, Club
 
   # clubItem - Item de club, relacionado con Club
   ClubItem:

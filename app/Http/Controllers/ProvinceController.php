@@ -37,6 +37,15 @@ class ProvinceController extends Controller
     }
 
     /**
+     * Get provinces for AJAX requests
+     */
+    public function getProvinces(Request $request)
+    {
+        $provinces = Province::with('country')->orderBy('name', 'asc')->get();
+        return response()->json($provinces);
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(StoreProvinceRequest $request)

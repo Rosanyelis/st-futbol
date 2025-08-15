@@ -190,10 +190,6 @@
                         Route::currentRouteName() == 'category-expense.create' ||
                         Route::currentRouteName() == 'category-expense.edit' ||
                         Route::currentRouteName() == 'category-expense.show' ||
-                        Route::currentRouteName() == 'subcategory-expense.index' ||
-                        Route::currentRouteName() == 'subcategory-expense.create' ||
-                        Route::currentRouteName() == 'subcategory-expense.edit' ||
-                        Route::currentRouteName() == 'subcategory-expense.show' ||
                         Route::currentRouteName() == 'expense.index' ||
                         Route::currentRouteName() == 'expense.create' ||
                         Route::currentRouteName() == 'expense.edit' ||
@@ -213,17 +209,6 @@
                             >
                             <a href="{{ route('category-expense.index') }}" class="menu-link">
                                 <div data-i18n="Categorias">Categorias</div>
-                            </a>
-                        </li>
-                        <li class="menu-item 
-                            @if (Route::currentRouteName() == 'subcategory-expense.index' ||
-                                Route::currentRouteName() == 'subcategory-expense.create' ||
-                                Route::currentRouteName() == 'subcategory-expense.edit' ||
-                                Route::currentRouteName() == 'subcategory-expense.show') active @endif
-                            "
-                            >
-                            <a href="{{ route('subcategory-expense.index') }}" class="menu-link">
-                                <div data-i18n="Subcategorias">Subcategorias</div>
                             </a>
                         </li>
                         <li class="menu-item 
@@ -366,26 +351,26 @@
                         <li class="menu-item 
                             @if (Route::currentRouteName() == 'report.index') active @endif">
                             <a href="{{ route('report.index') }}" class="menu-link">
-                                <div data-i18n="Estado de Ctas. por Cobrar">Estado de Ctas. por Cobrar</div>
+                                <div data-i18n="Cuentas por Cobrar">Cuentas por Cobrar</div>
                             </a>
                         </li>
                         <li class="menu-item 
-                            @if (Route::currentRouteName() == 'report.movementsStatement') active @endif">
+                            @if (Route::currentRouteName() == 'report.eventCurrencyStatement') active @endif">
                             <a href="{{ route('report.eventCurrencyStatement') }}" class="menu-link">
-                                <div data-i18n="Estado de Res. por Evento y Moneda">Estado de Res. por Evento y Moneda</div>
+                                <div data-i18n="Resultado por Evento y Moneda">Resultado por Evento y Moneda</div>
                             </a>
                         </li>
                         
                         <li class="menu-item 
                             @if (Route::currentRouteName() == 'report.generalStatement') active @endif">
                             <a href="{{ route('report.generalStatement') }}" class="menu-link">
-                                <div data-i18n="Estado de Res. General y Moneda">Estado de Res. General y Moneda</div>
+                                <div data-i18n="Resultado General y Moneda">Resultado General y Moneda</div>
                             </a>
                         </li>
                         <li class="menu-item 
                             @if (Route::currentRouteName() == 'report.movementsStatement') active @endif">
                             <a href="{{ route('report.movementsStatement') }}" class="menu-link">
-                                <div data-i18n="Estado de Res. Cuentas">Estado de Res. Cuentas</div>
+                                <div data-i18n="Resultado Cuentas">Resultado Cuentas</div>
                             </a>
                         </li>
                         

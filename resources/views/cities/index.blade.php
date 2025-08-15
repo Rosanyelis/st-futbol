@@ -25,8 +25,9 @@
             <table class="datatables table table-sm">
                 <thead>
                     <tr>
-                        <th>Nombre</th>
+                        <th>Ciudad</th>
                         <th>Provincia</th>
+                        <th>Pais</th>
                         <th style="width: 10px"></th>
                     </tr>
                 </thead>
@@ -44,5 +45,5 @@
     <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
     <!-- Page JS -->
-    <script src="{{ asset('pagesjs/cities/index.js') }}"></script>
+    <script src="{{ asset('pagesjs/cities/index.js?v=1.0') }}"></script>
 @endsection

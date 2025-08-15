@@ -22,27 +22,33 @@ class ProcessPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'club_id' => 'required|exists:clubs,id',
-            'amount' => 'required|numeric|min:0.01',
-            'method_payment_id' => 'required|exists:method_payments,id',
+            'receivable_id' => 'required|exists:club_account_receivables,id',
+            'method_payment_id' => 'nullable|exists:method_payments,id',
+            'amount' => 'required|numeric|min:0',
+            'date' => 'required|date',
+            'description' => 'nullable|string|max:500',
+            'payment_reference' => 'nullable|string|max:255',
         ];
     }
 
     /**
-     * Get the error messages for the defined validation rules.
+     * Get custom messages for validator errors.
      *
-     * @return array<string, string>
+     * @return array
      */
     public function messages(): array
     {
         return [
-            'club_id.required' => 'El club es requerido',
-            'club_id.exists' => 'El club seleccionado no existe',
-            'amount.required' => 'El monto es requerido',
-            'amount.numeric' => 'El monto debe ser un número válido',
-            'amount.min' => 'El monto debe ser mayor a 0',
-            'method_payment_id.required' => 'Debe seleccionar un método de pago',
-            'method_payment_id.exists' => 'El método de pago seleccionado no existe',
+            'receivable_id.required' => 'La cuenta por cobrar es requerida.',
+            'receivable_id.exists' => 'La cuenta por cobrar seleccionada no existe.',
+            'method_payment_id.exists' => 'El método de pago seleccionado no existe.',
+            'amount.required' => 'El monto es requerido.',
+            'amount.numeric' => 'El monto debe ser un número.',
+            'amount.min' => 'El monto debe ser mayor a 0.',
+            'date.required' => 'La fecha es requerida.',
+            'date.date' => 'La fecha debe tener un formato válido.',
+            'description.max' => 'La descripción no puede exceder los 500 caracteres.',
+            'payment_reference.max' => 'La referencia del pago no puede exceder los 255 caracteres.',
         ];
     }
 } 

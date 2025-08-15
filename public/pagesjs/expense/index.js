@@ -22,10 +22,9 @@ const initExpensesTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        
-        url: "/gastos",
-        type: "POST",
-        dataType: 'json',
+        ajax: {
+            url: "/gastos",
+        },
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>><"table-responsive"t><"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
         language: {
             url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json",
@@ -36,7 +35,7 @@ const initExpensesTable = () => {
         },
         columns: [
             { data: 'category_expense.name', name: 'category_expense.name' },
-            { data: 'subcategory_expense.name', name: 'subcategory_expense.name' },
+            { data: 'name', name: 'name' },
             { data: 'description', name: 'description' },
             { 
                 data: 'actions', 

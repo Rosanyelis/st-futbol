@@ -4,34 +4,39 @@
             <form id="formPayOrder" action="{{ route('account-receivable.processPayment') }}" method="POST">
                 @csrf
             <div class="modal-header">
-                <h5 class="modal-title" id="modalCenterTitle">Cobrar la Cuenta Nº <span id="modalpreorden_id"></span> </h5>
+                <h5 class="modal-title" id="modalCenterTitle">Cobrar Cuenta por Cobrar Nº <span id="modalpreorden_id"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="row gy-3">
                     
                     <div class="col-md-12">
-                        <h3>Monto a cobrar: <span id="modalamount" ></span></h3>
+                        <h3>Monto pendiente: <span id="modalamount" ></span></h3>
                     </div>
                     <div class="col-md-12">
                         <div class="form-floating form-floating-outline">
-                            <input type="text" id="amount" name="amount" class="form-control" value="" />
-                            <label for="amount">Monto</label>
+                            <input type="text" id="amount" name="amount" class="form-control" value="" required />
+                            <label for="amount">Monto a pagar</label>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-floating form-floating-outline">
+                            <input type="text" id="payment_reference" name="payment_reference" class="form-control" value="" />
+                            <label for="payment_reference">Referencia del pago (opcional)</label>
                         </div>
                     </div>
                     <div class="col-md-12"> 
                             <div class="form-floating form-floating-outline">
                                 <textarea name="description" class="form-control h-px-100"
                                     id="description"
-                                    cols="30" rows="10"
-                                    required
+                                    cols="30" rows="5"
                                     ></textarea>
-                                <label for="code">Descripción del Movimiento</label>
+                                <label for="description">Descripción del pago</label>
                             </div>
                         </div>
                     <div class="col-md-12">
                         <div class="form-floating form-floating-outline">
-                            <input type="date" id="date" name="date" class="form-control" value="" />
+                            <input type="date" id="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required />
                             <label for="date">Fecha de Pago</label>
                         </div>
                     </div>
@@ -50,7 +55,7 @@
                                 </option>
                                 @endforeach
                             </select>
-                            <label for="code">Método de pago</label>
+                            <label for="method_payment_id">Método de pago</label>
                         </div>
                     </div>
                     
@@ -58,7 +63,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <input type="hidden" name="club_id" id="club_id">
+                <input type="hidden" name="receivable_id" id="receivable_id">
                 <button type="submit" class="btn btn-primary" id="btnPayOrder">Pagar</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>

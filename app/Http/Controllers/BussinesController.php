@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Club;
+use App\Models\Event;
 use App\Models\Expense;
 use App\Models\Bussines;
 use App\Models\Currency;
@@ -99,12 +100,19 @@ class BussinesController extends Controller
 
     /**
      * Obtener clubs por categoría de ingreso
+     * Ahora obtiene clubs asignados al evento para el año específico
      */
     public function getClubsByCategory($categoryIncomeId)
     {
         if ($categoryIncomeId == 1) { // ID 1 = "Clubs"
-            $clubs = Club::where('event_id', request()->get('event_id'))->get();
-            return response()->json($clubs);
+            $eventId = request()->get('event_id');
+            $event = Event::find($eventId);
+            
+            if ($event) {
+                // Obtener clubs asignados al evento para el año del evento
+                $clubs = $event->clubsByYear($event->year)->get();
+                return response()->json($clubs);
+            }
         }
         
         return response()->json([]);

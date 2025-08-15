@@ -14,11 +14,12 @@ class CategoryExpenseSeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ['name' => 'Monotributo'],
-            ['name' => 'Impuestos'],
-            ['name' => 'Contador'],
-            ['name' => 'Sueldos'],
+            ['name' => 'Monotributo', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Impuestos', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Contador', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Sueldos', 'created_at' => now(), 'updated_at' => now()],
         ];
+        
         CategoryExpense::insert($data);
     }
 }

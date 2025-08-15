@@ -157,12 +157,13 @@ class ReportController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-     public function index(Request $request)
+    public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = Club::join('events', 'clubs.event_id', '=', 'events.id')
+            $data = Club::join('event_club', 'clubs.id', '=', 'event_club.club_id')
+                ->join('events', 'event_club.event_id', '=', 'events.id')
                 ->join('currencies', 'clubs.currency_id', '=', 'currencies.id')
-                ->select('clubs.*', 'events.name as event_name', 'currencies.name as currency_name');
+                ->select('clubs.*', 'events.name as event_name', 'currencies.name as currency_name', 'event_club.year');
             return DataTables::of($data)
                 ->filter(function ($query) use ($request) {
                     if ($request->has('search') && $request->search['value'] != '') {
@@ -196,10 +197,9 @@ class ReportController extends Controller
     /**
      * Display the specified resource.
      */
-   
-
     public function eventCurrencyStatement(Request $request)
     {
+        // dd($request->all());
         $events = Event::all();
         $monedas = Currency::all();
         $categorias = DB::table('category_incomes')->select('id', 'name')->get();
@@ -213,6 +213,12 @@ class ReportController extends Controller
                      ->where('em.type', 'Ingreso');
                 if ($request->filled('event_id')) {
                     $join->where('em.event_id', $request->get('event_id'));
+                }
+                if ($request->filled('start_date')) {
+                    $join->where('em.date', '>=', $request->get('start_date'));
+                }
+                if ($request->filled('end_date')) {
+                    $join->where('em.date', '<=', $request->get('end_date'));
                 }
             })
             ->select(
@@ -235,6 +241,12 @@ class ReportController extends Controller
                      ->where('em.type', 'Egreso');
                 if ($request->filled('event_id')) {
                     $join->where('em.event_id', $request->get('event_id'));
+                }
+                if ($request->filled('start_date')) {
+                    $join->where('em.date', '>=', $request->get('start_date'));
+                }
+                if ($request->filled('end_date')) {
+                    $join->where('em.date', '<=', $request->get('end_date'));
                 }
             })
             ->select(

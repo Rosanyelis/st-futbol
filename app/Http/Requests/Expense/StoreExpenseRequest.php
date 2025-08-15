@@ -23,7 +23,7 @@ class StoreExpenseRequest extends FormRequest
     {
         return [
             'category_expense_id' => 'required|exists:category_expenses,id',
-            'subcategory_expense_id' => 'required|exists:subcategory_expenses,id',
+            'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
         ];
     }
@@ -33,8 +33,9 @@ class StoreExpenseRequest extends FormRequest
         return [
             'category_expense_id.required' => 'La categoría de gasto es requerida',
             'category_expense_id.exists' => 'La categoría de gasto no existe',
-            'subcategory_expense_id.required' => 'La subcategoría de gasto es requerida',
-            'subcategory_expense_id.exists' => 'La subcategoría de gasto no existe',
+            'name.required' => 'El gasto es requerido',
+            'name.string' => 'El gasto debe ser una cadena de texto',
+            'name.max' => 'El gasto debe tener menos de 255 caracteres',
             'description.string' => 'La descripción debe ser una cadena de texto',
             'description.max' => 'La descripción debe tener menos de 255 caracteres',
         ];

@@ -13,8 +13,6 @@ return new class extends Migration
     {
         Schema::create('history_change_currencies', function (Blueprint $table) {
             $table->id(); 
-            $table->foreignId('bussines_id')->nullable()->constrained('bussines')->onDelete('cascade');
-            $table->foreignId('event_id')->nullable()->constrained('events')->onDelete('cascade');
             $table->foreignId('currency_id')->nullable()->constrained('currencies')->onDelete('cascade');
             $table->foreignId('method_payment_id')->nullable()->constrained('method_payments')->onDelete('cascade');
             $table->date('date');

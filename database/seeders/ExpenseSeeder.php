@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\SubcategoryExpense;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
 
-class SubcategoryExpenseSeeder extends Seeder
+class ExpenseSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -22,4 +21,3 @@ class SubcategoryExpenseSeeder extends Seeder
         SubcategoryExpense::insert($data);
     }
 }
-

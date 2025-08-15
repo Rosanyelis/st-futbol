@@ -19,7 +19,7 @@ class Expense extends Model
     protected $fillable = [
         'category_egress_id',
         'category_expense_id',
-        'subcategory_expense_id',
+        'name',
         'description',
     ];
 
@@ -33,7 +33,7 @@ class Expense extends Model
         return [
             'category_egress_id' => 'integer',
             'category_expense_id' => 'integer',
-            'subcategory_expense_id' => 'integer',
+            'name' => 'string',
             'description' => 'string',
         ];
     }
@@ -48,8 +48,5 @@ class Expense extends Model
         return $this->belongsTo(CategoryExpense::class, 'category_expense_id', 'id');
     }
 
-    public function subcategoryExpense(): BelongsTo
-    {
-        return $this->belongsTo(SubcategoryExpense::class, 'subcategory_expense_id', 'id');
-    }
+    
 }

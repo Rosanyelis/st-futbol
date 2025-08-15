@@ -26,6 +26,38 @@
                             <div class="row gy-5">
                                 <div class="col-md-4">
                                     <div class="form-floating form-floating-outline">
+                                        <select class="form-control form-control-sm select2 {{ $errors->has('country_id') ? 'is-invalid' : '' }}" id="country_id" name="country_id">
+                                            <option value="">Seleccione el pais</option>
+                                            @foreach ($countries as $country)
+                                                <option value="{{ $country->id }}">{{ $country->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <label for="country_id">Pais</label>
+
+                                        
+                                        @if($errors->has('country_id'))
+                                        <div class="invalid-feedback">
+                                            {{ $errors->first('country_id') }}
+                                        </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-floating form-floating-outline">
+                                        <select class="form-control form-control-sm select2 {{ $errors->has('province_id') ? 'is-invalid' : '' }}" id="province_id" name="province_id">
+                                            <option value="">Seleccione una provincia</option>
+                                        </select>
+                                        <label for="province_id">Provincia</label>
+
+                                        @if($errors->has('province_id'))
+                                        <div class="invalid-feedback">
+                                            {{ $errors->first('province_id') }}
+                                        </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-floating form-floating-outline">
                                         <input
                                             type="text"
                                             class="form-control form-control-sm {{ $errors->has('name') ? 'is-invalid' : '' }}"
@@ -43,24 +75,10 @@
                                         @endif
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="form-floating form-floating-outline">
-                                        <select class="form-control form-control-sm select2 {{ $errors->has('province_id') ? 'is-invalid' : '' }}" id="province_id" name="province_id">
-                                            <option value="">Seleccione una provincia</option>
-                                            @foreach ($provinces as $province)
-                                                <option value="{{ $province->id }}">{{ $province->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @if($errors->has('province_id'))
-                                        <div class="invalid-feedback">
-                                            {{ $errors->first('province_id') }}
-                                        </div>
-                                        @endif
-                                    </div>
-                                </div>
+                                
                             </div>
                             <div class="row justify-content-end">
-                                <div class="mb-3 col-md-1">
+                                <div class="mt-3 col-md-1">
                                     <button type="submit" class="btn btn-primary float-end">
                                         <i class="ri-save-2-line me-1"></i>
                                         Guardar
@@ -82,5 +100,25 @@
     <script src="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.js') }}"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
     <!-- Page JS -->
-    <script src="{{ asset('assets/js/forms-selects.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            $('#country_id').change(function() {
+                var country_id = $(this).val();
+                $.ajax({
+                    url: '{{ route('province.get-provinces') }}?country_id=' + country_id,
+                    type: 'GET',
+                    success: function(response) {
+                        $('#province_id').empty();
+                        $('#province_id').append('<option value="">Seleccione una provincia</option>');
+                        $.each(response, function(index, province) {
+                            $('#province_id').append('<option value="' + province.id + '">' + province.name + '</option>');
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.log(xhr.responseText);
+                    }
+                });
+            });
+        });
+    </script>
 @endsection

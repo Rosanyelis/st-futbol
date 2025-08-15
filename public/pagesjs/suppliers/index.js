@@ -22,10 +22,9 @@ const initSuppliersTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        
-        url: "/proveedores",
-        type: "POST",
-        dataType: 'json',
+        ajax: {
+            url: "/proveedores",
+        },
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>><"table-responsive"t><"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
         language: {
             url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json",
@@ -40,8 +39,6 @@ const initSuppliersTable = () => {
             { data: 'name', name: 'name' },
             { data: 'representant', name: 'representant' },
             { data: 'phone', name: 'phone' },
-            { data: 'amount', name: 'amount' },
-            { data: 'currency_name', name: 'currency_name' },
             { data: 'description', name: 'description' },
             { 
                 data: 'actions', 
@@ -50,14 +47,6 @@ const initSuppliersTable = () => {
                 searchable: false 
             }
         ],
-        columnDefs: [
-            {
-                targets:[5],
-                render: function(data, type, row) {
-                    return numberFormat.format(data);
-                }
-            }
-        ]
     });
 };
 

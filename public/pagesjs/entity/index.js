@@ -22,10 +22,9 @@ const initEntitiesTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        
-        url: "/entidades",
-        type: "POST",
-        dataType: 'json',
+        ajax: {
+            url: "/entidades",
+        },
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>><"table-responsive"t><"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
         language: {
             url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json",

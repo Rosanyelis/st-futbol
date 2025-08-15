@@ -4,14 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\City;
 use App\Models\Club;
-use App\Models\Event;
 use App\Models\Country;
-use App\Models\Currency;
 use App\Models\Province;
 use App\Models\Supplier;
 use App\Models\ClubPayment;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\Clubs\StoreClubRequest;
@@ -22,45 +21,35 @@ class ClubController extends Controller
     /**
      * Display a listing of the resource.
      */
+    /**
+     * Mostrar listado de clubs
+     */
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = Club::with(['event', 'currency', 'supplier', 'country', 'province', 'city', 'supplier.categorySupplier'])
+            $data = Club::with(['country', 'province', 'city'])
                         ->get();
             return DataTables::of($data)
-                ->addColumn('event', function ($data) {
-                    return $data->event->name ?? '';
-                })
                 ->addColumn('country', function ($data) {
                     return $data->country->name ?? '';
                 })
-                ->addColumn('currency', function ($data) {
-                    return $data->currency->name ?? '';
-                })
-                ->addColumn('supplier', function ($data) {
-                    return $data->supplier->name ?? '';
-                })
-                ->addColumn('category_supplier', function ($data) {
-                    return $data->supplier->categorySupplier->name ?? '';
-                })
+               
                 ->addColumn('actions', function ($data) {
-                    return view('clubs.actions', ['id' => $data->id]);
+                    return view('clubs.actions', ['id' => $data->id, 'club' => $data]);
                 })
                 ->rawColumns(['actions'])
                 ->make(true);
-        }         return view('clubs.index');
+        }         
+        return view('clubs.index');
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Mostrar formulario para crear un nuevo club
      */
     public function create()
     {
-        $events = Event::all();
-        $currencies = Currency::all();
-        $suppliers = Supplier::orderBy('name', 'asc')->get();
         $countries = Country::orderBy('name', 'asc')->get();
-        return view('clubs.create', compact('events', 'currencies', 'suppliers', 'countries'));
+        return view('clubs.create', compact('countries'));
     }
 
     public function getProvinces(Request $request)
@@ -77,6 +66,9 @@ class ClubController extends Controller
         return response()->json($cities);
     }
 
+    /**
+     * Obtener proveedores por evento (mantenido para compatibilidad)
+     */
     public function getSuppliersByEvent(Request $request)
     {
         $eventId = $request->input('event_id');
@@ -90,56 +82,41 @@ class ClubController extends Controller
     public function store(StoreClubRequest $request)
     {
         try {
+            DB::beginTransaction();
+            
             $data = $request->all();
-
-            // Eliminar comas de los montos antes de guardar
-            $fieldsToClean = [
-                'players_quantity', 'teachers_quantity', 'companions_quantity', 'drivers_quantity', 'liberated_quantity',
-                'player_price', 'teacher_price', 'companion_price', 'driver_price', 'liberated_price',
-                'total_players', 'total_teachers', 'total_companions', 'total_drivers', 'total_liberated',
-                'total_people', 'total_amount'
-            ];
-            foreach ($fieldsToClean as $field) {
-                if (isset($data[$field])) {
-                    $data[$field] = str_replace(',', '', $data[$field]);
-                }
-            }
-
             if ($request->hasFile('logo')) {
                 $logoPath = $this->saveFile($request->file('logo'), 'clubs/logos/');
                 $data['logo'] = $logoPath;
             }
-            $data['category_income_id'] = 1; // Ingreso de clubes
+            
             $club = Club::create($data);
 
-            return redirect()->route('club.index')
-                ->with('success', 'Club creado exitosamente.');
+            DB::commit();
+            return redirect()->route('club.index')->with('success', 'Club creado exitosamente.');
         } catch (\Exception $e) {
+            DB::rollback();
             return redirect()->route('club.index')->with('error', 'Error al crear el club: ' . $e->getMessage());
         }
-        
     }
 
     /**
-     * Display the specified resource.
+     * Mostrar detalles de un club
      */
     public function show($club)
     {
-        $club = Club::with(['event', 'currency', 'supplier', 'country', 'province', 'city'])->find($club);
+        $club = Club::with(['events', 'currency', 'supplier', 'country', 'province', 'city'])->find($club);
         return view('clubs.show', compact('club'));
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Mostrar formulario para editar un club
      */
     public function edit($id)
     {
-        $events = Event::all();
-        $currencies = Currency::all();
-        $suppliers = Supplier::orderBy('name', 'asc')->get();
         $countries = Country::orderBy('name', 'asc')->get();
         $club = Club::find($id);
-        return view('clubs.edit', compact('club', 'events', 'currencies', 'suppliers', 'countries'));
+        return view('clubs.edit', compact('club', 'countries'));
     }
 
     /**
@@ -148,28 +125,43 @@ class ClubController extends Controller
     public function update(UpdateClubRequest $request, $club)
     {
         try {
+            DB::beginTransaction();
+            
             $data = $request->all();
-            // Eliminar comas de los montos antes de guardar
-            $fieldsToClean = [
-                'players_quantity', 'teachers_quantity', 'companions_quantity', 'drivers_quantity', 'liberated_quantity',
-                'player_price', 'teacher_price', 'companion_price', 'driver_price', 'liberated_price',
-                'total_players', 'total_teachers', 'total_companions', 'total_drivers', 'total_liberated',
-                'total_people', 'total_amount'
-            ];
-            foreach ($fieldsToClean as $field) {
-                if (isset($data[$field])) {
-                    $data[$field] = str_replace(',', '', $data[$field]);
-                }
-            }
             $club = Club::find($club);
+            
             if ($request->hasFile('logo')) {
                 $logoPath = $this->saveFile($request->file('logo'), 'clubs/logos/');
                 $data['logo'] = $logoPath;
             }
+            
             $club->update($data);
+
+            DB::commit();
             return redirect()->route('club.index')->with('success', 'Club actualizado exitosamente.');
         } catch (\Exception $e) {
-            return redirect()->route('club.index')->with('error', 'Error al actualizar el club');
+            DB::rollback();
+            return redirect()->route('club.index')->with('error', 'Error al actualizar el club: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Actualizar las cuentas por cobrar del club
+     */
+    private function updateAccountReceivables(Club $club, float $newTotalAmount): void
+    {
+        // Obtener todas las cuentas por cobrar pendientes del club
+        $pendingReceivables = $club->accountReceivables()->pending()->get();
+        
+        foreach ($pendingReceivables as $receivable) {
+            // Calcular la diferencia
+            $difference = $newTotalAmount - $receivable->total_amount;
+            
+            if ($difference != 0) {
+                $receivable->total_amount = $newTotalAmount;
+                $receivable->calculatePendingAmount();
+                $receivable->save();
+            }
         }
     }
 
@@ -198,7 +190,7 @@ class ClubController extends Controller
             }
 
             // Generar un nombre único para el archivo
-            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $fileName =  time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             
             // Crear el directorio si no existe
             $fullPath = storage_path('app/public/' . $path);

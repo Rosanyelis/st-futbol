@@ -14,12 +14,17 @@ class EntitySeeder extends Seeder
     public function run(): void
     {
         $data = [
-            ['name' => 'Banco Frances'],
-            ['name' => 'Banco Galicia'],
-            ['name' => 'Mercado Pago'],
-            ['name' => 'UALA'],
-            ['name' => 'Naranja X'],
-            ['name' => 'NuBank'],
+            ['name' => 'Banco Frances Sebastian', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Banco Galicia Sebastian', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Mercado Pago', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'UALA', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Naranja X', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'NuBank', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Pesos', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Dolares', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Reales', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Transf. de Terceros', 'created_at' => now(), 'updated_at' => now()],
+            ['name' => 'Banco Frances Favy', 'created_at' => now(), 'updated_at' => now()],
         ];
 
         foreach ($data as $item) {
@@ -27,3 +32,4 @@ class EntitySeeder extends Seeder
         }
     }
 }
+ 

@@ -44,5 +44,5 @@
     <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
     <!-- Page JS -->
-    <script src="{{ asset('pagesjs/subcategory-suppliers/index.js') }}"></script>
+    <script src="{{ asset('pagesjs/subcategory-suppliers/index.js?v=1.0') }}"></script>
 @endsection

@@ -23,10 +23,9 @@ const initClubsTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        
-        url: "/clubs",
-        type: "POST",
-        dataType: 'json',
+        ajax: {
+            url: "/clubs",
+        },
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>><"table-responsive"t><"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
         language: {
             url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json",
@@ -37,7 +36,7 @@ const initClubsTable = () => {
         },
         columns: [
             { data: 'name', name: 'name' },
-            { data: 'event', name: 'event' },
+            { data: 'country', name: 'country' },
             { 
                 data: 'actions', 
                 name: 'actions', 

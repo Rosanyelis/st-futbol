@@ -26,7 +26,6 @@ class ClubFactory extends Factory
     public function definition(): array
     {
         return [
-            'event_id' => Event::factory(),
             'currency_id' => Currency::factory(),
             'name' => fake()->name(),
             'logo' => fake()->word(),

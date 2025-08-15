@@ -72,5 +72,5 @@
 <script src="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.js') }}"></script>
 
-<script src="{{ asset('pagesjs/reports/income-reports.js?v=1.0.4') }}"></script>
+<script src="{{ asset('pagesjs/reports/income-reports.js?v=1.0') }}"></script>
 @endsection

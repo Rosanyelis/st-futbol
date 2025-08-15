@@ -22,10 +22,9 @@ const initCitiesTable = () => {
 
     dataTable.DataTable({
         processing: true,
-        
-        url: "/ciudades",
-        type: "POST",
-        dataType: 'json',
+        ajax: {
+            url: "/ciudades",
+        },
         dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>><"table-responsive"t><"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
         language: {
             url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json",
@@ -37,6 +36,7 @@ const initCitiesTable = () => {
         columns: [
             { data: 'name', name: 'name' },
             { data: 'province.name', name: 'province.name' },
+            { data: 'province.country.name', name: 'province.country.name' },
             { 
                 data: 'actions', 
                 name: 'actions', 

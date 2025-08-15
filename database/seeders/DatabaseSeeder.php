@@ -28,7 +28,6 @@ class DatabaseSeeder extends Seeder
             EntitySeeder::class,
             EventSeeder::class,
             SubcategorySupplierSeeder::class,
-            SubcategoryExpenseSeeder::class,
             BussinesSeeder::class,
         ]);
 
