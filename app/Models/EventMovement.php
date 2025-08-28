@@ -25,6 +25,10 @@ class EventMovement extends Model
         'currency_id',
         'supplier_id',
         'expense_id',
+        'account_payable_id',
+        'account_receivable_id',
+        'account_receivable_payment_id',
+        'account_payable_payment_id',
         'amount',
         'date',
         'description',
@@ -33,7 +37,16 @@ class EventMovement extends Model
         'user_id',
     ];
 
-   
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'date' => 'date:Y-m-d',
+        'amount' => 'decimal:2',
+    ];
+
     public function bussines(): BelongsTo
     {
         return $this->belongsTo(Bussines::class, 'bussines_id', 'id');
@@ -77,5 +90,30 @@ class EventMovement extends Model
     public function expense(): BelongsTo
     {
         return $this->belongsTo(Expense::class, 'expense_id', 'id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function accountPayable(): BelongsTo
+    {
+        return $this->belongsTo(AccountPayable::class, 'account_payable_id', 'id');
+    }
+
+    public function accountReceivable(): BelongsTo
+    {
+        return $this->belongsTo(AccountReceivable::class, 'account_receivable_id', 'id');
+    }
+
+    public function accountReceivablePayment(): BelongsTo
+    {
+        return $this->belongsTo(AccountReceivablePayment::class, 'account_receivable_payment_id', 'id');
+    }
+
+    public function accountPayablePayment(): BelongsTo
+    {
+        return $this->belongsTo(AccountPayablePayment::class, 'account_payable_payment_id', 'id');
     }
 }

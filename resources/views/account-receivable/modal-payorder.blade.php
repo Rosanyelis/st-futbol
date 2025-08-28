@@ -21,21 +21,6 @@
                     </div>
                     <div class="col-md-12">
                         <div class="form-floating form-floating-outline">
-                            <input type="text" id="payment_reference" name="payment_reference" class="form-control" value="" />
-                            <label for="payment_reference">Referencia del pago (opcional)</label>
-                        </div>
-                    </div>
-                    <div class="col-md-12"> 
-                            <div class="form-floating form-floating-outline">
-                                <textarea name="description" class="form-control h-px-100"
-                                    id="description"
-                                    cols="30" rows="5"
-                                    ></textarea>
-                                <label for="description">Descripción del pago</label>
-                            </div>
-                        </div>
-                    <div class="col-md-12">
-                        <div class="form-floating form-floating-outline">
                             <input type="date" id="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required />
                             <label for="date">Fecha de Pago</label>
                         </div>

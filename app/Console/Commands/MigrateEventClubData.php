@@ -31,8 +31,8 @@ class MigrateEventClubData extends Command
         $this->info('Iniciando migración de datos event-club...');
 
         // Verificar que la tabla pivot existe
-        if (!DB::getSchemaBuilder()->hasTable('event_club')) {
-            $this->error('La tabla event_club no existe. Ejecute las migraciones primero.');
+        if (!DB::getSchemaBuilder()->hasTable('event_clubs')) {
+            $this->error('La tabla event_clubs no existe. Ejecute las migraciones primero.');
             return 1;
         }
 
@@ -63,10 +63,9 @@ class MigrateEventClubData extends Command
                 }
 
                 // Verificar si ya existe la relación
-                $existingRelation = DB::table('event_club')
+                $existingRelation = DB::table('event_clubs')
                     ->where('event_id', $club->event_id)
                     ->where('club_id', $club->id)
-                    ->where('year', $event->year)
                     ->exists();
 
                 if ($existingRelation) {
@@ -76,10 +75,9 @@ class MigrateEventClubData extends Command
                 }
 
                 // Insertar en la tabla pivot
-                DB::table('event_club')->insert([
+                DB::table('event_clubs')->insert([
                     'event_id' => $club->event_id,
                     'club_id' => $club->id,
-                    'year' => $event->year, // Usar el año del evento
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

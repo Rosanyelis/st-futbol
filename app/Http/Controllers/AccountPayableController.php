@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccountPayable;
 use App\Models\Currency;
+use App\Models\Event;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use App\Models\EventMovement;
 use App\Models\MethodPayment;
-use App\Models\SupplierPayment;
+use App\Models\AccountPayablePayment;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\AccountPayable\ProcessPaymentRequest;
+use Carbon\Carbon;
 
 class AccountPayableController extends Controller
 {
@@ -20,106 +23,315 @@ class AccountPayableController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = Supplier::join('events', 'suppliers.event_id', '=', 'events.id')
-                ->join('currencies', 'suppliers.currency_id', '=', 'currencies.id')
-                ->select('suppliers.*', 'events.name as event_name', 'currencies.name as currency_name');
+            $data = AccountPayable::with(['supplier', 'event', 'currency', 'payments']);
             return DataTables::of($data)
-                ->filter(function ($query) use ($request) {
-                    if ($request->has('search') && $request->search['value'] != '') {
-                        $search = $request->search['value'];
-                        $query->where(function ($q) use ($search) {
-                            $q->where('suppliers.name', 'like', "%{$search}%")
-                                ->orWhere('events.name', 'like', "%{$search}%")
-                                ->orWhere('currencies.name', 'like', "%{$search}%");
-                        });
-                    }
+                ->addColumn('event_name', function ($row) {
+                    return $row->event ? $row->event->name : 'N/A';
                 })
-                ->addColumn('saldo', function ($row) {
-                    // obtiene la suma de lo abonado de la tabla club_payments
-                    $saldo = SupplierPayment::where('supplier_id', $row->id)->sum('amount');
-                    return $saldo;
+                ->addColumn('supplier_name', function ($row) {
+                    return $row->supplier ? $row->supplier->name : 'N/A';
                 })
-                ->addColumn('pendiente', function ($row) {
-                    $saldo = SupplierPayment::where('supplier_id', $row->id)->sum('amount');
-                    return $row->amount - $saldo;
+                ->addColumn('currency_name', function ($row) {
+                    return $row->currency ? $row->currency->name : 'N/A';
+                })
+                ->addColumn('paid_amount', function ($row) {
+                    return $row->getPaidAmount();
+                })
+                ->addColumn('pending_amount', function ($row) {
+                    return $row->getPendingAmount();
+                })
+                ->addColumn('payment_percentage', function ($row) {
+                    return $row->getPaymentPercentage();
                 })
                 ->addColumn('actions', function ($row) {
-                    $pendiente = $row->amount - SupplierPayment::where('supplier_id', $row->id)->sum('amount');
-                    return view('account-payable.actions', compact('row', 'pendiente'));
+                    return view('account-payable.actions', compact('row'));
                 })
+                ->rawColumns(['actions'])
                 ->make(true);
         }
         $paymentMethods = MethodPayment::all();
-        // obtener los totales pendientes por moneda y las que no tengan datos declararlas en cero
         $currencies = Currency::all();
         return view('account-payable.index', compact('paymentMethods', 'currencies'));
     }
 
-    public function processPayment(ProcessPaymentRequest $request)
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
     {
+        $events = Event::all();
+        $currencies = Currency::all();
+        return view('account-payable.create', compact('events', 'currencies'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'event_id' => 'required|exists:events,id',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'currency_id' => 'required|exists:currencies,id',
+            'amount' => 'required|numeric|min:0',
+            'description' => 'nullable|string|max:255',
+        ]);
+
         DB::beginTransaction();
         
         try {
-            // Obtener el proveedor
-            $supplier = Supplier::findOrFail($request->supplier_id);
+            // Limpiar formato de números antes de guardar
+            $amount = str_replace(['.', ','], ['', '.'], $request->amount);
+            
+            $accountPayable = AccountPayable::create([
+                'supplier_id' => $request->supplier_id,
+                'event_id' => $request->event_id,
+                'currency_id' => $request->currency_id,
+                'date' => Carbon::now(),
+                'amount' => (float) $amount,
+                'description' => $request->description,
+                'status' => 'Pendiente',
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('account-payable.index')
+                ->with('success', 'Cuenta por pagar creada exitosamente');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->withInput()
+                ->with('error', 'Error al crear la cuenta por pagar: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener proveedores asignados a un evento
+     */
+    public function getSuppliersByEvent($eventId)
+    {
+        $suppliers = Supplier::whereHas('events', function($query) use ($eventId) {
+            $query->where('events.id', $eventId);
+        })->get(['id', 'name']);
+
+        return response()->json($suppliers);
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit($id)
+    {
+        $accountPayable = AccountPayable::with(['supplier', 'event', 'currency', 'payments'])->findOrFail($id);
+        
+        // Verificar si tiene pagos
+        if ($accountPayable->payments->count() > 0) {
+            return redirect()->route('account-payable.index')
+                ->with('error', 'No se puede editar una cuenta por pagar que tiene pagos registrados');
+        }
+
+        $events = Event::all();
+        $currencies = Currency::all();
+        
+        return view('account-payable.edit', compact('accountPayable', 'events', 'currencies'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $accountPayable = AccountPayable::with('payments')->findOrFail($id);
+        
+        // Verificar si tiene pagos
+        if ($accountPayable->payments->count() > 0) {
+            return redirect()->route('account-payable.index')
+                ->with('error', 'No se puede editar una cuenta por pagar que tiene pagos registrados');
+        }
+
+        $request->validate([
+            'event_id' => 'required|exists:events,id',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'currency_id' => 'required|exists:currencies,id',
+            'amount' => 'required|numeric|min:0',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        DB::beginTransaction();
+        
+        try {
+            // Limpiar formato de números antes de guardar
+            $amount = str_replace(['.', ','], ['', '.'], $request->amount);
+            
+            $accountPayable->update([
+                'supplier_id' => $request->supplier_id,
+                'event_id' => $request->event_id,
+                'currency_id' => $request->currency_id,
+                'amount' => (float) $amount,
+                'description' => $request->description,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('account-payable.index')
+                ->with('success', 'Cuenta por pagar actualizada exitosamente');
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->withInput()
+                ->with('error', 'Error al actualizar la cuenta por pagar: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        $accountPayable = AccountPayable::with('payments')->findOrFail($id);
+        
+        // Verificar si tiene pagos
+        if ($accountPayable->payments->count() > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede eliminar una cuenta por pagar que tiene pagos registrados'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        
+        try {
+            $accountPayable->delete();
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cuenta por pagar eliminada exitosamente'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar la cuenta por pagar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function processPayment(ProcessPaymentRequest $request)
+    {
+        // Log de inicio para debugging
+        \Log::info('Iniciando procesamiento de pago', [
+            'request_data' => $request->all(),
+            'user_id' => auth()->id()
+        ]);
+        
+        DB::beginTransaction();
+        
+        try {
+            // Obtener la cuenta por pagar
+            $accountPayable = AccountPayable::findOrFail($request->account_payable_id);
+            \Log::info('Cuenta por pagar encontrada', ['account_payable' => $accountPayable->toArray()]);
             
             // Obtener el método de pago
             $methodPayment = MethodPayment::findOrFail($request->method_payment_id);
+            \Log::info('Método de pago encontrado', ['method_payment' => $methodPayment->toArray()]);
             
             // Validar que las monedas coincidan
-            if ($supplier->currency_id !== $methodPayment->currency_id) {
+            if ($accountPayable->currency_id !== $methodPayment->currency_id) {
+                \Log::warning('Error de monedas no coincidentes', [
+                    'account_payable_currency_id' => $accountPayable->currency_id,
+                    'method_payment_currency_id' => $methodPayment->currency_id
+                ]);
                 DB::rollback();
-                throw new \Exception('La moneda del proveedor no coincide con la moneda del método de pago');
+                throw new \Exception('La moneda de la cuenta por pagar no coincide con la moneda del método de pago');
             }
             
             // Validar saldo suficiente en el método de pago
             if ($methodPayment->current_balance < $request->amount) {
+                \Log::warning('Saldo insuficiente en método de pago', [
+                    'method_payment_balance' => $methodPayment->current_balance,
+                    'requested_amount' => $request->amount
+                ]);
                 DB::rollback();
                 throw new \Exception('El método de pago no tiene saldo suficiente');
             }
             
             // Validar que el monto no exceda el saldo pendiente
-            $saldoPagado = SupplierPayment::where('supplier_id', $supplier->id)->sum('amount');
-            $saldoPendiente = $supplier->amount - $saldoPagado;
+            $saldoPagado = $accountPayable->getPaidAmount();
+            $saldoPendiente = $accountPayable->getPendingAmount();
+            
+            \Log::info('Saldos calculados', [
+                'saldo_pagado' => $saldoPagado,
+                'saldo_pendiente' => $saldoPendiente,
+                'monto_solicitado' => $request->amount
+            ]);
             
             if ($request->amount > $saldoPendiente) {
+                \Log::warning('Monto excede saldo pendiente', [
+                    'monto_solicitado' => $request->amount,
+                    'saldo_pendiente' => $saldoPendiente
+                ]);
                 DB::rollback();
-                throw new \Exception('El monto excede el saldo pendiente con este proveedor');
+                throw new \Exception('El monto excede el saldo pendiente de esta cuenta por pagar');
             }
             
-            // Registrar el pago
-            $supplierPayment = SupplierPayment::create([
-                'supplier_id' => $supplier->id,
-                'currency_id' => $supplier->currency_id,
+            // Registrar el pago básico en AccountPayablePayment
+            $accountPayablePayment = AccountPayablePayment::create([
+                'account_payable_id' => $accountPayable->id,
                 'date' => $request->date ?? now()->format('Y-m-d'),
-                'amount' => $request->amount,
-                'method_payment_id' => $methodPayment->id
+                'amount' => $request->amount
             ]);
+            \Log::info('Pago registrado en AccountPayablePayment', ['account_payable_payment' => $accountPayablePayment->toArray()]);
             
             // Registrar en EventMovement
-            EventMovement::create([
-                'event_id' => $supplier->event_id,
-                'supplier_id' => $supplier->id,
+            $eventMovement = EventMovement::create([
+                'bussines_id' => 1, // ID del negocio
+                'event_id' => $accountPayable->event_id,
+                'supplier_id' => $accountPayable->supplier_id, // Agregar el ID del proveedor
+                'account_payable_id' => $accountPayable->id, // Relacionar con la cuenta por pagar
                 'method_payment_id' => $methodPayment->id,
-                'category_expense_id' => 1, // ID fijo para pagos a proveedores
-                'currency_id' => $supplier->currency_id,
+                'category_egress_id' => 2, // ID para proveedores
+                'currency_id' => $accountPayable->currency_id,
+                'type' => 'Egreso',
                 'amount' => $request->amount,
-                'date' => now()->format('Y-m-d'),
-                'description' => $request->description ?? "Pago a proveedor {$supplier->name}",
-                'type' => 'Egreso'
+                'description' => 'Pago a proveedor: ' . $accountPayable->supplier->name,
+                'date' => $request->date ?? now()->format('Y-m-d'),
+                'user_id' => auth()->id(), // Usuario que realiza el pago
             ]);
+            \Log::info('Movimiento registrado en EventMovement', ['event_movement' => $eventMovement->toArray()]);
             
             // Actualizar saldo del método de pago
-            $methodPayment->current_balance -= $request->amount;
-            $methodPayment->save();
+            $oldBalance = $methodPayment->current_balance;
+            $methodPayment->update([
+                'current_balance' => $methodPayment->current_balance - $request->amount
+            ]);
+            \Log::info('Saldo del método de pago actualizado', [
+                'old_balance' => $oldBalance,
+                'new_balance' => $methodPayment->current_balance,
+                'amount_deducted' => $request->amount
+            ]);
             
             DB::commit();
+            \Log::info('Pago procesado exitosamente');
             
-            return redirect()->route('account-payable.index')->with('success', 'Pago procesado correctamente');
+            return response()->json([
+                'success' => true,
+                'message' => 'Pago procesado exitosamente',
+                'payment_percentage' => round((($saldoPagado + $request->amount) / $accountPayable->amount) * 100, 2)
+            ]);
             
         } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->route('account-payable.index')->with('error', 'Error al procesar el pago: ' . $e->getMessage());
+            \Log::error('Error al procesar pago', [
+                'error_message' => $e->getMessage(),
+                'error_trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+            DB::rollback();
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
         }
     }
 }

@@ -4,7 +4,7 @@
             <form id="formPayOrder" action="{{ route('account-payable.processPayment') }}" method="POST">
                 @csrf
             <div class="modal-header">
-                <h5 class="modal-title" id="modalCenterTitle">Pagar la Cuenta Nº <span id="modalpreorden_id"></span> </h5>
+                <h5 class="modal-title" id="modalCenterTitle">Procesar Pago de Cuenta por Pagar</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -12,8 +12,11 @@
                     
                     <div class="col-md-12">
                         <h3>Monto a pagar: <span id="modalamount" ></span></h3>
+                        <p class="fs-6 text-muted py-0">
+                            <i class="ri-information-line me-1"></i>
+                            Seleccione el método de pago que tenga la misma moneda que la cuenta por pagar
+                        </p>
                     </div>
-                    <!-- <p class=" fs-6 text-muted py-0">Debe seleccionar la cuenta en la que se debitara el monto a pagar al cliente</p> -->
                     <div class="col-md-12">
                         <div class="form-floating form-floating-outline">
                             <input type="text" id="amount" name="amount" class="form-control" value="" />
@@ -22,7 +25,7 @@
                     </div>
                     <div class="col-md-12">
                         <div class="form-floating form-floating-outline">
-                            <input type="date" id="date" name="date" class="form-control" value="" />
+                            <input type="date" id="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" />
                             <label for="date">Fecha de Pago</label>
                         </div>
                     </div>
@@ -49,7 +52,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <input type="hidden" name="supplier_id" id="supplier_id">
+                <input type="hidden" name="account_payable_id" id="account_payable_id">
                 <button type="submit" class="btn btn-primary" id="btnPayOrder">Pagar</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>

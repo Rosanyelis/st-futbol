@@ -6,6 +6,9 @@
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/bootstrap-select/bootstrap-select.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/flatpickr/flatpickr.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.css') }}" />
 @endsection
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y">
@@ -99,5 +102,36 @@
             </div>
         </div>
     </div>
+
+    <!-- Sección de Eventos Asignados -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Eventos Asignados</h5>
+                </div>
+                <div class="card-datatable text-nowrap">
+                    <table class="datatables-events table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Evento</th>
+                                <th>Fecha de Inicio</th>
+                                <th>Fecha de Fin</th>
+                                <th>Año</th>
+                                <th>Cuentas por Cobrar</th>
+                                <th style="width: 10px"></th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+@endsection
+
+@section('scripts')
+    <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
+    <script src="{{ asset('pagesjs/clubs/show.js?v=1.0') }}"></script>
 @endsection

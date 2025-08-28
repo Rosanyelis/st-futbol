@@ -1,4 +1,5 @@
 @extends('layouts.app')
+<meta name="csrf-token" content="{{ csrf_token() }}">
 @section('title', 'Cuentas por Cobrar')
 @section('css')
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/typeahead-js/typeahead.css') }}" />
@@ -38,28 +39,36 @@
             <h5 class="mb-0 me-2">Cuentas por Cobrar</h5>
 
             <div class="card-header-elements ms-auto">
+                <a href="{{ route('account-receivable.create') }}" class="btn btn-sm btn-primary">
+                    <i class="ri-add-line"></i>
+                    Crear Cuenta por Cobrar
+                </a>
             </div>
         </div>
         <div class="card-body">
             <!-- Filtros -->
-            <div class="row mb-3">
+            <div class="row mt-3 ">
                 <div class="col-md-3">
-                    <label for="event_filter" class="form-label">Filtrar por Evento</label>
-                    <select class="form-select" id="event_filter">
-                        <option value="">Todos los eventos</option>
-                        @foreach($events as $event)
-                            <option value="{{ $event->id }}">{{ $event->name }}</option>
-                        @endforeach
-                    </select>
+                    <div class="form-floating form-floating-outline">
+                        <select class="form-select" id="event_filter">
+                            <option value="">Todos los eventos</option>
+                            @foreach($events as $event)
+                                <option value="{{ $event->id }}">{{ $event->name }}</option>
+                            @endforeach
+                        </select>
+                        <label for="event_filter">Evento</label>
+                    </div>
                 </div>
                 <div class="col-md-3">
-                    <label for="status_filter" class="form-label">Filtrar por Estado</label>
-                    <select class="form-select" id="status_filter">
-                        <option value="">Todos los estados</option>
-                        @foreach($statuses as $status)
-                            <option value="{{ $status }}">{{ $status }}</option>
-                        @endforeach
-                    </select>
+                    <div class="form-floating form-floating-outline">
+                        <select class="form-select" id="status_filter">
+                            <option value="">Todos los estados</option>
+                            @foreach($statuses as $status)
+                                <option value="{{ $status }}">{{ $status }}</option>
+                            @endforeach
+                        </select>
+                        <label for="status_filter">Estado</label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -74,8 +83,6 @@
                         <th>Pagado</th>
                         <th>Pendiente</th>
                         <th>Estado</th>
-                        <th>Vencimiento</th>
-                        <th>% Pago</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>

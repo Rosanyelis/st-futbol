@@ -27,6 +27,7 @@
                     <tr>
                         <th>Club</th>
                         <th>País</th>
+                        <th>Eventos</th>
                         <th style="width: 10px"></th>
                     </tr>
                 </thead>
@@ -34,6 +35,37 @@
         </div>
     </div>
     <!--/ Ajax Sourced Server-side -->
+</div>
+
+<!-- Modal para asignar eventos -->
+<div class="modal fade" id="assignEventsModal" tabindex="-1" aria-labelledby="assignEventsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignEventsModalLabel">Asignar Eventos al Club</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignEventsForm">
+                    <input type="hidden" id="clubId" name="club_id">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-floating form-floating-outline">
+                                <select class="form-select select2" id="eventSelect" name="event_id" required>
+                                    <option value="">Seleccione un evento...</option>
+                                </select>
+                                <label for="eventSelect">Seleccionar Evento</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="assignEventToClub()">Asignar Evento</button>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 

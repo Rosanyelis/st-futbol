@@ -39,27 +39,15 @@ class Event extends Model
 
     /**
      * Relación muchos a muchos con clubs a través de la tabla pivot event_clubs
-     * Permite que un evento tenga varios clubs en diferentes años
      */
     public function clubs(): BelongsToMany
     {
         return $this->belongsToMany(Club::class, 'event_clubs')
-                    ->withPivot('year')
                     ->withTimestamps();
     }
 
-    /**
-     * Obtener clubs de un evento para un año específico
-     */
-    public function clubsByYear(string $year): BelongsToMany
-    {
-        return $this->belongsToMany(Club::class, 'event_clubs')
-                    ->wherePivot('year', $year)
-                    ->withPivot('year')
-                    ->withTimestamps();
-    }
 
-    /**
+    /** 
      * Relación con movimientos de eventos
      */
     public function eventMovements(): HasMany
@@ -68,34 +56,59 @@ class Event extends Model
     }
 
     /**
-     * Relación con proveedores
+     * Relación muchos a muchos con proveedores a través de la tabla pivot event_suppliers
      */
-    public function suppliers(): HasMany
+    public function suppliers(): BelongsToMany
     {
-        return $this->hasMany(Supplier::class, 'event_id', 'id');
+        return $this->belongsToMany(Supplier::class, 'event_suppliers')
+                    ->withTimestamps();
     }
 
     /**
-     * Asignar un club a este evento para un año específico
+     * Asignar un club a este evento
      */
-    public function assignClub(Club $club, string $year): void
+    public function assignClub(Club $club): void
     {
-        $this->clubs()->attach($club->id, ['year' => $year]);
+        $this->clubs()->attach($club->id);
     }
 
     /**
      * Desasignar un club de este evento para un año específico
      */
-    public function detachClub(Club $club, string $year): void
+    public function detachClub(Club $club): void
     {
-        $this->clubs()->wherePivot('year', $year)->detach($club->id);
+        $this->clubs()->detach($club->id);
     }
 
     /**
-     * Obtener todos los años en los que este evento tiene clubs asignados
+     * Obtener todos los clubs asignados a este evento
      */
-    public function getYearsWithClubs(): array
+    public function getAssignedClubs(): array
     {
-        return $this->clubs()->pluck('year')->unique()->toArray();
+        return $this->clubs()->pluck('id')->unique()->toArray();
+    }
+
+    /**
+     * Asignar un proveedor a este evento
+     */
+    public function assignSupplier(Supplier $supplier): void
+    {
+        $this->suppliers()->attach($supplier->id);
+    }
+
+    /**
+     * Desasignar un proveedor de este evento
+     */
+    public function detachSupplier(Supplier $supplier): void
+    {
+        $this->suppliers()->detach($supplier->id);
+    }
+
+    /**
+     * Obtener todos los proveedores asignados a este evento
+     */
+    public function getAssignedSuppliers(): array
+    {
+        return $this->suppliers()->pluck('id')->unique()->toArray();
     }
 }

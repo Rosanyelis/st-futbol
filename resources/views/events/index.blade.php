@@ -30,6 +30,7 @@
                         <th>Fecha de fin</th>
                         <th>Año</th>
                         <th>Clubes</th>
+                        <th>Proveedores</th>
                         <th style="width: 10px"></th>
                     </tr>
                 </thead>
@@ -51,20 +52,12 @@
                 <form id="assignClubsForm">
                     <input type="hidden" id="eventId" name="event_id">
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="clubSelect" class="form-label">Seleccionar Club</label>
-                                <select class="form-select" id="clubSelect" name="club_id" required>
+                        <div class="col-md-12">
+                            <div class="form-floating form-floating-outline">
+                                <select class="form-select select2" id="clubSelect" name="club_id" required>
                                     <option value="">Seleccione un club...</option>
                                 </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="yearSelect" class="form-label">Año</label>
-                                <select class="form-select" id="yearSelect" name="year" required>
-                                    <option value="">Seleccione un año...</option>
-                                </select>
+                                <label for="clubSelect">Seleccionar Club</label>
                             </div>
                         </div>
                     </div>
@@ -73,6 +66,37 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" onclick="assignClubToEvent()">Asignar Club</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para asignar proveedores -->
+<div class="modal fade" id="assignSuppliersModal" tabindex="-1" aria-labelledby="assignSuppliersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignSuppliersModalLabel">Asignar Proveedores al Evento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignSuppliersForm">
+                    <input type="hidden" id="supplierEventId" name="event_id">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-floating form-floating-outline">
+                                <select class="form-select select2" id="supplierSelect" name="supplier_id" required>
+                                    <option value="">Seleccione un proveedor...</option>
+                                </select>
+                                <label for="supplierSelect">Seleccionar Proveedor</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="assignSupplierToEvent()">Asignar Proveedor</button>
             </div>
         </div>
     </div>
@@ -86,5 +110,6 @@
     <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
     <!-- Page JS -->
+    <script src="{{ asset('assets/js/forms-selects.js') }}"></script>
     <script src="{{ asset('pagesjs/events/index.js?v=1.0') }}"></script>
 @endsection

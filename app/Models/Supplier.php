@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Supplier extends Model
 {
@@ -33,6 +34,39 @@ class Supplier extends Model
     public function subcategorySupplier(): BelongsTo
     {
         return $this->belongsTo(SubcategorySupplier::class, 'subcategory_supplier_id', 'id');
+    }
+
+    /**
+     * Relación muchos a muchos con eventos a través de la tabla pivot event_suppliers
+     */
+    public function events(): BelongsToMany
+    {
+        return $this->belongsToMany(Event::class, 'event_suppliers')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Asignar un evento a este proveedor
+     */
+    public function assignEvent(Event $event): void
+    {
+        $this->events()->attach($event->id);
+    }
+
+    /**
+     * Desasignar un evento de este proveedor
+     */
+    public function detachEvent(Event $event): void
+    {
+        $this->events()->detach($event->id);
+    }
+
+    /**
+     * Obtener todos los eventos asignados a este proveedor
+     */
+    public function getAssignedEvents(): array
+    {
+        return $this->events()->pluck('id')->unique()->toArray();
     }
 
 }

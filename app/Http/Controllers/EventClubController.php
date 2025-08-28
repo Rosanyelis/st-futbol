@@ -17,7 +17,7 @@ class EventClubController extends Controller
     {
         $event = Event::findOrFail($eventId);
         $clubs = Club::orderBy('name', 'asc')->get();
-        $assignedClubs = $event->clubs()->withPivot('year')->get();
+        $assignedClubs = $event->clubs()->get();
         
         return view('events.assign-clubs', compact('event', 'clubs', 'assignedClubs'));
     }
@@ -29,17 +29,13 @@ class EventClubController extends Controller
     {
         if ($request->ajax()) {
             $event = Event::findOrFail($eventId);
-            $assignedClubs = $event->clubs()->withPivot('year')->get();
+            $assignedClubs = $event->clubs()->get();
             
             return DataTables::of($assignedClubs)
-                ->addColumn('year', function ($club) {
-                    return $club->pivot->year;
-                })
                 ->addColumn('actions', function ($club) use ($eventId) {
                     return view('events.assigned-club-actions', [
                         'eventId' => $eventId, 
                         'clubId' => $club->id, 
-                        'year' => $club->pivot->year
                     ]);
                 })
                 ->rawColumns(['actions'])
@@ -54,7 +50,6 @@ class EventClubController extends Controller
     {
         $request->validate([
             'club_id' => 'required|exists:clubs,id',
-            'year' => 'required|string|max:4',
         ]);
 
         try {
@@ -66,18 +61,17 @@ class EventClubController extends Controller
             // Verificar si ya existe la relación para ese año
             $existingRelation = $event->clubs()
                 ->wherePivot('club_id', $club->id)
-                ->wherePivot('year', $request->year)
                 ->exists();
             
             if ($existingRelation) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Este club ya está asignado a este evento para el año ' . $request->year
+                    'message' => 'Este club ya está asignado a este evento'
                 ], 422);
             }
             
             // Asignar el club al evento
-            $event->assignClub($club, $request->year);
+            $event->assignClub($club);
             
             DB::commit();
             
@@ -101,7 +95,7 @@ class EventClubController extends Controller
     public function destroy($eventId, $clubId, Request $request)
     {
         $request->validate([
-            'year' => 'required|string|max:4',
+            'club_id' => 'required|exists:clubs,id',
         ]);
 
         try {
@@ -110,8 +104,8 @@ class EventClubController extends Controller
             $event = Event::findOrFail($eventId);
             $club = Club::findOrFail($clubId);
             
-            // Desasignar el club del evento para el año específico
-            $event->detachClub($club, $request->year);
+            // Desasignar el club del evento
+            $event->detachClub($club);
             
             DB::commit();
             
@@ -135,10 +129,9 @@ class EventClubController extends Controller
     public function getAvailableClubs($eventId, Request $request)
     {
         $event = Event::findOrFail($eventId);
-        $year = $request->get('year', date('Y'));
         
-        // Obtener clubs que ya están asignados para ese año
-        $assignedClubIds = $event->clubsByYear($year)->pluck('clubs.id')->toArray();
+        // Obtener clubs que ya están asignados
+        $assignedClubIds = $event->clubs()->pluck('clubs.id')->toArray();
         
         // Obtener todos los clubs excepto los ya asignados
         $availableClubs = Club::whereNotIn('id', $assignedClubIds)

@@ -12,6 +12,13 @@
     <i class="ri-team-line ri-20px"></i>
 </a>
 
+<a href="javascript:;" class="btn btn-sm btn-icon btn-text-secondary
+    rounded-pill"
+    data-bs-toggle="tooltip" title="Asignar Proveedores"
+    onclick="openAssignSuppliersModal({{ $id }})">
+    <i class="ri-store-2-line ri-20px"></i>
+</a>
+
 <a href="{{ route('event.edit', $id) }}" class="btn btn-sm btn-icon btn-text-secondary
     rounded-pill"
     data-bs-toggle="tooltip" title="Editar Evento">

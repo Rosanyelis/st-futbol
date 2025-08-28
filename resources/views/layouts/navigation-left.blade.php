@@ -246,11 +246,15 @@
                         <div data-i18n="Cuentas por Pagar">Cuentas por Pagar</div>
                     </a>
                 </li>
-                
-                <li class="menu-item">
-                    <a href="javascript:void(0);" class="menu-link">
+                <li class="menu-item
+                    @if (Route::currentRouteName() == 'history-change-currency.index' ||
+                        Route::currentRouteName() == 'history-change-currency.create' ||
+                        Route::currentRouteName() == 'history-change-currency.edit' ||
+                        Route::currentRouteName() == 'history-change-currency.show') active @endif
+                    ">
+                    <a href="{{ route('history-change-currency.index') }}" class="menu-link">
                         <i class="menu-icon tf-icons ri-swap-3-fill"></i>
-                        <div data-i18n="Cambio de Divisas">Cambio de Divisas</div>
+                        <div data-i18n="Cambio de Moneda">Cambio de Moneda</div>
                     </a>
                 </li>
                 <li class="menu-item

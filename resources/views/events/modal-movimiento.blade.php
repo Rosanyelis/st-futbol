@@ -78,6 +78,15 @@
                                 <label for="code">Clubs</label>
                             </div>
                         </div>
+                        <div class="col-md-12" id="account_receivable_id_div" style="display: none;">
+                            <input type="hidden" id="account_receivable_id" name="account_receivable_id" value="" />
+                            <input type="hidden" id="account_receivable_payment_id" name="account_receivable_payment_id" value="" />
+                        </div>
+                        <div class="col-md-12" id="account_payable_id_div" style="display: none;">
+                            <input type="hidden" id="account_payable_id" name="account_payable_id" value="" />
+                            <input type="hidden" id="account_payable_payment_id" name="account_payable_payment_id" value="" />
+                        </div>
+                        
                         <div class="col-md-12" id="supplier_id_div" >
                             <div class="form-floating form-floating-outline">
                                 <select id="supplier_id" name="supplier_id"

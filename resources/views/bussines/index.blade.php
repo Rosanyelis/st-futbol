@@ -55,8 +55,6 @@
                         <th>Ingreso</th>                        
                         <th>Egreso</th>
                         <th>Moneda</th>
-                        <th>Club</th>
-                        <th>Proveedor</th>
                         <th>Cuenta</th>
                         <th></th>
                     </tr>

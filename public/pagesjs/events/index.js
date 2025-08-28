@@ -41,6 +41,7 @@ const initEventsTable = () => {
             { data: 'end_date', name: 'end_date' },
             { data: 'year', name: 'year' },
             { data: 'clubs_count', name: 'clubs_count' },
+            { data: 'suppliers_count', name: 'suppliers_count' },
             { 
                 data: 'actions', 
                 name: 'actions', 
@@ -98,6 +99,13 @@ const initEventsTable = () => {
                 render: function(data, type, row) {
                     return row.clubs_count;
                 }
+            },
+            {
+                targets: [5],
+                searchable: true,
+                render: function(data, type, row) {
+                    return row.suppliers_count;
+                }
             }
         ]
     });
@@ -138,9 +146,7 @@ const openAssignClubsModal = (eventId) => {
     
     // Cargar clubs disponibles
     loadAvailableClubs(eventId);
-    
-    // Cargar años disponibles
-    loadAvailableYears();
+
     
     // Mostrar modal
     const modal = new bootstrap.Modal(document.getElementById('assignClubsModal'));
@@ -170,28 +176,153 @@ const loadAvailableClubs = (eventId) => {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: 'Error al cargar los clubs disponibles'
+                text: 'Error al cargar los clubs disponibles',
+                customClass: {
+                    confirmButton: 'btn btn-primary waves-effect waves-light'
+                    },
+                buttonsStyling: false
+                    });
+    });
+};
+
+/**
+ * Abre la modal para asignar proveedores a un evento
+ * @param {number} eventId - ID del evento
+ */
+const openAssignSuppliersModal = (eventId) => {
+    // Limpiar formulario
+    document.getElementById('assignSuppliersForm').reset();
+    document.getElementById('supplierEventId').value = eventId;
+    
+    // Cargar proveedores disponibles
+    loadAvailableSuppliers(eventId);
+
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('assignSuppliersModal'));
+    modal.show();
+};
+
+/**
+ * Carga los proveedores disponibles para asignar al evento
+ * @param {number} eventId - ID del evento
+ */
+const loadAvailableSuppliers = (eventId) => {
+    fetch(`/eventos/${eventId}/available-suppliers-modal`)
+        .then(response => response.json())
+        .then(data => {
+            const supplierSelect = document.getElementById('supplierSelect');
+            supplierSelect.innerHTML = '<option value="">Seleccione un proveedor...</option>';
+            
+            data.forEach(supplier => {
+                const option = document.createElement('option');
+                option.value = supplier.id;
+                option.textContent = supplier.name;
+                supplierSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error cargando proveedores:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error al cargar los proveedores disponibles',
+                customClass: {
+                    confirmButton: 'btn btn-primary waves-effect waves-light'
+                    },
+                buttonsStyling: false
             });
         });
 };
 
 /**
- * Carga los años disponibles para el evento
+ * Asigna un proveedor al evento
  */
-const loadAvailableYears = () => {
-    const yearSelect = document.getElementById('yearSelect');
-    yearSelect.innerHTML = '<option value="">Seleccione un año...</option>';
+const assignSupplierToEvent = () => {
+    const form = document.getElementById('assignSuppliersForm');
+    const formData = new FormData(form);
     
-    // Obtener el año actual y los próximos 5 años
-    const currentYear = new Date().getFullYear();
-    for (let i = 0; i < 6; i++) {
-        const year = currentYear + i;
-        const option = document.createElement('option');
-        option.value = year;
-        option.textContent = year;
-        yearSelect.appendChild(option);
+    // Validar formulario
+    if (!formData.get('supplier_id')) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Campos requeridos',
+            text: 'Por favor seleccione un proveedor'
+        });
+        return;
     }
+    
+    const eventId = formData.get('event_id');
+    
+    // Mostrar loading
+    Swal.fire({
+        title: 'Asignando proveedor...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+        customClass: {
+            confirmButton: 'btn btn-primary waves-effect waves-light'
+            },
+        buttonsStyling: false
+    });
+    
+    fetch(`/eventos/${eventId}/assign-supplier-modal`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            supplier_id: formData.get('supplier_id')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: data.message,
+                customClass: {
+                    confirmButton: 'btn btn-primary waves-effect waves-light'
+                    },
+                buttonsStyling: false
+            });
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignSuppliersModal'));
+            modal.hide();
+            
+            // Recargar DataTable para actualizar el contador
+            $('.datatables').DataTable().ajax.reload();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message,
+                customClass: {
+                    confirmButton: 'btn btn-primary waves-effect waves-light'
+                    },
+                buttonsStyling: false
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error al asignar el proveedor al evento',
+            customClass: {
+                confirmButton: 'btn btn-primary waves-effect waves-light'
+                },
+            buttonsStyling: false
+        });
+    });
 };
+
+
 
 /**
  * Asigna un club al evento
@@ -201,11 +332,11 @@ const assignClubToEvent = () => {
     const formData = new FormData(form);
     
     // Validar formulario
-    if (!formData.get('club_id') || !formData.get('year')) {
+    if (!formData.get('club_id')) {
         Swal.fire({
             icon: 'warning',
             title: 'Campos requeridos',
-            text: 'Por favor seleccione un club y un año'
+            text: 'Por favor seleccione un club'
         });
         return;
     }
@@ -218,7 +349,11 @@ const assignClubToEvent = () => {
         allowOutsideClick: false,
         didOpen: () => {
             Swal.showLoading();
-        }
+        },
+        customClass: {
+            confirmButton: 'btn btn-primary waves-effect waves-light'
+            },
+        buttonsStyling: false
     });
     
     fetch(`/eventos/${eventId}/assign-club-modal`, {
@@ -228,8 +363,7 @@ const assignClubToEvent = () => {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            club_id: formData.get('club_id'),
-            year: formData.get('year')
+            club_id: formData.get('club_id')
         })
     })
     .then(response => response.json())
@@ -238,7 +372,11 @@ const assignClubToEvent = () => {
             Swal.fire({
                 icon: 'success',
                 title: 'Éxito',
-                text: data.message
+                text: data.message,
+                customClass: {
+                    confirmButton: 'btn btn-primary waves-effect waves-light'
+                    },
+                buttonsStyling: false
             });
             
             // Cerrar modal
@@ -251,7 +389,11 @@ const assignClubToEvent = () => {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: data.message
+                text: data.message,
+                customClass: {
+                    confirmButton: 'btn btn-primary waves-effect waves-light'
+                    },
+                buttonsStyling: false
             });
         }
     })
@@ -260,7 +402,11 @@ const assignClubToEvent = () => {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Error al asignar el club al evento'
+            text: 'Error al asignar el club al evento',
+            customClass: {
+                confirmButton: 'btn btn-primary waves-effect waves-light'
+                },
+            buttonsStyling: false
         });
     });
 };

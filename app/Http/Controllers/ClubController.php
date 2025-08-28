@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\City;
 use App\Models\Club;
 use App\Models\Country;
+use App\Models\Event;
 use App\Models\Province;
 use App\Models\Supplier;
 use App\Models\ClubPayment;
@@ -28,12 +29,15 @@ class ClubController extends Controller
     {
         if ($request->ajax()) {
             $data = Club::with(['country', 'province', 'city'])
+                        ->withCount('events')
                         ->get();
             return DataTables::of($data)
                 ->addColumn('country', function ($data) {
                     return $data->country->name ?? '';
                 })
-               
+                ->addColumn('events_count', function ($data) {
+                    return $data->events_count ?? 0;
+                })
                 ->addColumn('actions', function ($data) {
                     return view('clubs.actions', ['id' => $data->id, 'club' => $data]);
                 })
@@ -215,5 +219,145 @@ class ClubController extends Controller
         return Pdf::loadView('clubs.recibo', compact('club', 'payment'))
             // ->setPaper([0,0,150,1000])
             ->stream(''.config('app.name', 'Laravel').' - Recibo de Club ' . $club->name. ' nro ' . $payment->id . '.pdf');
+    }
+
+    /**
+     * Obtener eventos disponibles para asignar a un club
+     */
+    public function getAvailableEvents($clubId)
+    {
+        try {
+            $club = Club::findOrFail($clubId);
+            
+            // Obtener todos los eventos
+            $allEvents = Event::orderBy('name', 'asc')->get();
+            
+            // Obtener eventos ya asignados al club
+            $assignedEvents = $club->events()->pluck('events.id')->toArray();
+            
+            // Filtrar eventos no asignados
+            $availableEvents = $allEvents->whereNotIn('id', $assignedEvents);
+            
+            return response()->json($availableEvents->values());
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al obtener eventos disponibles'], 500);
+        }
+    }
+
+    /**
+     * Asignar un evento a un club
+     */
+    public function assignEventToClub(Request $request, $clubId)
+    {
+        try {
+            $club = Club::findOrFail($clubId);
+            $eventId = $request->input('event_id');
+            
+            // Validar que el evento existe
+            $event = Event::findOrFail($eventId);
+            
+            // Verificar si ya está asignado
+            $existingAssignment = $club->events()
+                ->where('events.id', $eventId)
+                ->exists();
+            
+            if ($existingAssignment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este evento ya está asignado al club'
+                ], 400);
+            }
+            
+            // Asignar el evento al club
+            $club->assignEvent($event);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Evento asignado correctamente al club'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al asignar el evento: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener eventos asignados a un club
+     */
+    public function getAssignedEvents($clubId, Request $request)
+    {
+        if ($request->ajax()) {
+            $club = Club::findOrFail($clubId);
+            $assignedEvents = $club->events()->get();
+            
+            return DataTables::of($assignedEvents)
+                ->addColumn('receivables_count', function ($event) use ($clubId) {
+                    // Contar cuentas por cobrar del club para este evento
+                    return \App\Models\AccountReceivable::where('club_id', $clubId)
+                        ->where('event_id', $event->id)
+                        ->count();
+                })
+                ->addColumn('can_delete', function ($event) use ($clubId) {
+                    // Verificar si se puede eliminar (no tiene cuentas por cobrar)
+                    $receivablesCount = \App\Models\AccountReceivable::where('club_id', $clubId)
+                        ->where('event_id', $event->id)
+                        ->count();
+                    return $receivablesCount === 0;
+                })
+                ->addColumn('actions', function ($event) use ($clubId) {
+                    $receivablesCount = \App\Models\AccountReceivable::where('club_id', $clubId)
+                        ->where('event_id', $event->id)
+                        ->count();
+                    $canDelete = $receivablesCount === 0;
+                    
+                    return view('clubs.assigned-event-actions', [
+                        'clubId' => $clubId, 
+                        'eventId' => $event->id,
+                        'canDelete' => $canDelete
+                    ]);
+                })
+                ->rawColumns(['actions'])
+                ->make(true);
+        }
+    }
+
+    /**
+     * Eliminar asignación de evento a club
+     */
+    public function deleteEventAssignment($clubId, $eventId, Request $request)
+    {
+        try {
+            $club = Club::findOrFail($clubId);
+            $event = Event::findOrFail($eventId);
+            
+            // Verificar si tiene cuentas por cobrar
+            $receivablesCount = \App\Models\AccountReceivable::where('club_id', $clubId)
+                ->where('event_id', $eventId)
+                ->count();
+            
+            if ($receivablesCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede eliminar la asignación porque el club tiene cuentas por cobrar en este evento'
+                ], 400);
+            }
+            
+            // Eliminar la asignación
+            $club->detachEvent($event);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Asignación eliminada correctamente'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar la asignación: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

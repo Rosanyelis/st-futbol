@@ -127,4 +127,13 @@ class MethodPaymentController extends Controller
             return redirect()->route('method-payment.index')->with('error', 'Error al eliminar el método de pago');
         }
     }
+
+    /**
+     * Obtener lista de métodos de pago para filtros
+     */
+    public function list()
+    {
+        $methodPayments = MethodPayment::with('entity')->get();
+        return response()->json($methodPayments);
+    }
 }

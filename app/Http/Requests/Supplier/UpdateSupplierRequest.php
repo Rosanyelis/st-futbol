@@ -24,6 +24,7 @@ class UpdateSupplierRequest extends FormRequest
         return [
             'category_supplier_id' => 'required|exists:category_suppliers,id',
             'subcategory_supplier_id' => 'required|exists:subcategory_suppliers,id',
+            'name' => 'required',
             'representant' => 'required',
             'phone' => 'required',
             'description' => 'nullable',
@@ -37,6 +38,7 @@ class UpdateSupplierRequest extends FormRequest
             'category_supplier_id.exists' => 'La categoría de proveedor no existe',
             'subcategory_supplier_id.required' => 'La subcategoría de proveedor es requerida',
             'subcategory_supplier_id.exists' => 'La subcategoría de proveedor no existe',
+            'name.required' => 'El nombre es requerido',
             'representant.required' => 'El representante es requerido',
             'phone.required' => 'El teléfono es requerido',
             'description.nullable' => 'La descripción es opcional',

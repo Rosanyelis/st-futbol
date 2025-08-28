@@ -22,7 +22,7 @@ class ProcessPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'receivable_id' => 'required|exists:club_account_receivables,id',
+            'receivable_id' => 'required|exists:account_receivables,id',
             'method_payment_id' => 'nullable|exists:method_payments,id',
             'amount' => 'required|numeric|min:0',
             'date' => 'required|date',

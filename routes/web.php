@@ -20,6 +20,8 @@ use App\Http\Controllers\CategoryIncomeController;
 use App\Http\Controllers\CategoryExpenseController;
 use App\Http\Controllers\CategorySupplierController;
 use App\Http\Controllers\AccountReceivableController;
+use App\Http\Controllers\EventMovementController;
+use App\Http\Controllers\HistoryChangeCurrencyController;
 use App\Http\Controllers\SubcategoryExpenseController;
 use App\Http\Controllers\SubcategorySupplierController;
 use App\Http\Controllers\CategoryMethodPaymentController;
@@ -60,14 +62,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/eventos/{id}/history', [EventController::class, 'history'])->name('event.history');
     Route::post('/eventos/{id}/store-transaction', [EventController::class, 'storeTransaction'])->name('event.storeTransaction');
     Route::get('/eventos/{id}/history-json', [EventController::class, 'historyJson'])->name('event.historyJson');
+    Route::get('/eventos/list', [EventController::class, 'list'])->name('event.list');
     Route::get('/eventos/metodo-pago/{currencyId}', [EventController::class, 'paymentMethods'])->name('event.paymentMethods');
     Route::get('/eventos/currencies', [EventController::class, 'currencies'])->name('event.currencies');
     Route::get('/eventos/clubs-by-category/{categoryIncomeId}', [EventController::class, 'getClubsByCategory'])->name('event.getClubsByCategory');
+    Route::get('/eventos/{eventId}/clubs-with-pending-accounts', [EventController::class, 'getClubsWithPendingAccounts'])->name('event.clubs-with-pending-accounts');
+    Route::get('/eventos/{eventId}/clubs-pending-amounts', [EventController::class, 'getClubsWithPendingAmounts'])->name('event.clubs-pending-amounts');
+    Route::get('/eventos/{eventId}/clubs-pending-accounts-filtered', [EventController::class, 'getClubsPendingAccountsFiltered'])->name('event.clubs-pending-accounts-filtered');
     Route::get('/eventos/expenses-by-category/{categoryEgressId}', [EventController::class, 'getExpensesByCategory'])->name('event.getExpensesByCategory');
     Route::get('/eventos/suppliers-by-category/{categoryEgressId}', [EventController::class, 'getSuppliersByCategory'])->name('event.getSuppliersByCategory');
     Route::get('/eventos/{id}/edit-history', [EventController::class, 'editHistory'])->name('event.history.edit');
     Route::post('/eventos/{id}/update-history', [EventController::class, 'updateHistory'])->name('event.history.update');
     Route::get('/eventos/{id}/destroy-history', [EventController::class, 'destroyHistory'])->name('event.history.destroy');
+    
+    Route::get('/eventos/{id}/verify-and-fix-payment-relations', [EventController::class, 'verifyAndFixPaymentRelations'])->name('event.verify-and-fix-payment-relations');
     
     # Rutas para asignación de clubs a eventos
     Route::get('/eventos/{id}/assign-clubs', [EventClubController::class, 'assignClubs'])->name('event.assign-clubs');
@@ -79,6 +87,17 @@ Route::middleware('auth')->group(function () {
     # Nuevas rutas para asignación de clubs desde modal
     Route::get('/eventos/{id}/available-clubs-modal', [EventController::class, 'getAvailableClubs'])->name('event.available-clubs-modal');
     Route::post('/eventos/{id}/assign-club-modal', [EventController::class, 'assignClubToEvent'])->name('event.assign-club-modal');
+
+    # Rutas para asignación de proveedores a eventos
+    Route::get('/eventos/{id}/assign-suppliers', [EventSupplierController::class, 'assignSuppliers'])->name('event.assign-suppliers');
+    Route::get('/eventos/{id}/assigned-suppliers', [EventSupplierController::class, 'getAssignedSuppliers'])->name('event.assigned-suppliers');
+    Route::post('/eventos/{id}/assign-supplier', [EventSupplierController::class, 'store'])->name('event.assign-supplier');
+    Route::delete('/eventos/{eventId}/suppliers/{supplierId}/detach', [EventSupplierController::class, 'destroy'])->name('event.detach-supplier');
+    Route::get('/eventos/{id}/available-suppliers', [EventSupplierController::class, 'getAvailableSuppliers'])->name('event.available-suppliers');
+    
+    # Nuevas rutas para asignación de proveedores desde modal
+    Route::get('/eventos/{id}/available-suppliers-modal', [EventController::class, 'getAvailableSuppliers'])->name('event.available-suppliers-modal');
+    Route::post('/eventos/{id}/assign-supplier-modal', [EventController::class, 'assignSupplierToEvent'])->name('event.assign-supplier-modal');
 
     # Categorías de proveedores
     Route::get('/categorias-proveedores', [CategorySupplierController::class, 'index'])->name('category-supplier.index');
@@ -98,10 +117,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/proveedores', [SupplierController::class, 'index'])->name('supplier.index');
     Route::get('/proveedores/create', [SupplierController::class, 'create'])->name('supplier.create');
     Route::post('/proveedores', [SupplierController::class, 'store'])->name('supplier.store');
+    Route::get('/proveedores/{id}/show', [SupplierController::class, 'show'])->name('supplier.show');
     Route::get('/proveedores/{id}/edit', [SupplierController::class, 'edit'])->name('supplier.edit');
     Route::put('/proveedores/{id}/update', [SupplierController::class, 'update'])->name('supplier.update');
     Route::get('/proveedores/{id}/destroy', [SupplierController::class, 'destroy'])->name('supplier.destroy');
     Route::post('/proveedores/get-subcategory-suppliers', [SupplierController::class, 'getSubcategorySuppliers'])->name('supplier.get-subcategory-suppliers');
+    
+    # Rutas para asignación de eventos a proveedores
+    Route::get('/proveedores/{id}/available-events-modal', [SupplierController::class, 'getAvailableEvents'])->name('supplier.available-events-modal');
+    Route::post('/proveedores/{id}/assign-event-modal', [SupplierController::class, 'assignEventToSupplier'])->name('supplier.assign-event-modal');
+    
+    # Rutas para eventos asignados a proveedores
+    Route::get('/proveedores/{id}/assigned-events', [SupplierController::class, 'getAssignedEvents'])->name('supplier.assigned-events');
+    Route::delete('/proveedores/{supplierId}/events/{eventId}/detach', [SupplierController::class, 'deleteEventAssignment'])->name('supplier.detach-event');
     # Categorías de ingresos
     Route::get('/categorias-ingresos', [CategoryIncomeController::class, 'index'])->name('category-income.index');
     Route::get('/categorias-ingresos/create', [CategoryIncomeController::class, 'create'])->name('category-income.create');
@@ -164,6 +192,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/clubs/get-cities', [ClubController::class, 'getCities'])->name('club.get-cities');
     Route::post('/clubs/get-suppliers', [ClubController::class, 'getSuppliersByEvent'])->name('club.get-suppliers');
     Route::get('/clubs/{club}/payments/{payment}/show', [ClubController::class, 'showPayment'])->name('club.payments.show');
+    
+    # Rutas para asignación de eventos a clubs
+    Route::get('/clubs/{id}/available-events-modal', [ClubController::class, 'getAvailableEvents'])->name('club.available-events-modal');
+    Route::post('/clubs/{id}/assign-event-modal', [ClubController::class, 'assignEventToClub'])->name('club.assign-event-modal');
+    
+    # Rutas para eventos asignados a clubs
+    Route::get('/clubs/{id}/assigned-events', [ClubController::class, 'getAssignedEvents'])->name('club.assigned-events');
+    Route::delete('/clubs/{clubId}/events/{eventId}/detach', [ClubController::class, 'deleteEventAssignment'])->name('club.detach-event');
     # Monedas
     Route::get('/monedas', [CurrencyController::class, 'index'])->name('currency.index');
     Route::get('/monedas/create', [CurrencyController::class, 'create'])->name('currency.create');
@@ -199,17 +235,50 @@ Route::middleware('auth')->group(function () {
 
     # Cuenta por pagar
     Route::get('/cuenta-por-pagar', [AccountPayableController::class, 'index'])->name('account-payable.index');
-    Route::get('/cuenta-por-pagar/json', [AccountPayableController::class, 'indexJson'])->name('account-payable.indexJson');
-    Route::post('/cuenta-por-pagar/procesar-pago', [AccountPayableController::class, 'processPayment'])->name('account-payable.processPayment');
+Route::get('/cuenta-por-pagar/crear', [AccountPayableController::class, 'create'])->name('account-payable.create');
+Route::post('/cuenta-por-pagar', [AccountPayableController::class, 'store'])->name('account-payable.store');
+Route::get('/cuenta-por-pagar/{id}/editar', [AccountPayableController::class, 'edit'])->name('account-payable.edit');
+Route::put('/cuenta-por-pagar/{id}', [AccountPayableController::class, 'update'])->name('account-payable.update');
+Route::delete('/cuenta-por-pagar/{id}', [AccountPayableController::class, 'destroy'])->name('account-payable.destroy');
+Route::get('/cuenta-por-pagar/events/{eventId}/suppliers', [AccountPayableController::class, 'getSuppliersByEvent'])->name('account-payable.suppliers-by-event');
+
+# Cambio de Monedas
+Route::get('/cambio-de-monedas', [HistoryChangeCurrencyController::class, 'index'])->name('history-change-currency.index');
+Route::get('/cambio-de-monedas/crear', [HistoryChangeCurrencyController::class, 'create'])->name('history-change-currency.create');
+Route::post('/cambio-de-monedas', [HistoryChangeCurrencyController::class, 'store'])->name('history-change-currency.store');
+Route::get('/cambio-de-monedas/{id}/editar', [HistoryChangeCurrencyController::class, 'edit'])->name('history-change-currency.edit');
+Route::put('/cambio-de-monedas/{id}', [HistoryChangeCurrencyController::class, 'update'])->name('history-change-currency.update');
+Route::delete('/cambio-de-monedas/{id}', [HistoryChangeCurrencyController::class, 'destroy'])->name('history-change-currency.destroy');
+Route::get('/cambio-de-monedas/currencies/{currencyId}/method-payments', [HistoryChangeCurrencyController::class, 'getMethodPaymentsByCurrency'])->name('history-change-currency.method-payments-by-currency');
+Route::get('/cuenta-por-pagar/json', [AccountPayableController::class, 'indexJson'])->name('account-payable.indexJson');
+Route::post('/cuenta-por-pagar/procesar-pago', [AccountPayableController::class, 'processPayment'])->name('account-payable.processPayment');
 
     # Cuenta por cobrar
     Route::get('/cuenta-por-cobrar', [AccountReceivableController::class, 'index'])->name('account-receivable.index');
     Route::get('/cuenta-por-cobrar/json', [AccountReceivableController::class, 'indexJson'])->name('account-receivable.indexJson');
+    Route::get('/cuenta-por-cobrar/create', [AccountReceivableController::class, 'create'])->name('account-receivable.create');
+    Route::post('/cuenta-por-cobrar', [AccountReceivableController::class, 'store'])->name('account-receivable.store');
+    Route::get('/cuenta-por-cobrar/{id}', [AccountReceivableController::class, 'show'])->name('account-receivable.show');
+Route::get('/cuenta-por-cobrar/{id}/editar', [AccountReceivableController::class, 'edit'])->name('account-receivable.edit');
+Route::put('/cuenta-por-cobrar/{id}', [AccountReceivableController::class, 'update'])->name('account-receivable.update');
+Route::delete('/cuenta-por-cobrar/{id}', [AccountReceivableController::class, 'destroy'])->name('account-receivable.destroy');
+    Route::get('/cuenta-por-cobrar/events/{eventId}/clubs', [AccountReceivableController::class, 'getClubsByEvent'])->name('account-receivable.clubs-by-event');
+    Route::get('/cuenta-por-cobrar/events/{eventId}/hotel-suppliers', [AccountReceivableController::class, 'getHotelSuppliersByEvent'])->name('account-receivable.hotel-suppliers-by-event');
     Route::post('/cuenta-por-cobrar/procesar-pago', [AccountReceivableController::class, 'processPayment'])->name('account-receivable.processPayment');
+
+    # Movimientos de Eventos
+    Route::post('/event-movements/{id}/cancel', [EventMovementController::class, 'cancelMovement'])->name('event-movements.cancel');
+    Route::put('/event-movements/{id}', [EventMovementController::class, 'updateMovement'])->name('event-movements.update');
+    Route::get('/event-movements/event/{eventId}', [EventMovementController::class, 'getMovementsByEvent'])->name('event-movements.by-event');
+    Route::get('/event-movements/club/{clubId}', [EventMovementController::class, 'getMovementsByClub'])->name('event-movements.by-club');
 
     # reportes
     #lisya de eventos
     Route::get('/reportes/eventos', [ReportController::class, 'listEvent'])->name('report.events');
+    # Lista de categorías de ingresos
+    Route::get('/categorias-ingresos/list', [ReportController::class, 'listCategoryIncomes'])->name('report.categoryIncomes');
+    # Lista de categorías de egresos
+    Route::get('/categorias-egresos/list', [ReportController::class, 'listCategoryEgress'])->name('report.categoryEgress');
     # Estado de Ingresos
     Route::get('/reportes/estado-ingresos', [ReportController::class, 'incomeStatement'])->name('report.incomeStatement');
     # Estado de Egresos
@@ -224,6 +293,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/reportes/estado-cuentas', [ReportController::class, 'accountsStatement'])->name('report.accountsStatement');
     # Estado de movimientos general
     Route::get('/reportes/estado-movimientos', [ReportController::class, 'movementsStatement'])->name('report.movementsStatement');
+Route::get('/metodos-pago/list', [MethodPaymentController::class, 'list'])->name('method-payment.list');
 
 });
 

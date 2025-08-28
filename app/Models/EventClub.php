@@ -13,7 +13,6 @@ class EventClub extends Model
     protected $fillable = [
         'event_id',
         'club_id',
-        'year',
     ];
 
     public function event(): BelongsTo

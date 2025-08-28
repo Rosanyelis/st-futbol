@@ -7,19 +7,23 @@ use App\Models\Event;
 use App\Models\Expense;
 use App\Models\Currency;
 use App\Models\Supplier;
-use App\Models\ClubPayment;
+
 use Illuminate\Http\Request;
 use App\Models\EventMovement;
 use App\Models\MethodPayment;
 use App\Models\CategoryEgress;
 use App\Models\CategoryIncome;
-use App\Models\SupplierPayment;
+
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\Events\StoreEventRequest;
 use App\Http\Requests\Events\UpdateEventRequest;
+use App\Models\AccountReceivable;
+use App\Models\AccountReceivablePayment;
+use App\Models\AccountPayable;
+use App\Models\AccountPayablePayment;
 
 class EventController extends Controller
 {
@@ -29,10 +33,13 @@ class EventController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = Event::withCount('clubs')->get();
+            $data = Event::withCount(['clubs', 'suppliers'])->get();
             return DataTables::of($data)
                 ->addColumn('clubs_count', function ($data) {
                     return $data->clubs_count ?? 0;
+                })
+                ->addColumn('suppliers_count', function ($data) {
+                    return $data->suppliers_count ?? 0;
                 })
                 ->addColumn('actions', function ($data) {
                     return view('events.actions', ['id' => $data->id]);
@@ -69,7 +76,17 @@ class EventController extends Controller
     public function historyJson(Request $request, $event)
     {
         if ($request->ajax()) {
-            $data = EventMovement::with('club', 'currency', 'methodPayment', 'methodPayment.entity', 'supplier')->where('event_id', $event);
+                    $data = EventMovement::with([
+            'club', 
+            'currency', 
+            'methodPayment', 
+            'methodPayment.entity', 
+            'supplier',
+            'accountReceivablePayment',
+            'accountPayablePayment'
+        ])
+            ->where('event_id', $event)
+            ->where('status', '!=', 'Cancelado'); // Excluir movimientos cancelados
 
             return DataTables::of($data)
                 ->filter(function ($query) use ($request) {
@@ -135,10 +152,10 @@ class EventController extends Controller
     public function history($event)
     {
         $event = Event::find($event);
-        // Obtener clubs asignados al evento para el año del evento
-        $clubs = $event->clubsByYear($event->year)->orderBy('name', 'asc')->get();
+        // Obtener clubs asignados al evento
+        $clubs = $event->clubs()->orderBy('name', 'asc')->get();
         $suppliers = Supplier::orderBy('name', 'asc')->get();
-        $expenses = Expense::with('categoryExpense', 'subcategoryExpense')->get();
+        $expenses = Expense::with('categoryExpense')->get();
         $currencies = Currency::all();
         $categoryIncomes = CategoryIncome::all();
         $categoryEgress = CategoryEgress::all();
@@ -160,19 +177,57 @@ class EventController extends Controller
 
     /**
      * Obtener clubs por categoría de ingreso
-     * Ahora obtiene clubs asignados al evento para el año específico
      */
     public function getClubsByCategory($categoryIncomeId)
     {
         if ($categoryIncomeId == 1) { // ID 1 = "Clubs"
             $eventId = request()->get('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'Event ID es requerido'], 400);
+            }
+            
             $event = Event::find($eventId);
             
-            if ($event) {
-                // Obtener clubs asignados al evento para el año del evento
-                $clubs = $event->clubsByYear($event->year)->get();
-                return response()->json($clubs);
+            if (!$event) {
+                return response()->json(['error' => 'Evento no encontrado'], 404);
             }
+            
+            // Obtener cuentas por cobrar de clubs para este evento específico
+            // Solo clubs que estén asignados al evento
+            $accountReceivables = AccountReceivable::with(['club', 'currency'])
+                ->where('event_id', $eventId)
+                ->where('club_id', '!=', null) // Solo cuentas de clubs, no de proveedores
+                ->where('status', '!=', 'Pagado') // Solo cuentas pendientes o parciales
+                ->whereHas('club', function($query) use ($eventId) {
+                    // Verificar que el club esté asignado al evento
+                    $query->whereHas('events', function($subQuery) use ($eventId) {
+                        $subQuery->where('events.id', $eventId);
+                    });
+                })
+                ->orderBy('club_id')
+                ->orderBy('created_at')
+                ->get();
+            
+            // Transformar para mostrar cada cuenta por cobrar como una opción
+            $clubsWithAccounts = [];
+            foreach ($accountReceivables as $receivable) {
+                $pendingAmount = $receivable->getPendingAmount();
+                
+                // Solo incluir cuentas con monto pendiente > 0
+                if ($pendingAmount > 0) {
+                    $clubsWithAccounts[] = [
+                        'id' => $receivable->club_id, // Usar el ID del club para el select
+                        'name' => $receivable->club->name . ' - Cuenta #' . $receivable->id . ' (Pendiente: ' . number_format($pendingAmount, 2) . ' ' . $receivable->currency->symbol . ')',
+                        'club_id' => $receivable->club_id,
+                        'pending_amount' => $pendingAmount,
+                        'currency_symbol' => $receivable->currency->symbol,
+                        'account_receivable_id' => $receivable->id
+                    ];
+                }
+            }
+            
+            return response()->json($clubsWithAccounts);
         }
         
         return response()->json([]);
@@ -184,7 +239,7 @@ class EventController extends Controller
     public function getExpensesByCategory($categoryEgressId)
     {
         if ($categoryEgressId == 1) { // ID 1 = "Gastos"
-            $expenses = Expense::with('categoryExpense', 'subcategoryExpense')->where('category_egress_id', $categoryEgressId)->get();
+            $expenses = Expense::with('categoryExpense')->where('category_egress_id', $categoryEgressId)->get();
             return response()->json($expenses);
         }
         
@@ -197,8 +252,46 @@ class EventController extends Controller
     public function getSuppliersByCategory($categoryEgressId)
     {
         if ($categoryEgressId == 2) { // ID 2 = "Proveedores"
-            $suppliers = Supplier::where('category_egress_id', $categoryEgressId)->get();
-            return response()->json($suppliers);
+            $eventId = request()->get('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'Event ID es requerido'], 400);
+            }
+            
+            $event = Event::find($eventId);
+            
+            if (!$event) {
+                return response()->json(['error' => 'Evento no encontrado'], 404);
+            }
+            
+            // Obtener cuentas por pagar de proveedores para este evento específico
+            $accountPayables = AccountPayable::with(['supplier', 'currency'])
+                ->where('event_id', $eventId)
+                ->where('supplier_id', '!=', null) // Solo cuentas de proveedores
+                ->where('status', '!=', 'Pagado') // Solo cuentas pendientes o parciales
+                ->orderBy('supplier_id')
+                ->orderBy('created_at')
+                ->get();
+            
+            // Transformar para mostrar cada cuenta por pagar como una opción
+            $suppliersWithAccounts = [];
+            foreach ($accountPayables as $payable) {
+                $pendingAmount = $payable->getPendingAmount();
+                
+                // Solo incluir cuentas con monto pendiente > 0
+                if ($pendingAmount > 0) {
+                    $suppliersWithAccounts[] = [
+                        'id' => $payable->supplier_id, // Usar el ID del proveedor para el select
+                        'name' => $payable->supplier->name . ' - Cuenta #' . $payable->id . ' (Pendiente: ' . number_format($pendingAmount, 2) . ' ' . $payable->currency->symbol . ')',
+                        'supplier_id' => $payable->supplier_id,
+                        'pending_amount' => $pendingAmount,
+                        'currency_symbol' => $payable->currency->symbol,
+                        'account_payable_id' => $payable->id
+                    ];
+                }
+            }
+            
+            return response()->json($suppliersWithAccounts);
         }
         
         return response()->json([]);
@@ -218,6 +311,24 @@ class EventController extends Controller
             $data['category_income_id'] = $data['type_income'] ?? null;
             $data['user_id'] = Auth::user()->id;
            
+            // Si es un ingreso de club, usar account_receivable_id en lugar de club_id
+            if ($data['type'] === 'Ingreso' && $data['type_income'] === '1' && isset($data['account_receivable_id'])) {
+                // Obtener el club_id desde la cuenta por cobrar
+                $accountReceivable = AccountReceivable::find($data['account_receivable_id']);
+                if ($accountReceivable) {
+                    $data['club_id'] = $accountReceivable->club_id;
+                }
+            }
+
+            // Si es un egreso de proveedor, usar account_payable_id en lugar de supplier_id
+            if ($data['type'] === 'Egreso' && $data['type_expense'] === '2' && isset($data['account_payable_id'])) {
+                // Obtener el supplier_id desde la cuenta por pagar
+                $accountPayable = AccountPayable::find($data['account_payable_id']);
+                if ($accountPayable) {
+                    $data['supplier_id'] = $accountPayable->supplier_id;
+                }
+            }
+           
             // Crear el movimiento del evento
             $movement = EventMovement::create($data);
 
@@ -227,13 +338,21 @@ class EventController extends Controller
             }
 
             // Si es un ingreso de club, crear el movimiento de abono
-            if ($data['type'] === 'Ingreso' && $data['type_income'] === '1' && isset($data['club_id'])) {
-                $this->createClubPayment($data);
+            if ($data['type'] === 'Ingreso' && $data['type_income'] === '1' && isset($data['account_receivable_id'])) {
+                $paymentId = $this->createClubPayment($data);
+                if ($paymentId) {
+                    // Actualizar el movimiento con el ID del pago
+                    $movement->update(['account_receivable_payment_id' => $paymentId]);
+                }
             }
 
             // Si es un egreso de proveedor, crear el movimiento de gasto
-            if ($data['type'] === 'Egreso' && $data['type_expense'] === '2' && isset($data['supplier_id'])) {
-                $this->createSupplierPayment($data);
+            if ($data['type'] === 'Egreso' && $data['type_expense'] === '2' && isset($data['account_payable_id'])) {
+                $paymentId = $this->createSupplierPayment($data);
+                if ($paymentId) {
+                    // Actualizar el movimiento con el ID del pago
+                    $movement->update(['account_payable_payment_id' => $paymentId]);
+                }
             }
 
             DB::commit();
@@ -273,40 +392,94 @@ class EventController extends Controller
      */
     private function createClubPayment($data)
     {
-        ClubPayment::create([
-            'club_id' => $data['club_id'],
-            'currency_id' => $data['currency_id'],
-            'method_payment_id' => $data['method_payment_id'] ?? null,
-            'date' => $data['date'],
-            'amount' => $data['amount'],
-            'description' => $data['description'] ?? null,
-        ]);
+        // Si tenemos account_receivable_id, registrar el pago en la cuenta por cobrar
+        if (isset($data['account_receivable_id'])) {
+            $accountReceivable = AccountReceivable::with(['club', 'event'])
+                ->where('id', $data['account_receivable_id'])
+                ->where('event_id', $data['event_id']) // Verificar que la cuenta pertenezca al evento
+                ->first();
+                
+            if ($accountReceivable) {
+                // Verificar que el club esté asignado al evento
+                $clubBelongsToEvent = $accountReceivable->club->events()
+                    ->where('events.id', $data['event_id'])
+                    ->exists();
+                    
+                if ($clubBelongsToEvent) {
+                    $payment = $accountReceivable->recordPayment(
+                        $data['amount'],
+                        $data['date'],
+                        null, // reference
+                        $data['description'] ?? null
+                    );
+                    
+                    // Retornar el ID del pago para guardarlo en el movimiento
+                    return $payment ? $payment->id : null;
+                } else {
+                    throw new \Exception('El club no está asignado a este evento');
+                }
+            } else {
+                throw new \Exception('Cuenta por cobrar no encontrada o no pertenece a este evento');
+            }
+        }
+        return null;
     }
 
     private function createSupplierPayment($data)
     {
-        SupplierPayment::create([
-            'supplier_id' => $data['supplier_id'],
-            'currency_id' => $data['currency_id'],
-            'method_payment_id' => $data['method_payment_id'] ?? null,
-            'date' => $data['date'],
-            'amount' => $data['amount'],
-        ]);
+        // Si tenemos account_payable_id, registrar el pago en la cuenta por pagar
+        if (isset($data['account_payable_id'])) {
+            $accountPayable = AccountPayable::with(['supplier', 'event'])
+                ->where('id', $data['account_payable_id'])
+                ->where('event_id', $data['event_id']) // Verificar que la cuenta pertenezca al evento
+                ->first();
+                
+            if ($accountPayable) {
+                // Verificar que el proveedor esté asignado al evento
+                $supplierBelongsToEvent = $accountPayable->supplier->events()
+                    ->where('events.id', $data['event_id'])
+                    ->exists();
+                    
+                if ($supplierBelongsToEvent) {
+                    $payment = $accountPayable->recordPayment(
+                        $data['amount'],
+                        $data['date'],
+                        null, // reference
+                        $data['description'] ?? null
+                    );
+                    
+                    // Retornar el ID del pago para guardarlo en el movimiento
+                    return $payment ? $payment->id : null;
+                } else {
+                    throw new \Exception('El proveedor no está asignado a este evento');
+                }
+            } else {
+                throw new \Exception('Cuenta por pagar no encontrada o no pertenece a este evento');
+            }
+        }
+        return null;
     }
 
     public function editHistory($id)
     {
-        $data = EventMovement::with('club', 'supplier', 'expense', 'currency', 'categoryIncome', 'categoryEgress')->find($id);
+        $data = EventMovement::with([
+            'club', 
+            'supplier', 
+            'expense', 
+            'currency', 
+            'categoryIncome', 
+            'categoryEgress', 
+            'accountReceivable', 
+            'accountPayable',
+            'accountReceivablePayment',
+            'accountPayablePayment'
+        ])->find($id);
 
-        return response()->json([
-            'data' => $data,
-            'clubs' => Club::all(),
-            'suppliers' => Supplier::all(),
-            'expenses' => Expense::with('categoryExpense', 'subcategoryExpense')->get(),
-            'currencies' => Currency::all(),
-            'categoryIncomes' => CategoryIncome::all(),
-            'categoryEgress' => CategoryEgress::all(),
-        ]);
+        if (!$data) {
+            return response()->json(['error' => 'Movimiento no encontrado'], 404);
+        }
+
+        return response()->json($data);
     }
 
     /**
@@ -370,6 +543,11 @@ class EventController extends Controller
             // Limpiar comas del monto antes de actualizar
             $data['amount'] = str_replace(',', '', $data['amount']);
 
+            // Validar que el monto sea mayor a 0
+            if (floatval($data['amount']) <= 0) {
+                return redirect()->route('event.history', $movement->event_id)->with('error', 'El monto debe ser mayor a 0');
+            }
+
             // 1. Revertir el saldo anterior si tenía método de pago
             if ($oldMethodPaymentId) {
                 $methodPayment = MethodPayment::findOrFail($oldMethodPaymentId);
@@ -401,6 +579,102 @@ class EventController extends Controller
                     $newMethodPayment->current_balance -= $newAmount;
                 }
                 $newMethodPayment->save();
+            }
+            // 4. Si es un ingreso de club, actualizar el pago en la cuenta por cobrar
+            if ($data['type'] === 'Ingreso' && isset($data['type_income']) && $data['type_income'] === '1') {
+                if ($movement->account_receivable_payment_id) {
+                    // Actualizar el pago existente usando el ID guardado
+                    $payment = AccountReceivablePayment::find($movement->account_receivable_payment_id);
+                    if ($payment) {
+                        // Log para debug
+                        \Log::info('Actualizando pago de cuenta por cobrar', [
+                            'payment_id' => $payment->id,
+                            'old_amount' => $payment->amount,
+                            'new_amount' => $data['amount'],
+                            'movement_id' => $movement->id,
+                            'club' => $movement->club->name ?? 'N/A'
+                        ]);
+                        
+                        $payment->update([
+                            'amount' => $data['amount'],
+                            'date' => $data['date'],
+                            'description' => $data['description'] ?? null
+                        ]);
+                        
+                        // Actualizar el movimiento con la referencia del pago
+                        $movement->update(['account_receivable_payment_id' => $payment->id]);
+                        
+                        \Log::info('Pago de cuenta por cobrar actualizado exitosamente', [
+                            'payment_id' => $payment->id,
+                            'new_amount' => $payment->amount,
+                            'movement_id' => $movement->id
+                        ]);
+                    } else {
+                        // Si no se encuentra el pago, crear uno nuevo
+                        \Log::warning('No se encontró el pago de cuenta por cobrar', [
+                            'payment_id' => $movement->account_receivable_payment_id,
+                            'movement_id' => $movement->id
+                        ]);
+                        $paymentId = $this->createClubPayment($data);
+                        if ($paymentId) {
+                            $movement->update(['account_receivable_payment_id' => $paymentId]);
+                        }
+                    }
+                } else {
+                    // Crear nuevo pago si no existe
+                    $paymentId = $this->createClubPayment($data);
+                    if ($paymentId) {
+                        $movement->update(['account_receivable_payment_id' => $paymentId]);
+                    }
+                }
+            }
+            // 5. Si es un egreso de proveedor, actualizar el pago en la cuenta por pagar
+            if ($data['type'] === 'Egreso' && isset($data['type_expense']) && $data['type_expense'] === '2') {
+                if ($movement->account_payable_payment_id) {
+                    // Actualizar el pago existente usando el ID guardado
+                    $payment = AccountPayablePayment::find($movement->account_payable_payment_id);
+                    if ($payment) {
+                        // Log para debug
+                        \Log::info('Actualizando pago de cuenta por pagar', [
+                            'payment_id' => $payment->id,
+                            'old_amount' => $payment->amount,
+                            'new_amount' => $data['amount'],
+                            'movement_id' => $movement->id,
+                            'supplier' => $movement->supplier->name ?? 'N/A'
+                        ]);
+                        
+                        $payment->update([
+                            'amount' => $data['amount'],
+                            'date' => $data['date'],
+                            'description' => $data['description'] ?? null
+                        ]);
+                        
+                        // Actualizar el movimiento con la referencia del pago
+                        $movement->update(['account_payable_payment_id' => $payment->id]);
+                        
+                        \Log::info('Pago de cuenta por pagar actualizado exitosamente', [
+                            'payment_id' => $payment->id,
+                            'new_amount' => $payment->amount,
+                            'movement_id' => $movement->id
+                        ]);
+                    } else {
+                        // Si no se encuentra el pago, crear uno nuevo
+                        \Log::warning('No se encontró el pago de cuenta por pagar', [
+                            'payment_id' => $movement->account_payable_payment_id,
+                            'movement_id' => $movement->id
+                        ]);
+                        $paymentId = $this->createSupplierPayment($data);
+                        if ($paymentId) {
+                            $movement->update(['account_payable_payment_id' => $paymentId]);
+                        }
+                    }
+                } else {
+                    // Crear nuevo pago si no existe
+                    $paymentId = $this->createSupplierPayment($data);
+                    if ($paymentId) {
+                        $movement->update(['account_payable_payment_id' => $paymentId]);
+                    }
+                }
             }
 
             DB::commit();
@@ -444,6 +718,120 @@ class EventController extends Controller
         }
     }
 
+
+
+    /**
+     * Verificar y corregir relaciones de pagos específicas
+     */
+    public function verifyAndFixPaymentRelations($eventId)
+    {
+        try {
+            $movements = EventMovement::with(['supplier', 'club'])
+                ->where('event_id', $eventId)
+                ->where(function($query) {
+                    $query->whereNotNull('account_receivable_payment_id')
+                          ->orWhereNotNull('account_payable_payment_id');
+                })
+                ->get();
+
+            $results = [];
+            $fixed = 0;
+
+            foreach ($movements as $movement) {
+                $result = [
+                    'movement_id' => $movement->id,
+                    'type' => $movement->type,
+                    'amount' => $movement->amount,
+                    'date' => $movement->date,
+                    'status' => 'OK',
+                    'inconsistencies' => []
+                ];
+
+                // Verificar pago de cuenta por cobrar
+                if ($movement->account_receivable_payment_id) {
+                    $payment = AccountReceivablePayment::find($movement->account_receivable_payment_id);
+                    if ($payment) {
+                        $result['account_receivable_payment'] = [
+                            'id' => $payment->id,
+                            'amount' => $payment->amount,
+                            'date' => $payment->date,
+                            'status' => 'Encontrado'
+                        ];
+                        
+                        // Verificar si los montos coinciden
+                        if (abs($payment->amount - $movement->amount) > 0.01) {
+                            $result['status'] = 'INCONSISTENCIA DETECTADA';
+                            $result['inconsistencies'][] = 'Monto del movimiento (' . $movement->amount . ') no coincide con pago (' . $payment->amount . ')';
+                            
+                            // Corregir automáticamente
+                            $payment->update(['amount' => $movement->amount]);
+                            $fixed++;
+                            
+                            \Log::info('Inconsistencia corregida automáticamente', [
+                                'movement_id' => $movement->id,
+                                'payment_id' => $payment->id,
+                                'old_payment_amount' => $payment->amount,
+                                'new_payment_amount' => $movement->amount
+                            ]);
+                        }
+                    } else {
+                        $result['status'] = 'PAGO NO ENCONTRADO';
+                        $result['inconsistencies'][] = 'Pago de cuenta por cobrar no encontrado (ID: ' . $movement->account_receivable_payment_id . ')';
+                    }
+                }
+
+                // Verificar pago de cuenta por pagar
+                if ($movement->account_payable_payment_id) {
+                    $payment = AccountPayablePayment::find($movement->account_payable_payment_id);
+                    if ($payment) {
+                        $result['account_payable_payment'] = [
+                            'id' => $payment->id,
+                            'amount' => $payment->amount,
+                            'date' => $payment->date,
+                            'status' => 'Encontrado'
+                        ];
+                        
+                        // Verificar si los montos coinciden
+                        if (abs($payment->amount - $movement->amount) > 0.01) {
+                            $result['status'] = 'INCONSISTENCIA DETECTADA';
+                            $result['inconsistencies'][] = 'Monto del movimiento (' . $movement->amount . ') no coincide con pago (' . $payment->amount . ')';
+                            
+                            // Corregir automáticamente
+                            $payment->update(['amount' => $movement->amount]);
+                            $fixed++;
+                            
+                            \Log::info('Inconsistencia corregida automáticamente', [
+                                'movement_id' => $movement->id,
+                                'payment_id' => $payment->id,
+                                'old_payment_amount' => $payment->amount,
+                                'new_payment_amount' => $movement->amount
+                            ]);
+                        }
+                    } else {
+                        $result['status'] = 'PAGO NO ENCONTRADO';
+                        $result['inconsistencies'][] = 'Pago de cuenta por pagar no encontrado (ID: ' . $movement->account_payable_payment_id . ')';
+                    }
+                }
+
+                $results[] = $result;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $results,
+                'total_movements' => $movements->count(),
+                'fixed_count' => $fixed,
+                'message' => $fixed > 0 ? "Se corrigieron $fixed inconsistencias automáticamente" : "No se encontraron inconsistencias"
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
     /**
      * Obtener clubs disponibles para asignar a un evento
      */
@@ -475,26 +863,24 @@ class EventController extends Controller
         try {
             $event = Event::findOrFail($eventId);
             $clubId = $request->input('club_id');
-            $year = $request->input('year');
             
             // Validar que el club existe
             $club = Club::findOrFail($clubId);
             
-            // Verificar si ya está asignado para ese año
+            // Verificar si ya está asignado
             $existingAssignment = $event->clubs()
                 ->where('clubs.id', $clubId)
-                ->wherePivot('year', $year)
                 ->exists();
             
             if ($existingAssignment) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Este club ya está asignado al evento para el año ' . $year
+                    'message' => 'Este club ya está asignado al evento'
                 ], 400);
             }
             
             // Asignar el club al evento
-            $event->assignClub($club, $year);
+            $event->assignClub($club);
             
             return response()->json([
                 'success' => true,
@@ -533,5 +919,324 @@ class EventController extends Controller
         } catch (\Exception $e) {
             throw new \Exception('Error al guardar la imagen: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Obtener proveedores disponibles para asignar a un evento
+     */
+    public function getAvailableSuppliers($eventId)
+    {
+        try {
+            $event = Event::findOrFail($eventId);
+            
+            // Obtener todos los proveedores
+            $allSuppliers = Supplier::orderBy('name', 'asc')->get();
+            
+            // Obtener proveedores ya asignados al evento
+            $assignedSuppliers = $event->suppliers()->pluck('suppliers.id')->toArray();
+            
+            // Filtrar proveedores no asignados
+            $availableSuppliers = $allSuppliers->whereNotIn('id', $assignedSuppliers);
+            
+            return response()->json($availableSuppliers->values());
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al obtener proveedores disponibles'], 500);
+        }
+    }
+
+    /**
+     * Asignar un proveedor a un evento
+     */
+    public function assignSupplierToEvent(Request $request, $eventId)
+    {
+        try {
+            $event = Event::findOrFail($eventId);
+            $supplierId = $request->input('supplier_id');
+            
+            // Validar que el proveedor existe
+            $supplier = Supplier::findOrFail($supplierId);
+            
+            // Verificar si ya está asignado
+            $existingAssignment = $event->suppliers()
+                ->where('suppliers.id', $supplierId)
+                ->exists();
+            
+            if ($existingAssignment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este proveedor ya está asignado al evento'
+                ], 400);
+            }
+            
+            // Asignar el proveedor al evento
+            $event->assignSupplier($supplier);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Proveedor asignado correctamente al evento'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al asignar el proveedor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener clubs con cuentas por pagar filtradas por criterios específicos
+     * Permite filtrar clubs con cuentas pendientes por diferentes criterios.
+     */
+    public function getClubsPendingAccountsFiltered($eventId, Request $request)
+    {
+        try {
+            // Validar que el evento existe
+            $event = Event::findOrFail($eventId);
+            
+            // Obtener filtros de la request
+            $minAmount = $request->get('min_amount', 0);
+            $maxAmount = $request->get('max_amount');
+            $currencyId = $request->get('currency_id');
+            $overdueOnly = $request->get('overdue_only', false);
+            $status = $request->get('status');
+            $sortBy = $request->get('sort_by', 'total_pending');
+            $sortOrder = $request->get('sort_order', 'desc');
+            
+            // Construir la consulta base
+            $query = Club::select([
+                    'clubs.id',
+                    'clubs.name',
+                    'clubs.logo',
+                    'clubs.cuit',
+                    'clubs.responsible',
+                    'clubs.phone',
+                    'clubs.email',
+                    'clubs.currency_id',
+                    'clubs.country_id',
+                    'clubs.province_id',
+                    'clubs.city_id'
+                ])
+                ->join('event_clubs', 'clubs.id', '=', 'event_clubs.club_id')
+                ->join('account_receivables', function($join) use ($eventId, $overdueOnly, $status) {
+                    $join->on('clubs.id', '=', 'account_receivables.club_id')
+                         ->where('account_receivables.event_id', '=', $eventId)
+                         ->where('account_receivables.status', '!=', 'Pagado')
+                         ->where('account_receivables.pending_amount', '>', 0);
+                    
+                    if ($overdueOnly) {
+                        $join->where('account_receivables.due_date', '<', now());
+                    }
+                    
+                    if ($status) {
+                        $join->where('account_receivables.status', '=', $status);
+                    }
+                })
+                ->where('event_clubs.event_id', $eventId);
+
+            // Aplicar filtros adicionales
+            if ($currencyId) {
+                $query->where('clubs.currency_id', $currencyId);
+            }
+
+            if ($minAmount > 0) {
+                $query->whereRaw('(
+                    SELECT SUM(ar.pending_amount) 
+                    FROM account_receivables ar 
+                    WHERE ar.club_id = clubs.id 
+                    AND ar.event_id = ? 
+                    AND ar.status != "Pagado"
+                ) >= ?', [$eventId, $minAmount]);
+            }
+
+            if ($maxAmount) {
+                $query->whereRaw('(
+                    SELECT SUM(ar.pending_amount) 
+                    FROM account_receivables ar 
+                    WHERE ar.club_id = clubs.id 
+                    AND ar.event_id = ? 
+                    AND ar.status != "Pagado"
+                ) <= ?', [$eventId, $maxAmount]);
+            }
+
+            // Aplicar ordenamiento
+            if ($sortBy === 'total_pending') {
+                $query->orderByRaw('(
+                    SELECT SUM(ar.pending_amount) 
+                    FROM account_receivables ar 
+                    WHERE ar.club_id = clubs.id 
+                    AND ar.event_id = ? 
+                    AND ar.status != "Pagado"
+                ) ' . $sortOrder, [$eventId]);
+            } elseif ($sortBy === 'name') {
+                $query->orderBy('clubs.name', $sortOrder);
+            } else {
+                $query->orderBy('clubs.id', 'asc');
+            }
+
+            $clubs = $query->with([
+                    'currency:id,name,symbol',
+                    'country:id,name',
+                    'province:id,name',
+                    'city:id,name'
+                ])
+                ->get()
+                ->map(function($club) use ($eventId, $overdueOnly, $status) {
+                    // Obtener cuentas pendientes con filtros aplicados
+                    $accountsQuery = \App\Models\AccountReceivable::where('club_id', $club->id)
+                        ->where('event_id', $eventId)
+                        ->where('status', '!=', 'Pagado')
+                        ->where('pending_amount', '>', 0);
+
+                    if ($overdueOnly) {
+                        $accountsQuery->where('due_date', '<', now());
+                    }
+
+                    if ($status) {
+                        $accountsQuery->where('status', $status);
+                    }
+
+                    $pendingAccounts = $accountsQuery->get();
+
+                    $totalPending = $pendingAccounts->sum('pending_amount');
+                    $totalReceivable = $pendingAccounts->sum('total_amount');
+                    $totalPaid = $pendingAccounts->sum('paid_amount');
+                    
+                    $club->accounts_summary = [
+                        'total_pending' => $totalPending,
+                        'total_receivable' => $totalReceivable,
+                        'total_paid' => $totalPaid,
+                        'payment_percentage' => $totalReceivable > 0 ? round(($totalPaid / $totalReceivable) * 100, 2) : 0,
+                        'accounts_count' => $pendingAccounts->count(),
+                        'overdue_accounts' => $pendingAccounts->where('due_date', '<', now())->count(),
+                        'accounts' => $pendingAccounts->map(function($account) {
+                            return [
+                                'id' => $account->id,
+                                'pending_amount' => $account->pending_amount,
+                                'total_amount' => $account->total_amount,
+                                'status' => $account->status,
+                                'due_date' => $account->due_date,
+                                'is_overdue' => $account->due_date < now()
+                            ];
+                        })
+                    ];
+                    
+                    return $club;
+                });
+
+            // Calcular totales filtrados
+            $totalPending = $clubs->sum('accounts_summary.total_pending');
+            $totalReceivable = $clubs->sum('accounts_summary.total_receivable');
+            $overdueCount = $clubs->sum('accounts_summary.overdue_accounts');
+
+            return response()->json([
+                'success' => true,
+                'filters' => [
+                    'min_amount' => $minAmount,
+                    'max_amount' => $maxAmount,
+                    'currency_id' => $currencyId,
+                    'overdue_only' => $overdueOnly,
+                    'status' => $status,
+                    'sort_by' => $sortBy,
+                    'sort_order' => $sortOrder
+                ],
+                'summary' => [
+                    'total_clubs' => $clubs->count(),
+                    'total_pending_amount' => $totalPending,
+                    'total_receivable_amount' => $totalReceivable,
+                    'overdue_accounts' => $overdueCount,
+                    'payment_percentage' => $totalReceivable > 0 ? round(($totalReceivable - $totalPending) / $totalReceivable * 100, 2) : 0
+                ],
+                'clubs' => $clubs
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener clubs filtrados: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener clubs con cuentas por pagar pendientes (versión simple)
+     * Solo devuelve nombre del club y monto pendiente total
+     */
+    public function getClubsWithPendingAmounts($eventId)
+    {
+        try {
+            // Validar que el evento existe
+            $event = Event::findOrFail($eventId);
+            
+            // Consulta optimizada solo con datos esenciales
+            $clubs = Club::select([
+                    'clubs.id',
+                    'clubs.name',
+                    'clubs.currency_id'
+                ])
+                ->join('event_clubs', 'clubs.id', '=', 'event_clubs.club_id')
+                ->join('account_receivables', function($join) use ($eventId) {
+                    $join->on('clubs.id', '=', 'account_receivables.club_id')
+                         ->where('account_receivables.event_id', '=', $eventId)
+                         ->where('account_receivables.status', '!=', 'Pagado')
+                         ->where('account_receivables.pending_amount', '>', 0);
+                })
+                ->where('event_clubs.event_id', $eventId)
+                ->with([
+                    'currency:id,name,symbol'
+                ])
+                ->get()
+                ->map(function($club) use ($eventId) {
+                    // Calcular solo el monto pendiente total
+                    $totalPending = \App\Models\AccountReceivable::where('club_id', $club->id)
+                        ->where('event_id', $eventId)
+                        ->where('status', '!=', 'Pagado')
+                        ->where('pending_amount', '>', 0)
+                        ->sum('pending_amount');
+                    
+                    return [
+                        'id' => $club->id,
+                        'name' => $club->name,
+                        'currency' => $club->currency,
+                        'pending_amount' => $totalPending
+                    ];
+                })
+                ->filter(function($club) {
+                    // Solo incluir clubs con monto pendiente > 0
+                    return $club['pending_amount'] > 0;
+                })
+                ->sortByDesc('pending_amount')
+                ->values();
+
+            // Calcular total general
+            $totalPending = $clubs->sum('pending_amount');
+
+            return response()->json([
+                'success' => true,
+                'event' => [
+                    'id' => $event->id,
+                    'name' => $event->name,
+                    'year' => $event->year
+                ],
+                'total_pending_amount' => $totalPending,
+                'total_clubs' => $clubs->count(),
+                'clubs' => $clubs
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al obtener clubs con montos pendientes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Listar eventos para filtros
+     */
+    public function list()
+    {
+        $events = Event::orderBy('name', 'asc')->get();
+        return response()->json($events);
     }
 }

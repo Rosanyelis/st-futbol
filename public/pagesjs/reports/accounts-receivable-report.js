@@ -1,7 +1,15 @@
 "use strict";
 // Funciones utilitarias
-const numberFormat = new Intl.NumberFormat('es-MX');
-const formatCurrency = data => `$ ${numberFormat.format(data)}`;
+const numberFormat = new Intl.NumberFormat('es-MX', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+});
+const formatCurrency = data => {
+    if (data === null || data === undefined || isNaN(data)) {
+        return '$ 0';
+    }
+    return `$ ${numberFormat.format(data)}`;
+};
 class AccountReceivableReportsManager {
     constructor() {
         this.numberFormat = new Intl.NumberFormat("es-MX", {
@@ -59,10 +67,10 @@ class AccountReceivableReportsManager {
             },
             columns: [
                 { data: 'event_name', name: 'event_name' },
-                { data: 'name', name: 'name' },
+                { data: 'club_name', name: 'club_name' },
                 { data: 'currency_name', name: 'currency_name' },
                 { data: 'total_amount', render: formatCurrency, name: 'total_amount' },
-                { data: 'pendiente', render: formatCurrency, name: 'pendiente' },
+                { data: 'pending_amount', render: formatCurrency, name: 'pending_amount' },
             ],
             order: [[0, "desc"]],
             buttons: [
@@ -214,7 +222,7 @@ class AccountReceivableReportsManager {
         data.each((item) => {
             // Usa el campo de moneda según tu estructura de datos
             const currencyName = item.currency_name || (item.currency && item.currency.name) || "Desconocida";
-            const pendiente = parseFloat(item.pendiente) || 0;
+            const pendiente = parseFloat(item.pending_amount_raw) || 0;
             if (!pendienteTotals[currencyName]) {
                 pendienteTotals[currencyName] = 0;
             }

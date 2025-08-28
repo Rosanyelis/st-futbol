@@ -6,9 +6,12 @@ use App\Models\Club;
 use App\Models\Event;
 use App\Models\Currency;
 use App\Models\ClubPayment;
+use App\Models\AccountReceivable;
 use Illuminate\Http\Request;
 use App\Models\EventMovement;
 use App\Models\MethodPayment;
+use App\Models\CategoryIncome;
+use App\Models\CategoryEgress;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
 
@@ -89,7 +92,7 @@ class ReportController extends Controller
             $data = EventMovement::with('categoryEgress', 'currency',  
                         'methodPayment', 'methodPayment.entity',
                          'methodPayment.categoryMethodPayment', 'supplier', 'expense',
-                         'expense.categoryExpense', 'expense.subcategoryExpense')
+                         'expense.categoryExpense')
                             ->where('type', 'Egreso');
 
             return DataTables::of($data)
@@ -154,44 +157,107 @@ class ReportController extends Controller
         return response()->json($events);
     }
 
+    public function listCategoryIncomes()
+    {
+        $categoryIncomes = CategoryIncome::orderBy('name', 'asc')->get();
+
+        return response()->json($categoryIncomes);
+    }
+
+    public function listCategoryEgress()
+    {
+        $categoryEgress = CategoryEgress::orderBy('name', 'asc')->get();
+
+        return response()->json($categoryEgress);
+    }
+
     /**
      * Store a newly created resource in storage.
      */
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $data = Club::join('event_club', 'clubs.id', '=', 'event_club.club_id')
-                ->join('events', 'event_club.event_id', '=', 'events.id')
-                ->join('currencies', 'clubs.currency_id', '=', 'currencies.id')
-                ->select('clubs.*', 'events.name as event_name', 'currencies.name as currency_name', 'event_club.year');
+            \Log::info('Accounts Receivable Report AJAX request', [
+                'filters' => $request->all()
+            ]);
+            
+            $data = AccountReceivable::with(['club', 'event', 'currency', 'payments'])
+                ->select('account_receivables.*');
+                
             return DataTables::of($data)
                 ->filter(function ($query) use ($request) {
                     if ($request->has('search') && $request->search['value'] != '') {
                         $search = $request->search['value'];
-                        $query->where(function ($q) use ($search) {
-                            $q->where('clubs.name', 'like', "%{$search}%")
-                                ->orWhere('events.name', 'like', "%{$search}%")
-                                ->orWhere('currencies.name', 'like', "%{$search}%");
+                        $query->whereHas('club', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })->orWhereHas('event', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        })->orWhereHas('currency', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
                         });
                     }
 
-                    # filtrado por evento
+                    // Filtro por evento
                     if ($request->filled('event')) {
-                        $query->where('clubs.event_id', $request->get('event'));
+                        $query->where('event_id', $request->get('event'));
+                    }
+
+                    // Filtro por estado
+                    if ($request->filled('status')) {
+                        $query->where('status', $request->get('status'));
                     }
                 })
-                ->addColumn('pendiente', function ($row) {
-                    $saldo = ClubPayment::where('club_id', $row->id)->sum('amount');
-                    return $row->total_amount - $saldo;
+                ->addColumn('event_name', function ($row) {
+                    return $row->event->name ?? '';
                 })
-
+                ->addColumn('club_name', function ($row) {
+                    return $row->club->name ?? '';
+                })
+                ->addColumn('currency_name', function ($row) {
+                    return $row->currency->name ?? '';
+                })
+                ->addColumn('total_amount', function ($row) {
+                    \Log::info('Total amount for row', [
+                        'id' => $row->id,
+                        'total_amount' => $row->total_amount,
+                        'type' => gettype($row->total_amount)
+                    ]);
+                    return $row->total_amount;
+                })
+                ->addColumn('pending_amount', function ($row) {
+                    $pending = $row->getPendingAmount();
+                    \Log::info('Pending amount for row', [
+                        'id' => $row->id,
+                        'pending_amount' => $pending,
+                        'type' => gettype($pending)
+                    ]);
+                    return $pending;
+                })
+                ->addColumn('pending_amount_raw', function ($row) {
+                    return $row->getPendingAmount();
+                })
                 ->make(true);
+                
+            \Log::info('Accounts Receivable Report data sample', [
+                'total_records' => $data->count(),
+                'sample_data' => $data->take(2)->get()->map(function($item) {
+                    return [
+                        'id' => $item->id,
+                        'total_amount' => $item->total_amount,
+                        'pending_amount' => $item->getPendingAmount(),
+                        'club_name' => $item->club->name ?? 'N/A',
+                        'event_name' => $item->event->name ?? 'N/A'
+                    ];
+                })
+            ]);
         }
 
         $paymentMethods = MethodPayment::all();
-        // obtener los totales pendientes por moneda y las que no tengan datos declararlas en cero
         $currencies = Currency::all();
-        return view('reports.accounts-receivable', compact('paymentMethods', 'currencies'));
+        $events = Event::orderBy('name', 'asc')->get();
+        $statuses = ['Pendiente', 'Parcial', 'Pagado', 'Vencido'];
+        
+        return view('reports.accounts-receivable', compact('paymentMethods', 'currencies', 'events', 'statuses'));
     }
 
     /**
@@ -266,31 +332,239 @@ class ReportController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Display general statement report.
      */
-    public function edit(string $id)
+    public function generalStatement(Request $request)
     {
-        //
-    }
+        if ($request->ajax()) {
+            $data = EventMovement::with([
+                'event',
+                'club', 
+                'currency', 
+                'methodPayment', 
+                'methodPayment.entity', 
+                'supplier',
+                'categoryIncome',
+                'categoryEgress',
+                'accountReceivablePayment',
+                'accountPayablePayment'
+            ])
+            ->where('status', '!=', 'Cancelado'); // Excluir movimientos cancelados
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+            // Log para depuración (comentado para producción)
+            // $sampleRecord = $data->first();
+            // \Log::info('General Statement Data', [
+            //     'total_records' => $data->count(),
+            //     'sample_record_method_payment' => $sampleRecord?->methodPayment?->toArray(),
+            //     'sample_record_method_payment_entity' => $sampleRecord?->methodPayment?->entity?->toArray()
+            // ]);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+            return DataTables::of($data)
+                ->filter(function ($query) use ($request) {
+                    // Filtro por evento
+                    if ($request->filled('event_id')) {
+                        $query->where('event_id', $request->get('event_id'));
+                    }
+
+                    // Filtro por moneda
+                    if ($request->filled('currency_id')) {
+                        $query->where('currency_id', $request->get('currency_id'));
+                    }
+
+                    // Filtro por tipo de ingreso
+                    if ($request->filled('category_income_id')) {
+                        $query->where('category_income_id', $request->get('category_income_id'));
+                    }
+
+                    // Filtro por tipo de egreso
+                    if ($request->filled('category_egress_id')) {
+                        $query->where('category_egress_id', $request->get('category_egress_id'));
+                    }
+
+                    // Filtro por rango de fechas
+                    if ($request->filled('start_date')) {
+                        $query->where('date', '>=', $request->get('start_date'));
+                    }
+                    if ($request->filled('end_date')) {
+                        $query->where('date', '<=', $request->get('end_date'));
+                    }
+
+                    // Búsqueda global
+                    if ($request->has('search') && !empty($request->get('search')['value'])) {
+                        $searchValue = $request->get('search')['value'];
+
+                        $query->where(function ($subQuery) use ($searchValue) {
+                            // Búsqueda en columnas directas de event_movements
+                            $subQuery->where('date', 'like', "%{$searchValue}%")
+                                     ->orWhere('type', 'like', "%{$searchValue}%")
+                                     ->orWhere('amount', 'like', "%{$searchValue}%")
+                                     ->orWhere('description', 'like', "%{$searchValue}%");
+
+                            // Búsqueda en la relación 'event'
+                            $subQuery->orWhereHas('event', function ($q) use ($searchValue) {
+                                $q->where('name', 'like', "%{$searchValue}%");
+                            });
+
+                            // Búsqueda en la relación 'currency'
+                            $subQuery->orWhereHas('currency', function ($q) use ($searchValue) {
+                                $q->where('name', 'like', "%{$searchValue}%");
+                            });
+
+                            // Búsqueda en la relación 'club'
+                            $subQuery->orWhereHas('club', function ($q) use ($searchValue) {
+                                $q->where('name', 'like', "%{$searchValue}%");
+                            });
+
+                            // Búsqueda en la relación 'supplier'
+                            $subQuery->orWhereHas('supplier', function ($q) use ($searchValue) {
+                                $q->where('name', 'like', "%{$searchValue}%");
+                            });
+
+                            // Búsqueda en la relación 'categoryIncome'
+                            $subQuery->orWhereHas('categoryIncome', function ($q) use ($searchValue) {
+                                $q->where('name', 'like', "%{$searchValue}%");
+                            });
+
+                            // Búsqueda en la relación 'categoryEgress'
+                            $subQuery->orWhereHas('categoryEgress', function ($q) use ($searchValue) {
+                                $q->where('name', 'like', "%{$searchValue}%");
+                            });
+
+                            // Búsqueda en la relación 'methodPayment' y su anidada 'entity'
+                            $subQuery->orWhereHas('methodPayment', function ($q) use ($searchValue) {
+                                $q->where('account_holder', 'like', "%{$searchValue}%")
+                                  ->orWhere('type_account', 'like', "%{$searchValue}%")
+                                  ->orWhereHas('entity', function ($nested_q) use ($searchValue) {
+                                      $nested_q->where('name', 'like', "%{$searchValue}%");
+                                  });
+                            });
+                        });
+                    }
+                })
+                ->make(true);
+        }
+
+        $events = Event::all();
+        $currencies = Currency::all();
+        $categoryIncomes = CategoryIncome::all();
+        $categoryEgress = CategoryEgress::all();
+
+        return view('reports.general-statement', compact(
+            'events', 
+            'currencies', 
+            'categoryIncomes', 
+            'categoryEgress'
+        ));
     }
 
     public function totals(Request $request)
     {
         
+    }
+
+    /**
+     * Mostrar el reporte de movimientos por cuentas/métodos de pago
+     */
+    public function movementsStatement(Request $request)
+    {
+        if ($request->ajax()) {
+            \Log::info('MovementsStatement AJAX request', [
+                'filters' => $request->all(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            $data = EventMovement::with([
+                'event',
+                'currency',
+                'categoryIncome',
+                'categoryEgress',
+                'club',
+                'supplier',
+                'methodPayment.entity'
+            ])
+            ->where('status', '!=', 'Cancelado') // Excluir movimientos cancelados
+            ->whereNotNull('method_payment_id') // Solo movimientos con método de pago
+            ->when($request->filled('event_id'), function ($query) use ($request) {
+                $query->where('event_id', $request->get('event_id'));
+            })
+            ->when($request->filled('currency_id'), function ($query) use ($request) {
+                $query->where('currency_id', $request->get('currency_id'));
+            })
+            ->when($request->filled('method_payment_id'), function ($query) use ($request) {
+                $query->where('method_payment_id', $request->get('method_payment_id'));
+            })
+            ->when($request->filled('category_income_id'), function ($query) use ($request) {
+                $query->where('category_income_id', $request->get('category_income_id'));
+            })
+            ->when($request->filled('category_egress_id'), function ($query) use ($request) {
+                $query->where('category_egress_id', $request->get('category_egress_id'));
+            })
+            ->when($request->filled('start_date'), function ($query) use ($request) {
+                $query->where('date', '>=', $request->get('start_date'));
+            })
+            ->when($request->filled('end_date'), function ($query) use ($request) {
+                $query->where('date', '<=', $request->get('end_date'));
+            })
+            ->when($request->has('search') && !empty($request->get('search')['value']), function ($query) use ($request) {
+                $searchValue = $request->get('search')['value'];
+                $query->where(function ($subQuery) use ($searchValue) {
+                    $subQuery->where('date', 'like', "%{$searchValue}%")
+                             ->orWhere('type', 'like', "%{$searchValue}%")
+                             ->orWhere('amount', 'like', "%{$searchValue}%")
+                             ->orWhere('description', 'like', "%{$searchValue}%")
+                             ->orWhereHas('event', function ($q) use ($searchValue) {
+                                 $q->where('name', 'like', "%{$searchValue}%");
+                             })
+                             ->orWhereHas('currency', function ($q) use ($searchValue) {
+                                 $q->where('name', 'like', "%{$searchValue}%");
+                             })
+                             ->orWhereHas('methodPayment', function ($q) use ($searchValue) {
+                                 $q->where('account_holder', 'like', "%{$searchValue}%")
+                                   ->orWhere('type_account', 'like', "%{$searchValue}%")
+                                   ->orWhereHas('entity', function ($nested_q) use ($searchValue) {
+                                       $nested_q->where('name', 'like', "%{$searchValue}%");
+                                   });
+                             });
+                });
+            });
+
+            $dataTable = DataTables::of($data)
+                ->addColumn('formatted_date', function ($row) {
+                    return $row->date ? $row->date->format('d/m/Y') : '-';
+                })
+                ->addColumn('formatted_amount', function ($row) {
+                    return number_format($row->amount, 0, ',', '.');
+                })
+                ->addColumn('account_info', function ($row) {
+                    if ($row->methodPayment) {
+                        return $row->methodPayment->account_holder . ' - ' . 
+                               ($row->methodPayment->entity ? $row->methodPayment->entity->name : '') . ' - ' . 
+                               $row->methodPayment->type_account;
+                    }
+                    return '-';
+                })
+                ->rawColumns(['formatted_date', 'formatted_amount', 'account_info']);
+
+            \Log::info('MovementsStatement response', [
+                'total_records' => $data->count(),
+                'has_data' => $data->count() > 0
+            ]);
+
+            return $dataTable->make(true);
+        }
+
+        $events = Event::all();
+        $currencies = Currency::all();
+        $methodPayments = MethodPayment::with('entity')->get();
+        $categoryIncomes = CategoryIncome::all();
+        $categoryEgress = CategoryEgress::all();
+
+        return view('reports.movements-statement', compact(
+            'events', 
+            'currencies', 
+            'methodPayments',
+            'categoryIncomes',
+            'categoryEgress'
+        ));
     }
 }

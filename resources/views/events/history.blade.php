@@ -1,5 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Movimientos del Evento')
+<meta name="csrf-token" content="{{ csrf_token() }}">
 @section('css')
 <link rel="stylesheet" href="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" />
 <link rel="stylesheet" href="{{ asset('assets/vendor/libs/typeahead-js/typeahead.css') }}" />
@@ -75,5 +76,5 @@
 <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.js') }}"></script>
-<script src="{{ asset('pagesjs/events/history.js?v=1.0') }}"></script>
+<script src="{{ asset('pagesjs/events/history.js?v=1.2') }}"></script>
 @endsection

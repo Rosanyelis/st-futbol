@@ -71,7 +71,10 @@ class HistoryManager {
             columns: this.getDatatableColumns(),
             columnDefs: this.getColumnDefinitions(),
             buttons: this.getDatatableButtons(),
-            drawCallback: this.updateTotals.bind(this),
+            drawCallback: () => {
+                this.updateTotals();
+                this.initializeTooltips();
+            },
             initComplete: () => {
                 this.setupCurrencyFilter();
                 this.setupDateFilter();
@@ -116,14 +119,12 @@ class HistoryManager {
     // Definición de columnas
     getDatatableColumns() {
         return [
-            {data: 'date'},
+            {data: 'formatted_date'},
             {data: 'description'},
-            {data: 'amount'},
-            {data: 'amount'},
+            {data: 'formatted_amount'},
+            {data: 'formatted_amount'},
             {data: 'currency.name'},
-            {data: 'club.name'},
-            {data: 'supplier.name'},
-            {data: 'methodPayment.account_holder'},
+            {data: 'method_payment_name'},
             {data: 'actions', orderable: false, searchable: false},
         ];
     }
@@ -134,12 +135,20 @@ class HistoryManager {
             {
                 targets: 0,
                 render: (data, type, full) => 
-                    `<span class='text-nowrap'>${moment(full.date).format("DD/MM/YYYY")}</span>`
+                    `<span class='text-nowrap'>${full.formatted_date}</span>`
             },
             {
                 targets: 1,
-                render: (data, type, full) => 
-                    `<span class='text-nowrap'>${full.description}</span>`
+                render: (data, type, full) => {
+                    const description = full.description || '';
+                    const truncatedDescription = description.length > 50 
+                        ? description.substring(0, 50) + '...' 
+                        : description;
+                    
+                    return description.length > 50
+                        ? `<span class='text-nowrap' data-bs-toggle="tooltip" data-bs-placement="top" title="${description.replace(/"/g, '&quot;')}">${truncatedDescription}</span>`
+                        : `<span class='text-nowrap'>${truncatedDescription}</span>`;
+                }
             },
             {
                 targets: 2,
@@ -154,22 +163,12 @@ class HistoryManager {
             {
                 targets: 4,
                 render: (data, type, full) => 
-                    `<span class='text-nowrap'>${full.currency?.name} ${full.currency?.symbol}</span>`
+                    `<span class='text-nowrap'>${full.currency?.name || '-'}</span>`
             },
             {
                 targets: 5,
                 render: (data, type, full) => 
-                    this.renderOptionalField(full.club?.name)
-            },
-            {
-                targets: 6,
-                render: (data, type, full) => 
-                    this.renderOptionalField(full.supplier?.name)
-            },
-            {
-                targets: 7,
-                render: (data, type, full) => 
-                    this.renderMethodPayment(full.method_payment)
+                    this.renderMethodPayment(full.method_payment_name)
             }
         ];
     }
@@ -186,7 +185,7 @@ class HistoryManager {
     // Renderizado de montos
     renderAmount(item, type) {
         return item.type === type
-            ? `<span class='text-nowrap'><strong>${CONFIG.numberFormat.format(item.amount ?? 0)}</strong></span>`
+            ? `<span class='text-nowrap'><strong>${item.formatted_amount}</strong></span>`
             : `<span class='text-nowrap'> - </span>`;
     }
 
@@ -199,8 +198,8 @@ class HistoryManager {
 
     // Renderizado de método de pago
     renderMethodPayment(method) {
-        return method?.account_holder
-            ? `<span class='text-nowrap'>${method.account_holder} - ${method.entity?.name} - ${method.type_account}</span>`
+        return method
+            ? `<span class='text-nowrap'>${method}</span>`
             : `<span class='text-nowrap'> - </span>`;
     }
 
@@ -248,12 +247,27 @@ class HistoryManager {
         $(".dt-buttons").addClass("d-flex flex-wrap");
     }
 
+    // Inicializar tooltips
+    initializeTooltips() {
+        // Destruir tooltips existentes para evitar duplicados
+        $('[data-bs-toggle="tooltip"]').tooltip('dispose');
+        
+        // Inicializar nuevos tooltips
+        $('[data-bs-toggle="tooltip"]').tooltip({
+            trigger: 'hover',
+            html: true
+        });
+    }
+
     // Inicialización de event listeners
     initializeEventListeners() {
         this.setupCurrencyChangeHandler();
         this.setupTypeChangeHandler();
         this.setupTypeIncomeChangeHandler();
         this.setupTypeExpenseChangeHandler();
+        this.setupClubChangeHandler();
+        this.setupSupplierChangeHandler();
+        this.setupExpenseChangeHandler();
         this.setupAmountInputFormat();
         this.setupFormConfirmation();
     }
@@ -273,6 +287,7 @@ class HistoryManager {
             const selectedType = $(CONFIG.selectors.forms.type).val();
             this.hideOptionalDivs();
             this.clearAllSelectors();
+            this.updateDescription();
 
             if (selectedType === 'Ingreso') {
                 $(CONFIG.selectors.divs.typeIncome).show();
@@ -300,7 +315,8 @@ class HistoryManager {
             } else {
                 $(CONFIG.selectors.divs.club).hide();
             }
-            // Si hay más tipos de ingreso, puedes agregar lógica aquí
+            
+            this.updateDescription();
         });
     }
 
@@ -317,7 +333,69 @@ class HistoryManager {
                 this.loadSuppliersByCategory(selectedTypeExpense);
                 $(CONFIG.selectors.divs.supplier).show();
             }
+            
+            this.updateDescription();
         });
+    }
+
+    // Manejador de cambio de club
+    setupClubChangeHandler() {
+        $(CONFIG.selectors.forms.clubId).change(() => {
+            this.updateDescription();
+        });
+    }
+
+    // Manejador de cambio de proveedor
+    setupSupplierChangeHandler() {
+        $(CONFIG.selectors.forms.supplierId).change(() => {
+            this.updateDescription();
+        });
+    }
+
+    // Manejador de cambio de gasto
+    setupExpenseChangeHandler() {
+        $(CONFIG.selectors.forms.expenseId).change(() => {
+            this.updateDescription();
+        });
+    }
+
+    // Actualizar descripción automáticamente
+    updateDescription() {
+        const type = $(CONFIG.selectors.forms.type).val();
+        const typeIncome = $(CONFIG.selectors.forms.typeIncome).val();
+        const typeExpense = $(CONFIG.selectors.forms.typeExpense).val();
+        const clubId = $(CONFIG.selectors.forms.clubId).val();
+        const supplierId = $(CONFIG.selectors.forms.supplierId).val();
+        const expenseId = $(CONFIG.selectors.forms.expenseId).val();
+        
+        let description = '';
+        
+        if (type) {
+            description = type;
+            
+            if (type === 'Ingreso' && typeIncome) {
+                const typeIncomeText = $(CONFIG.selectors.forms.typeIncome).find('option:selected').text();
+                description += ` - ${typeIncomeText}`;
+                
+                if (clubId) {
+                    const clubText = $(CONFIG.selectors.forms.clubId).find('option:selected').text();
+                    description += ` - ${clubText}`;
+                }
+            } else if (type === 'Egreso' && typeExpense) {
+                const typeExpenseText = $(CONFIG.selectors.forms.typeExpense).find('option:selected').text();
+                description += ` - ${typeExpenseText}`;
+                
+                if (typeExpense == 1 && expenseId) { // Gastos
+                    const expenseText = $(CONFIG.selectors.forms.expenseId).find('option:selected').text();
+                    description += ` - ${expenseText}`;
+                } else if (typeExpense == 2 && supplierId) { // Proveedores
+                    const supplierText = $(CONFIG.selectors.forms.supplierId).find('option:selected').text();
+                    description += ` - ${supplierText}`;
+                }
+            }
+        }
+        
+        $('#description').val(description);
     }
 
     // Formatear el campo de monto en tiempo real
@@ -389,7 +467,8 @@ class HistoryManager {
         modal.find('form')[0].reset();
         modal.find('input[name="id"]').remove();
         modal.find('select').val('').trigger('change');
-        this.hideOptionalDivs && this.hideOptionalDivs();
+        this.hideOptionalDivs();
+        this.updateDescription(); // Limpiar descripción
         modal.find('.modal-title').text('Crear Movimiento de Ingreso/Egreso');
         modal.find('button[type="submit"]').text('Crear');
         modal.find('form').attr('action', $('#formMovimiento').data('action-create') || $('#formMovimiento').attr('action'));
@@ -740,7 +819,20 @@ class HistoryManager {
         modal.find('input[name="id"]').remove();
         modal.find('form').prepend(`<input type="hidden" name="id" value="${movement.id}">`);
         modal.find('textarea[name="description"]').val(movement.description ?? '');
-        modal.find('input[name="date"]').val(movement.date ?? '');
+        
+        // Usar la fecha formateada del backend o formatear la fecha
+        let formattedDate = '';
+        if (movement.formatted_date) {
+            formattedDate = movement.formatted_date;
+        } else if (movement.date) {
+            // Si la fecha viene como string, convertirla a objeto Date
+            const dateObj = new Date(movement.date);
+            if (!isNaN(dateObj.getTime())) {
+                formattedDate = dateObj.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+            }
+        }
+        modal.find('input[name="date"]').val(formattedDate);
+        
         modal.find('select[name="type"]').val(movement.type ?? '').trigger('change');
         modal.find('select[name="type_income"]').val(movement.category_income_id ?? '').trigger('change');
         modal.find('select[name="type_expense"]').val(movement.category_egress_id ?? '').trigger('change');
@@ -774,6 +866,11 @@ class HistoryManager {
             if (movement.supplier_id) $(CONFIG.selectors.divs.supplier).show();
             if (movement.expense_id) $(CONFIG.selectors.divs.expense).show();
         }
+        
+        // Actualizar descripción después de cargar todos los datos
+        setTimeout(() => {
+            this.updateDescription();
+        }, 100);
 
         modal.find('.modal-title').text('Editar Movimiento de Ingreso/Egreso');
         modal.find('button[type="submit"]').text('Actualizar');

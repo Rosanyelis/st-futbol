@@ -1,5 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Cuentas por Pagar')
+<meta name="csrf-token" content="{{ csrf_token() }}">
 @section('css')
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/typeahead-js/typeahead.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/select2/select2.css') }}" />
@@ -38,7 +39,10 @@
             <h5 class="mb-0 me-2">Cuentas por Pagar</h5>
 
             <div class="card-header-elements ms-auto">
-
+                <a href="{{ route('account-payable.create') }}" class="btn btn-sm btn-primary">
+                    <i class="ri-add-line"></i>
+                    Crear Cuenta por Pagar
+                </a>
             </div>
         </div>
         <div class="card-datatable text-nowrap">

@@ -10,6 +10,7 @@ use App\Models\Currency;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use App\Models\EventMovement;
+use App\Models\BussinesMovement;
 use App\Models\MethodPayment;
 use App\Models\CategoryEgress;
 use App\Models\CategoryIncome;
@@ -27,7 +28,7 @@ class BussinesController extends Controller
         $business = Bussines::find(1); // Asumiendo que el negocio tiene ID 1
         $clubs = Club::all();
         $suppliers = Supplier::all();
-        $expenses = Expense::with('categoryExpense', 'subcategoryExpense')->get();
+        $expenses = Expense::with('categoryExpense')->get();
         $currencies = Currency::all();
         $categoryIncomes = CategoryIncome::all();
         $categoryEgress = CategoryEgress::all();
@@ -39,10 +40,13 @@ class BussinesController extends Controller
     public function historyJson(Request $request)
     {
         if ($request->ajax()) {
-            $data = EventMovement::with('club', 'currency', 'methodPayment', 'methodPayment.entity', 'supplier')
+            $data = BussinesMovement::with('currency', 'methodPayment', 'methodPayment.entity')
                 ->where('bussines_id', 1);
 
             return DataTables::of($data)
+                ->addColumn('method_payment_name', function ($data) {
+                    return $data->getMethodPaymentName();
+                })
                 ->filter(function ($query) use ($request) {
                     if ($request->filled('currency_id')) {
                         $query->where('currency_id', $request->get('currency_id'));
@@ -63,12 +67,6 @@ class BussinesController extends Controller
                             $subQuery->orWhereHas('currency', function ($q) use ($searchValue) {
                                 $q->where('name', 'like', "%{$searchValue}%");
                             });
-                            $subQuery->orWhereHas('club', function ($q) use ($searchValue) {
-                                $q->where('name', 'like', "%{$searchValue}%");
-                            });
-                            $subQuery->orWhereHas('supplier', function ($q) use ($searchValue) {
-                                $q->where('name', 'like', "%{$searchValue}%");
-                            });
                             $subQuery->orWhereHas('methodPayment', function ($q) use ($searchValue) {
                                 $q->where('account_holder', 'like', "%{$searchValue}%")
                                     ->orWhere('type_account', 'like', "%{$searchValue}%")
@@ -78,6 +76,20 @@ class BussinesController extends Controller
                             });
                         });
                     }
+                })
+                ->addColumn('club_name', function ($data) {
+                    // BussinesMovement no tiene relación directa con club
+                    return '-';
+                })
+                ->addColumn('supplier_name', function ($data) {
+                    // BussinesMovement no tiene relación directa con supplier
+                    return '-';
+                })
+                ->addColumn('formatted_amount', function ($data) {
+                    return number_format($data->amount, 2, ',', '.');
+                })
+                ->addColumn('formatted_date', function ($data) {
+                    return $data->date->format('d/m/Y');
                 })
                 ->addColumn('actions', function ($data) {
                     return view('bussines.actions', ['data' => $data]);
@@ -109,8 +121,8 @@ class BussinesController extends Controller
             $event = Event::find($eventId);
             
             if ($event) {
-                // Obtener clubs asignados al evento para el año del evento
-                $clubs = $event->clubsByYear($event->year)->get();
+                // Obtener clubs asignados al evento
+                $clubs = $event->clubs()->get();
                 return response()->json($clubs);
             }
         }
@@ -124,7 +136,7 @@ class BussinesController extends Controller
     public function getExpensesByCategory($categoryEgressId)
     {
         if ($categoryEgressId == 1) { // ID 1 = "Gastos"
-            $expenses = Expense::with('categoryExpense', 'subcategoryExpense')->where('category_egress_id', $categoryEgressId)->get();
+            $expenses = Expense::with('categoryExpense')->where('category_egress_id', $categoryEgressId)->get();
             return response()->json($expenses);
         }
         
@@ -147,57 +159,22 @@ class BussinesController extends Controller
     // Cargar datos de un movimiento para edición (AJAX)
     public function editHistory($id)
     {
-        $data = EventMovement::with('club', 'supplier', 'expense', 'currency', 'categoryIncome', 'categoryEgress')->find($id);
+        $data = BussinesMovement::with('currency', 'methodPayment', 'methodPayment.entity')->find($id);
+
+        // Formatear la fecha para el frontend
+        if ($data && $data->date) {
+            $data->formatted_date = $data->date->format('Y-m-d');
+        }
 
         return response()->json([
             'data' => $data,
             'clubs' => Club::all(),
             'suppliers' => Supplier::all(),
-            'expenses' => Expense::with('categoryExpense', 'subcategoryExpense')->get(),
+            'expenses' => Expense::with('categoryExpense')->get(),
             'currencies' => Currency::all(),
             'categoryIncomes' => CategoryIncome::all(),
             'categoryEgress' => CategoryEgress::all(),
         ]);
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
     }
 
     // Guardar un nuevo movimiento
@@ -217,7 +194,7 @@ class BussinesController extends Controller
             $data['category_income_id'] = $data['type_income'] ?? null;
             $data['user_id'] = Auth::user()->id;
 
-            $movement = EventMovement::create($data);
+            $movement = BussinesMovement::create($data);
 
             // Actualizar el balance del método de pago
             if (!empty($data['method_payment_id'])) {
@@ -247,7 +224,7 @@ class BussinesController extends Controller
     {
         DB::beginTransaction();
         try {
-            $movement = EventMovement::findOrFail($id);
+            $movement = BussinesMovement::findOrFail($id);
             $oldAmount = floatval($movement->amount);
             $oldType = $movement->type;
             $oldMethodPaymentId = $movement->method_payment_id;
@@ -305,7 +282,7 @@ class BussinesController extends Controller
     {
         DB::beginTransaction();
         try {
-            $movement = EventMovement::findOrFail($id);
+            $movement = BussinesMovement::findOrFail($id);
 
             // Solo si tiene método de pago
             if ($movement->method_payment_id) {

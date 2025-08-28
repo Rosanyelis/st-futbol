@@ -8,6 +8,8 @@ const CONFIG = {
         historyJson: (id) => `/eventos/${id}/history-json`,
         paymentMethods: (currencyId) => `/eventos/metodo-pago/${currencyId}`,
         currencies: '/eventos/currencies',
+        clubsPendingAmounts: (eventId) => `/eventos/${eventId}/clubs-pending-amounts`,
+        clubsPendingAccountsFiltered: (eventId) => `/eventos/${eventId}/clubs-pending-accounts-filtered`,
         clubsByCategory: (categoryIncomeId) => `/eventos/clubs-by-category/${categoryIncomeId}`,
         expensesByCategory: (categoryEgressId) => `/eventos/expenses-by-category/${categoryEgressId}`,
         suppliersByCategory: (categoryEgressId) => `/eventos/suppliers-by-category/${categoryEgressId}`
@@ -71,7 +73,10 @@ class HistoryManager {
             columns: this.getDatatableColumns(),
             columnDefs: this.getColumnDefinitions(),
             buttons: this.getDatatableButtons(),
-            drawCallback: this.updateTotals.bind(this),
+            drawCallback: () => {
+                this.updateTotals();
+                this.initializeTooltips();
+            },
             initComplete: () => {
                 this.setupCurrencyFilter();
                 this.setupDateFilter();
@@ -139,7 +144,7 @@ class HistoryManager {
             {
                 targets: 1,
                 render: (data, type, full) => 
-                    `<span class='text-nowrap'>${full.description}</span>`
+                    this.renderDescription(full.description)
             },
             {
                 targets: 2,
@@ -169,7 +174,12 @@ class HistoryManager {
             {
                 targets: 7,
                 render: (data, type, full) => 
-                    this.renderMethodPayment(full.method_payment)
+                    this.renderMethodPaymentWithTooltip(full.method_payment)
+            },
+            {
+                targets: 8,
+                render: (data, type, full) => 
+                    this.renderActions(full)
             }
         ];
     }
@@ -197,11 +207,65 @@ class HistoryManager {
             : `<span class='text-nowrap'> - </span>`;
     }
 
+    // Renderizado de descripción con tooltip si es muy larga
+    renderDescription(description) {
+        if (!description) return '<span class="text-nowrap"> - </span>';
+        
+        const maxLength = 50;
+        if (description.length <= maxLength) {
+            return `<span class='text-nowrap'>${description}</span>`;
+        } else {
+            const truncated = description.substring(0, maxLength) + '...';
+            return `<span class='text-nowrap' data-bs-toggle="tooltip" data-bs-placement="top" title="${description.replace(/"/g, '&quot;')}">${truncated}</span>`;
+        }
+    }
+
     // Renderizado de método de pago
     renderMethodPayment(method) {
         return method?.account_holder
             ? `<span class='text-nowrap'>${method.account_holder} - ${method.entity?.name} - ${method.type_account}</span>`
             : `<span class='text-nowrap'> - </span>`;
+    }
+
+    // Renderizado de método de pago con tooltip para nombre completo
+    renderMethodPaymentWithTooltip(method) {
+        if (!method?.account_holder) {
+            return `<span class='text-nowrap'> - </span>`;
+        }
+        
+        const fullText = `${method.account_holder} - ${method.entity?.name} - ${method.type_account}`;
+        const maxLength = 50;
+        
+        if (fullText.length <= maxLength) {
+            return `<span class='text-nowrap'>${fullText}</span>`;
+        } else {
+            const truncated = fullText.substring(0, maxLength) + '...';
+            return `<span class='text-nowrap' data-bs-toggle="tooltip" data-bs-placement="top" title="${fullText.replace(/"/g, '&quot;')}">${truncated}</span>`;
+        }
+    }
+
+    // Renderizado de acciones
+    renderActions(movement) {
+        let actions = '';
+        actions += `<div class="d-flex gap-2">`;
+
+        // Botón de editar
+        actions += `<a class="btn btn-sm btn-icon text-primary me-1" 
+                           onclick="window.historyManager.openEditModal(${movement.id})" 
+                           title="Editar movimiento">
+                        <i class="ri-edit-line"></i>
+                    </a>`;
+        
+        // Botón de cancelar (solo si es un movimiento de evento y está activo)
+        if (movement.event_id && movement.status !== 'Cancelado') {
+            actions += `<a class="btn btn-sm btn-icon text-danger btn-cancel-movement" 
+                               data-movement-id="${movement.id}" 
+                               title="Cancelar movimiento">
+                            <i class="ri-close-line"></i>
+                        </a>`;
+        }
+        actions += `</div>`;
+        return actions || '<span class="text-muted">-</span>';
     }
 
     // Actualización de totales
@@ -248,6 +312,19 @@ class HistoryManager {
         $(".dt-buttons").addClass("d-flex flex-wrap");
     }
 
+    // Inicializar tooltips
+    initializeTooltips() {
+        // Destruir tooltips existentes para evitar duplicados
+        $('[data-bs-toggle="tooltip"]').tooltip('dispose');
+        
+        // Inicializar nuevos tooltips
+        $('[data-bs-toggle="tooltip"]').tooltip({
+            trigger: 'hover',
+            placement: 'top',
+            html: true
+        });
+    }
+
     // Inicialización de event listeners
     initializeEventListeners() {
         this.setupCurrencyChangeHandler();
@@ -256,6 +333,34 @@ class HistoryManager {
         this.setupTypeExpenseChangeHandler();
         this.setupAmountInputFormat();
         this.setupFormConfirmation(); // <-- Agrega esto
+
+        // Event listener para el cambio en el select de clubs
+        $(document).on('change', CONFIG.selectors.forms.clubId, (e) => {
+            const selectedOption = $(e.currentTarget).find('option:selected');
+            const accountReceivableId = selectedOption.data('account-receivable-id');
+            
+            if (accountReceivableId) {
+                $('#account_receivable_id').val(accountReceivableId);
+                $('#account_receivable_id_div').show();
+            } else {
+                $('#account_receivable_id').val('');
+                $('#account_receivable_id_div').hide();
+            }
+        });
+
+        // Event listener para el cambio en el select de proveedores
+        $(document).on('change', CONFIG.selectors.forms.supplierId, (e) => {
+            const selectedOption = $(e.currentTarget).find('option:selected');
+            const accountPayableId = selectedOption.data('account-payable-id');
+            
+            if (accountPayableId) {
+                $('#account_payable_id').val(accountPayableId);
+                $('#account_payable_id_div').show();
+            } else {
+                $('#account_payable_id').val('');
+                $('#account_payable_id_div').hide();
+            }
+        });
     }
 
     // Manejador de cambio de moneda
@@ -334,7 +439,7 @@ class HistoryManager {
         });
     }
 
-    // Carga de clubs por categoría de ingreso
+    // Carga de clubs por categoría de ingreso con sus cuentas por cobrar
     loadClubsByCategory(categoryIncomeId) {
         $(CONFIG.selectors.forms.clubId)
             .empty()
@@ -393,6 +498,7 @@ class HistoryManager {
         $.ajax({
             url: CONFIG.endpoints.suppliersByCategory(categoryEgressId),
             type: 'GET',
+            data: { event_id: CONFIG.eventId },
             success: this.handleSuppliersResponse.bind(this),
             error: this.handleSuppliersError.bind(this)
         });
@@ -405,11 +511,12 @@ class HistoryManager {
         $.ajax({
             url: CONFIG.endpoints.suppliersByCategory(categoryEgressId),
             type: 'GET',
+            data: { event_id: CONFIG.eventId },
             success: (suppliers) => {
                 if (suppliers?.length) {
                     suppliers.forEach(supplier => {
                         $supplierSelect.append(
-                            `<option value="${supplier.id}">${supplier.name} - ${supplier.representant}</option>`
+                            `<option value="${supplier.id}" data-account-payable-id="${supplier.account_payable_id}">${supplier.name}</option>`
                         );
                     });
                     if (selectedSupplierId) {
@@ -432,7 +539,7 @@ class HistoryManager {
                 if (clubs?.length) {
                     clubs.forEach(club => {
                         $clubSelect.append(
-                            `<option value="${club.id}">${club.name}</option>`
+                            `<option value="${club.id}" data-account-receivable-id="${club.account_receivable_id}">${club.name}</option>`
                         );
                     });
                     if (selectedClubId) {
@@ -490,7 +597,7 @@ class HistoryManager {
         if (clubs?.length) {
             clubs.forEach(club => {
                 $(CONFIG.selectors.forms.clubId).append(
-                    `<option value="${club.id}">${club.name}</option>`
+                    `<option value="${club.id}" data-account-receivable-id="${club.account_receivable_id}">${club.name}</option>`
                 );
             });
         }
@@ -499,6 +606,23 @@ class HistoryManager {
     // Manejo de error en clubs
     handleClubsError(xhr, status, error) {
         console.error('Error al obtener clubs:', error);
+        
+        // Mostrar mensaje de error al usuario
+        let errorMessage = 'Error al cargar los clubs';
+        
+        if (xhr.responseJSON && xhr.responseJSON.error) {
+            errorMessage = xhr.responseJSON.error;
+        } else if (xhr.status === 400) {
+            errorMessage = 'Error: Event ID es requerido';
+        } else if (xhr.status === 404) {
+            errorMessage = 'Error: Evento no encontrado';
+        }
+        
+        // Limpiar el select y mostrar mensaje de error
+        $(CONFIG.selectors.forms.clubId)
+            .empty()
+            .append('<option value="">Error al cargar clubs</option>')
+            .append(`<option value="" disabled>${errorMessage}</option>`);
     }
 
     // Manejo de respuesta de gastos
@@ -522,7 +646,7 @@ class HistoryManager {
         if (suppliers?.length) {
             suppliers.forEach(supplier => {
                 $(CONFIG.selectors.forms.supplierId).append(
-                    `<option value="${supplier.id}">${supplier.name} - ${supplier.representant}</option>`
+                    `<option value="${supplier.id}" data-account-payable-id="${supplier.account_payable_id}">${supplier.name}</option>`
                 );
             });
         }
@@ -531,6 +655,23 @@ class HistoryManager {
     // Manejo de error en proveedores
     handleSuppliersError(xhr, status, error) {
         console.error('Error al obtener proveedores:', error);
+        
+        // Mostrar mensaje de error al usuario
+        let errorMessage = 'Error al cargar los proveedores';
+        
+        if (xhr.responseJSON && xhr.responseJSON.error) {
+            errorMessage = xhr.responseJSON.error;
+        } else if (xhr.status === 400) {
+            errorMessage = 'Error: Event ID es requerido';
+        } else if (xhr.status === 404) {
+            errorMessage = 'Error: Evento no encontrado';
+        }
+        
+        // Limpiar el select y mostrar mensaje de error
+        $(CONFIG.selectors.forms.supplierId)
+            .empty()
+            .append('<option value="">Error al cargar proveedores</option>')
+            .append(`<option value="" disabled>${errorMessage}</option>`);
     }
 
     // Ocultar todos los divs opcionales
@@ -658,13 +799,69 @@ class HistoryManager {
     }
 
     // Abre el modal para editar un movimiento
-    openEditModal(movement) {
+    openEditModal(movementId) {
+        // Mostrar loading
+        Swal.fire({
+            title: 'Cargando movimiento...',
+            text: 'Por favor espera mientras se cargan los datos',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Cargar los datos del movimiento desde el servidor
+        $.ajax({
+            url: `/eventos/${movementId}/edit-history`,
+            type: 'GET',
+            success: (response) => {
+                Swal.close();
+                this.populateEditModal(response);
+            },
+            error: (xhr, status, error) => {
+                Swal.close();
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Error al cargar los datos del movimiento',
+                    icon: 'error',
+                    confirmButtonText: 'Entendido'
+                });
+                console.error('Error al cargar movimiento:', error);
+            }
+        });
+    }
+
+    // Poblar el modal de edición con los datos del movimiento
+    populateEditModal(movement) {
         const modal = $(CONFIG.selectors.modals.movement);
+
+        // Debug: mostrar los datos del movimiento en consola
+        console.log('Datos del movimiento recibidos:', movement);
 
         modal.find('input[name="id"]').remove();
         modal.find('form').prepend(`<input type="hidden" name="id" value="${movement.id}">`);
         modal.find('textarea[name="description"]').val(movement.description ?? '');
-        modal.find('input[name="date"]').val(movement.date ?? '');
+        
+        // Manejo mejorado de la fecha
+        if (movement.date) {
+            // Si la fecha viene en formato ISO (YYYY-MM-DD), usarla directamente
+            if (movement.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                modal.find('input[name="date"]').val(movement.date);
+            } else {
+                // Si viene en otro formato, convertirla
+                const dateObj = new Date(movement.date);
+                if (!isNaN(dateObj.getTime())) {
+                    const formattedDate = dateObj.toISOString().split('T')[0];
+                    modal.find('input[name="date"]').val(formattedDate);
+                } else {
+                    console.warn('Formato de fecha no reconocido:', movement.date);
+                    modal.find('input[name="date"]').val('');
+                }
+            }
+        } else {
+            modal.find('input[name="date"]').val('');
+        }
+        
         modal.find('select[name="type"]').val(movement.type ?? '').trigger('change');
         modal.find('select[name="type_income"]').val(movement.category_income_id ?? '').trigger('change');
         modal.find('select[name="type_expense"]').val(movement.category_egress_id ?? '').trigger('change');
@@ -675,12 +872,52 @@ class HistoryManager {
         // Clubs dependiente de tipo de ingreso
         if (movement.type === 'Ingreso' && movement.category_income_id) {
             this.loadClubsByCategoryAndSelect(movement.category_income_id, movement.club_id);
+            
+            // Si el movimiento tiene account_receivable_id, mostrarlo
+            if (movement.account_receivable_id) {
+                $('#account_receivable_id').val(movement.account_receivable_id);
+                $('#account_receivable_id_div').show();
+                console.log('ID de cuenta por cobrar incluido:', movement.account_receivable_id);
+            }
+            
+            // Si el movimiento tiene account_receivable_payment_id, incluirlo en el formulario
+            if (movement.account_receivable_payment_id) {
+                $('#account_receivable_payment_id').val(movement.account_receivable_payment_id);
+                console.log('ID de pago de cuenta por cobrar incluido:', movement.account_receivable_payment_id);
+            }
+            
+            // Mostrar información del pago si existe
+            if (movement.account_receivable_payment) {
+                console.log('Información del pago de cuenta por cobrar:', movement.account_receivable_payment);
+                // Mostrar notificación de que el pago será actualizado
+                this.showPaymentUpdateNotification('cuenta por cobrar', movement.account_receivable_payment.amount, movement.amount);
+            }
         }
 
         // Proveedores dependiente de tipo de egreso
         if (movement.type === 'Egreso' && movement.category_egress_id) {
             this.loadSuppliersByCategoryAndSelect(movement.category_egress_id, movement.supplier_id);
-            this.loadExpensesByCategoryAndSelect(movement.category_egress_id, movement.expense_id); // <-- agrega esto
+            this.loadExpensesByCategoryAndSelect(movement.category_egress_id, movement.expense_id);
+            
+            // Si el movimiento tiene account_payable_id, mostrarlo
+            if (movement.account_payable_id) {
+                $('#account_payable_id').val(movement.account_payable_id);
+                $('#account_payable_id_div').show();
+                console.log('ID de cuenta por pagar incluido:', movement.account_payable_id);
+            }
+            
+            // Si el movimiento tiene account_payable_payment_id, incluirlo en el formulario
+            if (movement.account_payable_payment_id) {
+                $('#account_payable_payment_id').val(movement.account_payable_payment_id);
+                console.log('ID de pago de cuenta por pagar incluido:', movement.account_payable_payment_id);
+            }
+            
+            // Mostrar información del pago si existe
+            if (movement.account_payable_payment) {
+                console.log('Información del pago de cuenta por pagar:', movement.account_payable_payment);
+                // Mostrar notificación de que el pago será actualizado
+                this.showPaymentUpdateNotification('cuenta por pagar', movement.account_payable_payment.amount, movement.amount);
+            }
         }
 
         // Método de pago dependiente de moneda
@@ -711,6 +948,19 @@ class HistoryManager {
         modal.find('form')[0].reset();
         modal.find('input[name="id"]').remove();
         modal.find('select').val('').trigger('change');
+        
+        // Limpiar el campo account_receivable_id
+        $('#account_receivable_id').val('');
+        $('#account_receivable_id_div').hide();
+        
+        // Limpiar el campo account_payable_id
+        $('#account_payable_id').val('');
+        $('#account_payable_id_div').hide();
+        
+        // Limpiar los campos de IDs de pagos
+        $('#account_receivable_payment_id').val('');
+        $('#account_payable_payment_id').val('');
+        
         this.hideOptionalDivs();
         modal.find('.modal-title').text('Crear Movimiento de Ingreso/Egreso');
         modal.find('button[type="submit"]').text('Crear');
@@ -802,18 +1052,125 @@ class HistoryManager {
             $(this).val(value);
         });
     }
+
+    // Cancelar un movimiento de evento
+    cancelEventMovement(movementId) {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: 'Esta acción cancelará el movimiento y restaurará el dinero en la cuenta correspondiente. ¿Deseas continuar?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, cancelar',
+            cancelButtonText: 'No, mantener',
+            customClass: {
+                confirmButton: 'btn btn-danger me-3 waves-effect waves-light',
+                cancelButton: 'btn btn-outline-secondary waves-effect'
+            },
+            buttonsStyling: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                this.processCancellation(movementId);
+            }
+        });
+    }
+
+    // Mostrar notificación de actualización de pago
+    showPaymentUpdateNotification(paymentType, oldAmount, newAmount) {
+        const oldAmountFormatted = CONFIG.numberFormat.format(oldAmount);
+        const newAmountFormatted = CONFIG.numberFormat.format(newAmount);
+        
+        Swal.fire({
+            title: 'Actualización de Pago',
+            html: `
+                <div class="text-start">
+                    <p><strong>Tipo:</strong> ${paymentType}</p>
+                    <p><strong>Monto anterior:</strong> ${oldAmountFormatted}</p>
+                    <p><strong>Monto nuevo:</strong> ${newAmountFormatted}</p>
+                    <p class="text-info small">El pago será actualizado automáticamente al guardar el movimiento.</p>
+                </div>
+            `,
+            icon: 'info',
+            confirmButtonText: 'Entendido',
+            customClass: {
+                confirmButton: 'btn btn-primary waves-effect waves-light'
+            }
+        });
+    }
+
+    // Procesar la cancelación
+    processCancellation(movementId) {
+        // Mostrar loading
+        Swal.fire({
+            title: 'Cancelando movimiento...',
+            text: 'Por favor espera mientras se procesa la cancelación',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Realizar la petición AJAX
+        $.ajax({
+            url: `/event-movements/${movementId}/cancel`,
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: (response) => {
+                if (response.success) {
+                    Swal.fire({
+                        title: '¡Movimiento cancelado!',
+                        text: response.message,
+                        icon: 'success',
+                        confirmButtonText: 'Entendido'
+                    }).then(() => {
+                        // Recargar la tabla
+                        this.datatable.ajax.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: response.message || 'Error al cancelar el movimiento',
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            },
+            error: (xhr, status, error) => {
+                let errorMessage = 'Error al cancelar el movimiento';
+                
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                
+                Swal.fire({
+                    title: 'Error',
+                    text: errorMessage,
+                    icon: 'error',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        });
+    }
 }
 
-// Inicialización cuando el documento está listo
-$(function() {
-    window.historyManager = new HistoryManager();
+    // Inicialización cuando el documento está listo
+    $(function() {
+        window.historyManager = new HistoryManager();
 
-    // Botón "Nuevo Movimiento"
-    $(document).on('click', '.btn-new-movement', function() {
-        // Solo si es el botón de "Nuevo Movimiento"
-        if ($(this).text().trim() === 'Nuevo Movimiento') {
-            window.historyManager.clearMovementModal();
-            $(CONFIG.selectors.modals.movement).modal('show');
-        }
+        // Botón "Nuevo Movimiento"
+        $(document).on('click', '.btn-new-movement', function() {
+            // Solo si es el botón de "Nuevo Movimiento"
+            if ($(this).text().trim() === 'Nuevo Movimiento') {
+                window.historyManager.clearMovementModal();
+                $(CONFIG.selectors.modals.movement).modal('show');
+            }
+        });
+
+        // Botón de cancelar movimiento
+        $(document).on('click', '.btn-cancel-movement', function(e) {
+            e.preventDefault();
+            const movementId = $(this).data('movement-id');
+            window.historyManager.cancelEventMovement(movementId);
+        });
     });
-});

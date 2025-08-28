@@ -65,43 +65,8 @@
                                 <label for="code">Tipo de Egreso</label>
                             </div>
                         </div>
-                        <div class="col-md-12" id="club_id_div" >
-                            <div class="form-floating form-floating-outline">
-                                <select id="club_id" name="club_id"
-                                    class="form-select select2"
-                                    placeholder="Selecione Club">
-                                    <option value="">-- Seleccionar --</option>
-                                    @foreach ($clubs as $club)
-                                        <option value="{{ $club->id }}">{{ $club->name }}</option>
-                                    @endforeach
-                                </select>
-                                <label for="code">Clubs</label>
-                            </div>
-                        </div>
-                        <div class="col-md-12" id="supplier_id_div" >
-                            <div class="form-floating form-floating-outline">
-                                <select id="supplier_id" name="supplier_id"
-                                    class="form-select select2"
-                                    placeholder="Selecione Proveedor">
-                                    <option value="">-- Seleccionar --</option>
-                                    @foreach ($suppliers as $supplier)
-                                        <option value="{{ $supplier->id }}">{{ $supplier->name }} - {{ $supplier->representant }}</option>
-                                    @endforeach
-                                </select>
-                                <label for="code">Proveedor</label>
-                            </div>
-                        </div>
                         
-                        <div class="col-md-12" id="expense_id_div" >
-                            <div class="form-floating form-floating-outline">
-                                <select id="expense_id" name="expense_id"
-                                    class="form-select select2"
-                                    placeholder="Selecione Gasto">
-                                    <option value="">-- Seleccionar --</option>
-                                </select>
-                                <label for="code">Gasto</label>
-                            </div>
-                        </div>
+                       
                         
                         <div class="col-md-12">
                             <div class="form-floating form-floating-outline">

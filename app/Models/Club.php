@@ -27,22 +27,6 @@ class Club extends Model
         'country_id',
         'province_id',
         'city_id',
-        // 'has_accommodation',
-        // 'players_quantity',
-        // 'player_price',
-        // 'total_players',
-        // 'teachers_quantity',
-        // 'teacher_price',
-        // 'total_teachers',
-        // 'companions_quantity',
-        // 'companion_price',
-        // 'total_companions',
-        // 'drivers_quantity',
-        // 'driver_price',
-        // 'total_drivers',
-        // 'liberated_quantity',
-        // 'total_people',
-        // 'total_amount',
     ];
 
     /**
@@ -69,24 +53,35 @@ class Club extends Model
 
     /**
      * Relación muchos a muchos con eventos a través de la tabla pivot event_clubs
-     * Permite que un club participe en varios eventos en diferentes años
      */
     public function events(): BelongsToMany
     {
         return $this->belongsToMany(Event::class, 'event_clubs')
-                    ->withPivot('year')
                     ->withTimestamps();
     }
 
     /**
-     * Obtener eventos de un club para un año específico
+     * Asignar un evento a este club
      */
-    public function eventsByYear(string $year): BelongsToMany
+    public function assignEvent(Event $event): void
     {
-        return $this->belongsToMany(Event::class, 'event_clubs')
-                    ->wherePivot('year', $year)
-                    ->withPivot('year')
-                    ->withTimestamps();
+        $this->events()->attach($event->id);
+    }
+
+    /**
+     * Desasignar un evento de este club
+     */
+    public function detachEvent(Event $event): void
+    {
+        $this->events()->detach($event->id);
+    }
+
+    /**
+     * Obtener todos los eventos asignados a este club
+     */
+    public function getAssignedEvents(): array
+    {
+        return $this->events()->pluck('id')->unique()->toArray();
     }
 
     public function currency(): BelongsTo
@@ -118,37 +113,5 @@ class Club extends Model
         return $this->hasMany(ClubAccountReceivable::class, 'club_id', 'id');
     }
 
-    // /**
-    //  * Crear una cuenta por cobrar para este club
-    //  */
-    // public function createAccountReceivable(Event $event, float $totalAmount, string $dueDate, ?string $notes = null): ClubAccountReceivable
-    // {
-    //     return $this->accountReceivables()->create([
-    //         'event_id' => $event->id,
-    //         'currency_id' => $this->currency_id,
-    //         'total_amount' => $totalAmount,
-    //         'paid_amount' => 0,
-    //         'pending_amount' => $totalAmount,
-    //         'due_date' => $dueDate,
-    //         'created_date' => now()->toDateString(),
-    //         'status' => 'Pendiente',
-    //         'notes' => $notes,
-    //     ]);
-    // }
-
-    // /**
-    //  * Obtener el total de cuentas por cobrar pendientes
-    //  */
-    // public function getTotalPendingReceivables(): float
-    // {
-    //     return $this->accountReceivables()->pending()->sum('pending_amount');
-    // }
-
-    // /**
-    //  * Obtener el total de cuentas por cobrar vencidas
-    //  */
-    // public function getTotalOverdueReceivables(): float
-    // {
-    //     return $this->accountReceivables()->overdue()->sum('pending_amount');
-    // }
+    
 }

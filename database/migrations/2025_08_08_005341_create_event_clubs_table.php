@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('event_id')->constrained('events')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('club_id')->constrained('clubs')->onUpdate('cascade')->onDelete('cascade');
-            $table->string('year');
             $table->timestamps();
         });
 

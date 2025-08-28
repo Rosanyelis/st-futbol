@@ -24,6 +24,7 @@ class StoreSupplierRequest extends FormRequest
         return [
             'category_supplier_id' => 'required|exists:category_suppliers,id',
             'subcategory_supplier_id' => 'required|exists:subcategory_suppliers,id',
+            'name' => 'required',
             'representant' => 'required',
             'phone' => 'required',
             'email' => 'nullable|email',
@@ -34,6 +35,7 @@ class StoreSupplierRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'name.required' => 'El nombre es requerido',
             'representant.required' => 'El representante es requerido',
             'phone.required' => 'El teléfono es requerido',
             'category_supplier_id.required' => 'La categoría es requerida',
