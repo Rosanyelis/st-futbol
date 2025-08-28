@@ -87,15 +87,19 @@ class MovementsStatementManager {
     getDatatableDOM() {
         return '<"card-header d-flex border-top rounded-0 flex-wrap pb-md-0 pt-0"' +
             '<"d-flex align-items-center me-5"' +
-                '<"me-3"f>' +
                 '<"event-filter me-3">' +
                 '<"currency-filter me-3">' +
                 '<"method-payment-filter me-3">' +
-                '<"date-filter">' +
+                '<"date-filter me-3">' +
             '>' +
             '<"ms-auto d-flex justify-content-end align-items-center gap-4"' +
                 '<"d-flex align-items-center"l>' +
                 '<"dt-action-buttons d-flex align-items-center"B>' +
+            '>' +
+            '>' +
+            '<"card-header d-flex border-top rounded-0 flex-wrap pb-md-0 pt-0"' +
+            '<"d-flex align-items-center me-5"' +
+                '<"me-3"f>' +
             '>' +
             ">t" +
             '<"row mx-1"' +
@@ -207,9 +211,136 @@ class MovementsStatementManager {
     // Botones del DataTable
     getDatatableButtons() {
         return [{
-            text: 'Exportar Excel',
-            className: 'btn btn-success btn-export-excel',
-            action: () => this.exportToExcel()
+            extend: "collection",
+            className: "btn btn-outline-secondary dropdown-toggle me-4 waves-effect waves-light",
+            text: '<i class="ri-upload-2-line ri-16px me-2"></i><span class="d-none d-sm-inline-block">Exportar</span>',
+            buttons: [
+                {
+                    extend: "csv",
+                    text: '<i class="ri-file-text-line me-1" ></i>Csv',
+                    className: "dropdown-item",
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                        modifier: {
+                            search: 'applied',
+                            order: 'applied',
+                            page: 'all'
+                        },
+                        format: {
+                            body: function (inner, coldex, rowdex) {
+                                if (inner.length <= 0) return inner;
+                                var el = $.parseHTML(inner);
+                                var result = "";
+                                $.each(el, function (index, item) {
+                                    if (item.innerText === undefined) {
+                                        result = result + item.textContent;
+                                    } else result = result + item.innerText;
+                                });
+                                return result;
+                            },
+                        },
+                    },
+                },
+                {
+                    extend: "excel",
+                    text: '<i class="ri-file-excel-line me-1"></i>Excel',
+                    className: "dropdown-item",
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                        modifier: {
+                            search: 'applied',
+                            order: 'applied',
+                            page: 'all'
+                        },
+                        format: {
+                            body: function (inner, coldex, rowdex) {
+                                if (inner.length <= 0) return inner;
+                                var el = $.parseHTML(inner);
+                                var result = "";
+                                $.each(el, function (index, item) {
+                                    if (item.innerText === undefined) {
+                                        result = result + item.textContent;
+                                    } else result = result + item.innerText;
+                                });
+                                return result;
+                            },
+                        },
+                    },
+                },
+                {
+                    extend: "pdf",
+                    text: '<i class="ri-file-pdf-line me-1"></i>Pdf',
+                    className: "dropdown-item",
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                        modifier: {
+                            search: 'applied',
+                            order: 'applied',
+                            page: 'all'
+                        },
+                        format: {
+                            body: function (inner, coldex, rowdex) {
+                                if (inner.length <= 0) return inner;
+                                var el = $.parseHTML(inner);
+                                var result = "";
+                                $.each(el, function (index, item) {
+                                    if (item.innerText === undefined) {
+                                        result = result + item.textContent;
+                                    } else result = result + item.innerText;
+                                });
+                                return result;
+                            },
+                        },
+                    },
+                    customize: function (doc) {
+                        // Personalizar el PDF
+                        doc.content[1].table.widths = Array(doc.content[1].table.body[0].length + 1).join('*').split('');
+                        doc.styles.tableHeader = {
+                            fillColor: '#f8f9fa',
+                            color: '#000',
+                            fontSize: 10,
+                            bold: true
+                        };
+                        doc.defaultStyle = {
+                            fontSize: 9
+                        };
+                    }
+                },
+                {
+                    extend: "print",
+                    text: '<i class="ri-printer-line me-1" ></i>Imprimir',
+                    className: "dropdown-item",
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                        modifier: {
+                            search: 'applied',
+                            order: 'applied',
+                            page: 'all'
+                        },
+                        format: {
+                            body: function (inner, coldex, rowdex) {
+                                if (inner.length <= 0) return inner;
+                                var el = $.parseHTML(inner);
+                                var result = "";
+                                $.each(el, function (index, item) {
+                                    if (item.innerText === undefined) {
+                                        result = result + item.textContent;
+                                    } else result = result + item.innerText;
+                                });
+                                return result;
+                            },
+                        },
+                    },
+                    customize: function (win) {
+                        $(win.document.body)
+                            .css('font-size', '10pt')
+                            .prepend('<h3>Movimientos por Cuentas/Métodos de Pago</h3>');
+                        $(win.document.body).find('table')
+                            .addClass('compact')
+                            .css('font-size', 'inherit');
+                    }
+                }
+            ]
         }];
     }
 
@@ -260,7 +391,7 @@ class MovementsStatementManager {
     setupEventFilter() {
         const filterContainer = $(CONFIG.selectors.datatable).closest('.card').find('.event-filter');
         filterContainer.html(`
-            <select id="event_filter" class="form-select form-select-sm" style="width: 150px;">
+            <select id="event_filter" class="form-select form-select-sm" style="width: 180px;">
                 <option value="">Todos los eventos</option>
             </select>
         `);
@@ -279,7 +410,7 @@ class MovementsStatementManager {
     setupCurrencyFilter() {
         const filterContainer = $(CONFIG.selectors.datatable).closest('.card').find('.currency-filter');
         filterContainer.html(`
-            <select id="currency_filter" class="form-select form-select-sm" style="width: 120px;">
+            <select id="currency_filter" class="form-select form-select-sm" style="width: 140px;">
                 <option value="">Todas las monedas</option>
             </select>
         `);
@@ -298,7 +429,7 @@ class MovementsStatementManager {
     setupMethodPaymentFilter() {
         const filterContainer = $(CONFIG.selectors.datatable).closest('.card').find('.method-payment-filter');
         filterContainer.html(`
-            <select id="method_payment_filter" class="form-select form-select-sm" style="width: 200px;">
+            <select id="method_payment_filter" class="form-select form-select-sm" style="width: 220px;">
                 <option value="">Todos los métodos de pago</option>
             </select>
         `);
@@ -321,19 +452,13 @@ class MovementsStatementManager {
         const filterContainer = $(CONFIG.selectors.datatable).closest('.card').find('.date-filter');
         filterContainer.html(`<div class="d-flex align-items-center">
             <div class="me-2">
-                <div class="form-floating form-floating-outline">
-                    <input type="date" id="start_date_filter" class="form-control form-control-sm" style="width: 130px;" placeholder="Desde">
-                    <label class="small">Desde:</label>
-                </div>
+                <input type="date" id="start_date_filter" class="form-control form-control-sm" style="width: 130px;" placeholder="dd/mm/aaaa">
             </div>
             <div class="me-2">
-                <div class="form-floating form-floating-outline">
-                    <input type="date" id="end_date_filter" class="form-control form-control-sm" style="width: 130px;" placeholder="Hasta">
-                    <label class="small">Hasta:</label>
-                </div>
+                <input type="date" id="end_date_filter" class="form-control form-control-sm" style="width: 130px;" placeholder="dd/mm/aaaa">
             </div>
             <div class="d-flex align-items-end">
-                <button id="clear_date_filter" class="btn btn-outline-secondary btn-sm" style="height: 32px;">
+                <button id="clear_date_filter" class="btn btn-outline-secondary btn-sm" style="height: 32px;" title="Limpiar">
                     <i class="ri-refresh-line"></i>
                 </button>
             </div>
@@ -419,18 +544,7 @@ class MovementsStatementManager {
         }
     }
 
-    // Exportar a Excel
-    exportToExcel() {
-        const params = new URLSearchParams({
-            event_id: $(CONFIG.selectors.filters.eventId).val() || '',
-            currency_id: $(CONFIG.selectors.filters.currencyId).val() || '',
-            method_payment_id: $(CONFIG.selectors.filters.methodPaymentId).val() || '',
-            start_date: $(CONFIG.selectors.filters.startDate).val() || '',
-            end_date: $(CONFIG.selectors.filters.endDate).val() || ''
-        });
 
-        window.open(`${CONFIG.endpoints.movementsStatementJson}/export?${params.toString()}`, '_blank');
-    }
 }
 
 // Inicialización cuando el DOM esté listo

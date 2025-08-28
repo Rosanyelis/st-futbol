@@ -4,33 +4,29 @@
 const CONFIG = {
     numberFormat: new Intl.NumberFormat("es-MX"),
     endpoints: {
-        generalStatementJson: '/reportes/estado-general',
-        paymentMethods: (currencyId) => `/eventos/metodo-pago/${currencyId}`,
-        currencies: '/eventos/currencies',
+        movementsStatementJson: '/reportes/estado-movimientos',
         events: '/eventos/list',
+        currencies: '/eventos/currencies',
+        methodPayments: '/metodos-pago/list',
         categoryIncomes: '/categorias-ingresos/list',
         categoryEgress: '/categorias-egresos/list'
     },
     selectors: {
-        datatable: ".datatables-general-statement",
+        datatable: ".datatables-movements-statement",
         filters: {
             eventId: '#event_filter',
             currencyId: '#currency_filter',
+            methodPaymentId: '#method_payment_filter',
             categoryIncomeId: '#category_income_filter',
             categoryEgressId: '#category_egress_filter',
             startDate: '#start_date_filter',
             endDate: '#end_date_filter'
-        },
-        totals: {
-            balance: '#totalBalance',
-            income: '#totalIngresos',
-            expense: '#totalEgresos'
         }
     }
 };
 
-// Clase principal para manejar la página de estado general
-class GeneralStatementManager {
+// Clase principal para manejar la página de movimientos por cuentas
+class MovementsStatementManager {
     constructor() {
         this.datatable = null;
         this.initializeDatatable();
@@ -39,7 +35,7 @@ class GeneralStatementManager {
 
     // Inicialización del DataTable
     initializeDatatable() {
-        console.log('Inicializando DataTable...');
+        console.log('Inicializando DataTable de Movimientos...');
         const table = $(CONFIG.selectors.datatable);
         console.log('Tabla encontrada:', table.length);
         if (!table.length) {
@@ -51,26 +47,29 @@ class GeneralStatementManager {
             processing: true,
             serverSide: true, // Usar procesamiento del lado del servidor
             ajax: {
-                url: CONFIG.endpoints.generalStatementJson,
+                url: CONFIG.endpoints.movementsStatementJson,
                 data: (d) => {
                     d.event_id = $(CONFIG.selectors.filters.eventId).val();
-                    d.currency_id = $(CONFIG.selectors.filters.currencyId).val();
                     d.category_income_id = $(CONFIG.selectors.filters.categoryIncomeId).val();
                     d.category_egress_id = $(CONFIG.selectors.filters.categoryEgressId).val();
                     d.start_date = $(CONFIG.selectors.filters.startDate).val();
                     d.end_date = $(CONFIG.selectors.filters.endDate).val();
+                },
+                error: (xhr, error, thrown) => {
+                    console.error('Error en AJAX:', error);
+                    console.error('XHR:', xhr);
+                    console.error('Thrown:', thrown);
                 }
             },
-            dom: this.getDatatableDOM(),
             language: this.getDatatableLanguage(),
             columns: this.getDatatableColumns(),
             columnDefs: this.getColumnDefinitions(),
             buttons: this.getDatatableButtons(),
-            pageLength: 50, // Mostrar más registros por página
+            pageLength: 50,
             drawCallback: () => {
                 this.updateTotals();
                 this.initializeTooltips();
-                this.debugData(); // Activado para verificar funcionamiento
+                this.debugData();
             },
             initComplete: () => {
                 console.log('DataTable initComplete: Configurando filtros...');
@@ -79,31 +78,10 @@ class GeneralStatementManager {
             }
         });
 
-        console.log('DataTable creado correctamente');
-        this.setupDatatableStyles();
+        console.log('DataTable de Movimientos creado correctamente');
     }
 
-    // Configuración del DOM del DataTable
-    getDatatableDOM() {
-        return '<"card-header d-flex border-top rounded-0 flex-wrap pb-md-0 pt-0"' +
-            '<"d-flex align-items-center me-5"' +
-                '<"me-3"f>' +
-                '<"event-filter me-2">' +
-                '<"category-income-filter me-2">' +
-                '<"category-egress-filter me-2">' +
-                '<"date-filter">' +
-            '>' +
-            '<"ms-auto d-flex justify-content-end align-items-center gap-4"' +
-                '<"d-flex align-items-center"l>' +
-                '<"dt-action-buttons d-flex align-items-center"B>' +
-            '>' +
-            '>' +
-            ">t" +
-            '<"row mx-1"' +
-            '<"col-sm-12 col-md-6"i>' +
-            '<"col-sm-12 col-md-6"p>' +
-            ">";
-    }
+    
 
     // Configuración del lenguaje
     getDatatableLanguage() {
@@ -114,7 +92,8 @@ class GeneralStatementManager {
                 previous: '<i class="ri-arrow-left-s-line"></i>'
             },
             lengthMenu: "_MENU_",
-            search: "Buscar:"
+            search: "",
+            searchPlaceholder: "Buscar..."
         };
     }
 
@@ -171,7 +150,6 @@ class GeneralStatementManager {
             {
                 targets: 6,
                 render: (data, type, full) => {
-                    // Solo mostrar categoría de ingreso si el tipo es 'Ingreso'
                     if (full.type === 'Ingreso') {
                         const categoryName = full.category_income?.name || full.categoryIncome?.name;
                         if (categoryName) {
@@ -186,7 +164,6 @@ class GeneralStatementManager {
             {
                 targets: 7,
                 render: (data, type, full) => {
-                    // Solo mostrar categoría de egreso si el tipo es 'Egreso'
                     if (full.type === 'Egreso') {
                         const categoryName = full.category_egress?.name || full.categoryEgress?.name;
                         if (categoryName) {
@@ -211,7 +188,6 @@ class GeneralStatementManager {
             {
                 targets: 10,
                 render: (data, type, full) => {
-                    // Verificar si tenemos datos de método de pago
                     const methodPayment = full.method_payment || full.methodPayment;
                     return this.renderMethodPaymentWithTooltip(methodPayment);
                 }
@@ -235,16 +211,6 @@ class GeneralStatementManager {
             : `<span class='text-nowrap'> - </span>`;
     }
 
-    // Renderizado de descripción
-    renderDescription(description) {
-        return description ? `<span class='text-wrap'>${description}</span>` : '-';
-    }
-
-    // Renderizado de campos opcionales
-    renderOptionalField(value) {
-        return value ? `<span class='text-nowrap'>${value}</span>` : '-';
-    }
-
     // Renderizado de método de pago con tooltip
     renderMethodPaymentWithTooltip(method) {
         if (!method?.account_holder) {
@@ -257,95 +223,110 @@ class GeneralStatementManager {
         // Texto para el tooltip (con saltos de línea reales, sin HTML)
         const tooltipText = `${method.account_holder}\n${method.entity?.name}\n${method.type_account}`;
         
-        const maxLength = 50;
-        
-        if (displayText.length <= maxLength) {
-            return `<span class='text-nowrap'>${displayText}</span>`;
-        } else {
-            const truncated = displayText.substring(0, maxLength) + '...';
-            return `<span class='text-nowrap' data-bs-toggle="tooltip" data-bs-placement="top" title="${tooltipText.replace(/"/g, '&quot;')}">${truncated}</span>`;
-        }
+        return `<span class='text-nowrap text-center'>${displayText}</span>`;
     }
+
+    // Renderizado de descripción
+    renderDescription(description) {
+        return description ? `<span class='text-wrap'>${description}</span>` : '-';
+    }
+
+    // Renderizado de campos opcionales
+    renderOptionalField(value) {
+        return value ? `<span class='text-nowrap'>${value}</span>` : '-';
+    }
+
+
 
     // Configuración de filtros
     setupFilters() {
-        console.log('Configurando filtros...');
-        this.setupEventFilter();
-        this.setupCategoryIncomeFilter();
-        this.setupCategoryEgressFilter();
-        this.setupDateFilter();
-        console.log('Filtros configurados correctamente');
+        console.log('Configurando filtros de movimientos...');
+        
+        this.loadEventFilter();
+        this.loadCategoryIncomeFilter();
+        this.loadCategoryEgressFilter();
+        this.setupFilterEvents();
+        console.log('Filtros de movimientos configurados correctamente');
     }
 
-    // Filtro de eventos
-    setupEventFilter() {
-        const filterContainer = $(CONFIG.selectors.datatable).closest('.card').find('.event-filter');
-        filterContainer.html(`
-            <select id="event_filter" class="form-select form-select-sm" style="width: 150px;">
-                <option value="">Todos los eventos</option>
-            </select>
-        `);
-
-        // Cargar eventos
+    // Cargar filtro de eventos
+    loadEventFilter() {
+        console.log('Cargando filtro de eventos...');
+        
         $.get(CONFIG.endpoints.events, (events) => {
+            console.log('Eventos cargados:', events.length);
             const select = $('#event_filter');
             events.forEach(event => {
                 select.append(`<option value="${event.id}">${event.name} - ${event.year}</option>`);
             });
+        }).fail((error) => {
+            console.error('Error cargando eventos:', error);
         });
-
-        $('#event_filter').on('change', () => this.datatable.ajax.reload());
     }
 
-    // Filtro de categorías de ingreso
-    setupCategoryIncomeFilter() {
-        const filterContainer = $(CONFIG.selectors.datatable).closest('.card').find('.category-income-filter');
-        filterContainer.html(`
-            <select id="category_income_filter" class="form-select form-select-sm" style="width: 150px;">
-                <option value="">Todos los tipos de ingreso</option>
-            </select>
-        `);
-
-        // Cargar categorías de ingreso
+    // Cargar filtro de categorías de ingreso
+    loadCategoryIncomeFilter() {
+        console.log('Cargando filtro de categorías de ingreso...');
+        
         $.get(CONFIG.endpoints.categoryIncomes, (categories) => {
+            console.log('Categorías de ingreso cargadas:', categories.length);
             const select = $('#category_income_filter');
             categories.forEach(category => {
                 select.append(`<option value="${category.id}">${category.name}</option>`);
             });
+        }).fail((error) => {
+            console.error('Error cargando categorías de ingreso:', error);
         });
-
-        $('#category_income_filter').on('change', () => this.datatable.ajax.reload());
     }
 
-    // Filtro de categorías de egreso
-    setupCategoryEgressFilter() {
-        const filterContainer = $(CONFIG.selectors.datatable).closest('.card').find('.category-egress-filter');
-        filterContainer.html(`
-            <select id="category_egress_filter" class="form-select form-select-sm" style="width: 150px;">
-                <option value="">Todos los tipos de egreso</option>
-            </select>
-        `);
-
-        // Cargar categorías de egreso
+    // Cargar filtro de categorías de egreso
+    loadCategoryEgressFilter() {
+        console.log('Cargando filtro de categorías de egreso...');
+        
         $.get(CONFIG.endpoints.categoryEgress, (categories) => {
+            console.log('Categorías de egreso cargadas:', categories.length);
             const select = $('#category_egress_filter');
             categories.forEach(category => {
                 select.append(`<option value="${category.id}">${category.name}</option>`);
             });
+        }).fail((error) => {
+            console.error('Error cargando categorías de egreso:', error);
         });
-
-        $('#category_egress_filter').on('change', () => this.datatable.ajax.reload());
     }
 
-    // Filtro de fechas
-    setupDateFilter() {
-        const filterContainer = $(CONFIG.selectors.datatable).closest('.card').find('.date-filter');
-        filterContainer.html(`
-            <input type="date" id="start_date_filter" class="form-control form-control-sm" style="width: 130px;" placeholder="Desde">
-            <input type="date" id="end_date_filter" class="form-control form-control-sm ms-1" style="width: 130px;" placeholder="Hasta">
-        `);
+    // Configurar eventos de filtros
+    setupFilterEvents() {
+        console.log('Configurando eventos de filtros...');
+        
+        // Eventos para recargar la tabla cuando cambien los filtros
+        $('#event_filter, #category_income_filter, #category_egress_filter, #start_date_filter, #end_date_filter').on('change', () => {
+            console.log('Filtro cambiado, recargando tabla...');
+            this.datatable.ajax.reload();
+        });
+        
+        // Botón para limpiar filtros
+        $('#clear_filters').on('click', () => {
+            console.log('Limpiando filtros...');
+            $('#event_filter').val('');
+            $('#category_income_filter').val('');
+            $('#category_egress_filter').val('');
+            $('#start_date_filter').val('');
+            $('#end_date_filter').val('');
+            this.datatable.ajax.reload();
+        });
 
-        $('#start_date_filter, #end_date_filter').on('change', () => this.datatable.ajax.reload());
+        // Botones de exportación
+        $('a[href*="movementsStatementPdf"]').on('click', (e) => {
+            e.preventDefault();
+            this.exportToPdf();
+        });
+
+        $('a[href*="movementsStatementExcel"]').on('click', (e) => {
+            e.preventDefault();
+            this.exportToExcel();
+        });
+        
+        console.log('Eventos de filtros configurados');
     }
 
     // Actualizar totales
@@ -385,11 +366,6 @@ class GeneralStatementManager {
         $('[data-bs-toggle="tooltip"]').tooltip();
     }
 
-    // Configurar estilos del DataTable
-    setupDatatableStyles() {
-        // Agregar clases CSS personalizadas si es necesario
-    }
-
     // Inicializar event listeners
     initializeEventListeners() {
         // Event listeners adicionales si son necesarios
@@ -398,20 +374,19 @@ class GeneralStatementManager {
     // Función de depuración para verificar datos
     debugData() {
         const data = this.datatable.data().toArray();
-        console.log('Total de registros cargados:', data.length);
+        console.log('Total de registros de movimientos cargados:', data.length);
         
         if (data.length > 0) {
-            console.log('Primer registro:', data[0]);
+            console.log('Primer registro de movimientos:', data[0]);
             console.log('Categoría de ingreso:', data[0].categoryIncome);
             console.log('Categoría de egreso:', data[0].categoryEgress);
             console.log('Tipo de movimiento:', data[0].type);
             console.log('Método de pago:', data[0].method_payment || data[0].methodPayment);
             
-            // Verificar específicamente las columnas de categorías y métodos de pago
             data.forEach((item, index) => {
                 if (index < 5) { // Mostrar los primeros 5 registros
                     const methodPayment = item.method_payment || item.methodPayment;
-                    console.log(`Registro ${index + 1}:`, {
+                    console.log(`Registro de movimiento ${index + 1}:`, {
                         id: item.id,
                         type: item.type,
                         description: item.description,
@@ -426,28 +401,40 @@ class GeneralStatementManager {
                 }
             });
         } else {
-            console.log('No hay registros cargados en el DataTable');
+            console.log('No hay registros de movimientos cargados en el DataTable');
         }
     }
 
     // Exportar a Excel
     exportToExcel() {
         const params = new URLSearchParams({
-            event_id: $(CONFIG.selectors.filters.eventId).val() || '',
-            currency_id: $(CONFIG.selectors.filters.currencyId).val() || '',
-            category_income_id: $(CONFIG.selectors.filters.categoryIncomeId).val() || '',
-            category_egress_id: $(CONFIG.selectors.filters.categoryEgressId).val() || '',
-            start_date: $(CONFIG.selectors.filters.startDate).val() || '',
-            end_date: $(CONFIG.selectors.filters.endDate).val() || ''
+            event_id: $('#event_filter').val() || '',
+            category_income_id: $('#category_income_filter').val() || '',
+            category_egress_id: $('#category_egress_filter').val() || '',
+            start_date: $('#start_date_filter').val() || '',
+            end_date: $('#end_date_filter').val() || ''
         });
 
-        window.open(`${CONFIG.endpoints.generalStatementJson}/export?${params.toString()}`, '_blank');
+        window.open(`/reportes/estado-movimientos/excel?${params.toString()}`, '_blank');
+    }
+
+    // Exportar a PDF
+    exportToPdf() {
+        const params = new URLSearchParams({
+            event_id: $('#event_filter').val() || '',
+            category_income_id: $('#category_income_filter').val() || '',
+            category_egress_id: $('#category_egress_filter').val() || '',
+            start_date: $('#start_date_filter').val() || '',
+            end_date: $('#end_date_filter').val() || ''
+        });
+
+        window.open(`/reportes/estado-movimientos/pdf?${params.toString()}`, '_blank');
     }
 }
 
 // Inicialización cuando el DOM esté listo
 $(document).ready(function() {
-    console.log('General Statement Manager: Inicializando...');
-    new GeneralStatementManager();
-    console.log('General Statement Manager: Inicializado correctamente');
+    console.log('Movements Statement Manager: Inicializando...');
+    new MovementsStatementManager();
+    console.log('Movements Statement Manager: Inicializado correctamente');
 });

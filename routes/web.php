@@ -287,6 +287,12 @@ Route::delete('/cuenta-por-cobrar/{id}', [AccountReceivableController::class, 'd
     Route::get('/reportes/cuentas-por-cobrar', [ReportController::class, 'index'])->name('report.index');
     # Estado de resultado por evento y moneda
     Route::get('/reportes/estado-evento-moneda', [ReportController::class, 'eventCurrencyStatement'])->name('report.eventCurrencyStatement');
+    Route::get('/reportes/estado-evento-moneda/pdf', [ReportController::class, 'eventCurrencyStatementPdf'])->name('report.eventCurrencyStatementPdf');
+    Route::get('/reportes/estado-evento-moneda/excel', [ReportController::class, 'eventCurrencyStatementExcel'])->name('report.eventCurrencyStatementExcel');
+
+// Rutas para exportación del reporte de movimientos
+Route::get('/reportes/estado-movimientos/pdf', [ReportController::class, 'movementsStatementPdf'])->name('report.movementsStatementPdf');
+Route::get('/reportes/estado-movimientos/excel', [ReportController::class, 'movementsStatementExcel'])->name('report.movementsStatementExcel');
     # Estado de resultado general por moneda
     Route::get('/reportes/estado-general', [ReportController::class, 'generalStatement'])->name('report.generalStatement');
     # Estado de resultado de cuentas

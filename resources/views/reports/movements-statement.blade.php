@@ -74,5 +74,5 @@
 <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.js') }}"></script>
-<script src="{{ asset('pagesjs/reports/movements-statement.js?v=1.0.3') }}"></script>
+<script src="{{ asset('pagesjs/reports/movements-statement.js?v=1.0.6') }}"></script>
 @endsection

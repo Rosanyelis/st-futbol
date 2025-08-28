@@ -14,6 +14,7 @@ use App\Models\CategoryIncome;
 use App\Models\CategoryEgress;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
+use App\Exports\EventCurrencyStatementExport;
 
 class ReportController extends Controller
 {
@@ -332,6 +333,91 @@ class ReportController extends Controller
     }
 
     /**
+     * Export the event currency statement to PDF.
+     */
+    public function eventCurrencyStatementPdf(Request $request)
+    {
+        $events = Event::all();
+        $monedas = Currency::all();
+        $categorias = DB::table('category_incomes')->select('id', 'name')->get();
+
+        // Totales de ingresos
+        $totales = DB::table('category_incomes as ci')
+            ->crossJoin('currencies as c')
+            ->leftJoin('event_movements as em', function($join) use ($request) {
+                $join->on('em.category_income_id', '=', 'ci.id')
+                     ->on('em.currency_id', '=', 'c.id')
+                     ->where('em.type', 'Ingreso');
+                if ($request->filled('event_id')) {
+                    $join->where('em.event_id', $request->get('event_id'));
+                }
+                if ($request->filled('start_date')) {
+                    $join->where('em.date', '>=', $request->get('start_date'));
+                }
+                if ($request->filled('end_date')) {
+                    $join->where('em.date', '<=', $request->get('end_date'));
+                }
+            })
+            ->select(
+                'ci.name as categoria',
+                'c.name as moneda',
+                DB::raw('COALESCE(SUM(em.amount), 0) as total')
+            )
+            ->groupBy('ci.name', 'c.name')
+            ->orderBy('ci.name')
+            ->orderBy('c.name')
+            ->get();
+
+        // Totales de egresos
+        $categoriasEgreso = DB::table('category_egresses')->select('id', 'name')->get();
+        $totalesEgreso = DB::table('category_egresses as ce')
+            ->crossJoin('currencies as c')
+            ->leftJoin('event_movements as em', function($join) use ($request) {
+                $join->on('em.category_egress_id', '=', 'ce.id')
+                     ->on('em.currency_id', '=', 'c.id')
+                     ->where('em.type', 'Egreso');
+                if ($request->filled('event_id')) {
+                    $join->where('em.event_id', $request->get('event_id'));
+                }
+                if ($request->filled('start_date')) {
+                    $join->where('em.date', '>=', $request->get('start_date'));
+                }
+                if ($request->filled('end_date')) {
+                    $join->where('em.date', '<=', $request->get('end_date'));
+                }
+            })
+            ->select(
+                'ce.name as categoria',
+                'c.name as moneda',
+                DB::raw('COALESCE(SUM(em.amount), 0) as total')
+            )
+            ->groupBy('ce.name', 'c.name')
+            ->orderBy('ce.name')
+            ->orderBy('c.name')
+            ->get();
+
+        $pdf = \PDF::loadView('reports.event-currency-statement-pdf', compact(
+            'events', 'totales', 'monedas', 'categorias',
+            'categoriasEgreso', 'totalesEgreso'
+        ));
+
+        $filename = 'estado-resultados-evento-moneda-' . date('Y-m-d-H-i-s') . '.pdf';
+        
+        return $pdf->download($filename);
+    }
+
+    /**
+     * Export the event currency statement to Excel.
+     */
+    public function eventCurrencyStatementExcel(Request $request)
+    {
+        return \Excel::download(
+            new \App\Exports\EventCurrencyStatementExport($request),
+            'estado-resultados-evento-moneda-' . date('Y-m-d-H-i-s') . '.xlsx'
+        );
+    }
+
+    /**
      * Display general statement report.
      */
     public function generalStatement(Request $request)
@@ -463,16 +549,11 @@ class ReportController extends Controller
     }
 
     /**
-     * Mostrar el reporte de movimientos por cuentas/métodos de pago
+     * Display the accounts statement report.
      */
-    public function movementsStatement(Request $request)
+    public function accountsStatement(Request $request)
     {
         if ($request->ajax()) {
-            \Log::info('MovementsStatement AJAX request', [
-                'filters' => $request->all(),
-                'user_agent' => $request->userAgent()
-            ]);
-
             $data = EventMovement::with([
                 'event',
                 'currency',
@@ -545,10 +626,101 @@ class ReportController extends Controller
                 })
                 ->rawColumns(['formatted_date', 'formatted_amount', 'account_info']);
 
-            \Log::info('MovementsStatement response', [
-                'total_records' => $data->count(),
-                'has_data' => $data->count() > 0
-            ]);
+            return $dataTable->make(true);
+        }
+
+        $events = Event::all();
+        $currencies = Currency::all();
+        $methodPayments = MethodPayment::with('entity')->get();
+        $categoryIncomes = CategoryIncome::all();
+        $categoryEgress = CategoryEgress::all();
+
+        return view('reports.accounts-statement', compact(
+            'events', 
+            'currencies', 
+            'methodPayments',
+            'categoryIncomes',
+            'categoryEgress'
+        ));
+    }
+
+    /**
+     * Mostrar el reporte de movimientos por cuentas/métodos de pago
+     */
+    public function movementsStatement(Request $request)
+    {
+        if ($request->ajax()) {
+            $data = EventMovement::with([
+                'event',
+                'currency',
+                'categoryIncome',
+                'categoryEgress',
+                'club',
+                'supplier',
+                'methodPayment.entity'
+            ])
+            ->where('status', '!=', 'Cancelado') // Excluir movimientos cancelados
+            ->whereNotNull('method_payment_id') // Solo movimientos con método de pago
+            ->when($request->filled('event_id'), function ($query) use ($request) {
+                $query->where('event_id', $request->get('event_id'));
+            })
+            ->when($request->filled('currency_id'), function ($query) use ($request) {
+                $query->where('currency_id', $request->get('currency_id'));
+            })
+            ->when($request->filled('method_payment_id'), function ($query) use ($request) {
+                $query->where('method_payment_id', $request->get('method_payment_id'));
+            })
+            ->when($request->filled('category_income_id'), function ($query) use ($request) {
+                $query->where('category_income_id', $request->get('category_income_id'));
+            })
+            ->when($request->filled('category_egress_id'), function ($query) use ($request) {
+                $query->where('category_egress_id', $request->get('category_egress_id'));
+            })
+            ->when($request->filled('start_date'), function ($query) use ($request) {
+                $query->where('date', '>=', $request->get('start_date'));
+            })
+            ->when($request->filled('end_date'), function ($query) use ($request) {
+                $query->where('date', '<=', $request->get('end_date'));
+            })
+            ->when($request->has('search') && !empty($request->get('search')['value']), function ($query) use ($request) {
+                $searchValue = $request->get('search')['value'];
+                $query->where(function ($subQuery) use ($searchValue) {
+                    $subQuery->where('date', 'like', "%{$searchValue}%")
+                             ->orWhere('type', 'like', "%{$searchValue}%")
+                             ->orWhere('amount', 'like', "%{$searchValue}%")
+                             ->orWhere('description', 'like', "%{$searchValue}%")
+                             ->orWhereHas('event', function ($q) use ($searchValue) {
+                                 $q->where('name', 'like', "%{$searchValue}%");
+                             })
+                             ->orWhereHas('currency', function ($q) use ($searchValue) {
+                                 $q->where('name', 'like', "%{$searchValue}%");
+                             })
+                             ->orWhereHas('methodPayment', function ($q) use ($searchValue) {
+                                 $q->where('account_holder', 'like', "%{$searchValue}%")
+                                   ->orWhere('type_account', 'like', "%{$searchValue}%")
+                                   ->orWhereHas('entity', function ($nested_q) use ($searchValue) {
+                                       $nested_q->where('name', 'like', "%{$searchValue}%");
+                                   });
+                             });
+                });
+            });
+
+            $dataTable = DataTables::of($data)
+                ->addColumn('formatted_date', function ($row) {
+                    return $row->date ? $row->date->format('d/m/Y') : '-';
+                })
+                ->addColumn('formatted_amount', function ($row) {
+                    return number_format($row->amount, 0, ',', '.');
+                })
+                ->addColumn('account_info', function ($row) {
+                    if ($row->methodPayment) {
+                        return $row->methodPayment->account_holder . ' - ' . 
+                               ($row->methodPayment->entity ? $row->methodPayment->entity->name : '') . ' - ' . 
+                               $row->methodPayment->type_account;
+                    }
+                    return '-';
+                })
+                ->rawColumns(['formatted_date', 'formatted_amount', 'account_info']);
 
             return $dataTable->make(true);
         }
@@ -566,5 +738,51 @@ class ReportController extends Controller
             'categoryIncomes',
             'categoryEgress'
         ));
+    }
+
+    /**
+     * Exportar reporte de movimientos a PDF
+     */
+    public function movementsStatementPdf(Request $request)
+    {
+        $data = EventMovement::with([
+            'event',
+            'currency',
+            'categoryIncome',
+            'categoryEgress',
+            'club',
+            'supplier',
+            'methodPayment.entity'
+        ])
+        ->where('status', '!=', 'Cancelado')
+        ->whereNotNull('method_payment_id')
+        ->when($request->filled('event_id'), function ($query) use ($request) {
+            $query->where('event_id', $request->get('event_id'));
+        })
+        ->when($request->filled('category_income_id'), function ($query) use ($request) {
+            $query->where('category_income_id', $request->get('category_income_id'));
+        })
+        ->when($request->filled('category_egress_id'), function ($query) use ($request) {
+            $query->where('category_egress_id', $request->get('category_egress_id'));
+        })
+        ->when($request->filled('start_date'), function ($query) use ($request) {
+            $query->where('date', '>=', $request->get('start_date'));
+        })
+        ->when($request->filled('end_date'), function ($query) use ($request) {
+            $query->where('date', '<=', $request->get('end_date'));
+        })
+        ->orderBy('date', 'desc')
+        ->get();
+
+        $pdf = \PDF::loadView('reports.movements-statement-pdf', compact('data'));
+        return $pdf->download('estado-general-movimientos.pdf');
+    }
+
+    /**
+     * Exportar reporte de movimientos a Excel
+     */
+    public function movementsStatementExcel(Request $request)
+    {
+        return \Excel::download(new \App\Exports\MovementsStatementExport($request), 'estado-general-movimientos.xlsx');
     }
 }

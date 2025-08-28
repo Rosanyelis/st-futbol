@@ -18,6 +18,16 @@
             <h5 class="mb-0 me-2">Estado de Resultados por Evento y por Moneda</h5>
 
             <div class="card-header-elements ms-auto">
+                <div class="btn-group" role="group">
+                    <a href="{{ route('report.eventCurrencyStatementPdf', request()->query()) }}" 
+                       class="btn btn-outline-danger btn-sm" target="_blank">
+                        <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                    </a>
+                    <a href="{{ route('report.eventCurrencyStatementExcel', request()->query()) }}" 
+                       class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i> Exportar Excel
+                    </a>
+                </div>
             </div>
         </div>
         <div class="card-header d-flex align-items-center border-bottom">

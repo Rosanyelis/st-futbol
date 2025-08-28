@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Estado General')
+@section('title', 'Estado General de Movimientos')
 <meta name="csrf-token" content="{{ csrf_token() }}">
 @section('css')
 <link rel="stylesheet" href="{{ asset('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" />
@@ -44,9 +44,59 @@
     <div class="card">
         <div class="card-header header-elements border-bottom">
             <h5 class="card-title">Estado General de Movimientos</h5>
+            <div class="card-header-elements ms-auto">
+                <div class="btn-group" role="group">
+                    <a href="{{ route('report.movementsStatementPdf', request()->query()) }}"
+                       class="btn btn-outline-danger btn-sm" target="_blank">
+                        <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                    </a>
+                    <a href="{{ route('report.movementsStatementExcel', request()->query()) }}"
+                       class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i> Exportar Excel
+                    </a>
+                </div>
+            </div>
         </div>
+        
+        <!-- Filtros -->
+        <div class="card-body border-bottom">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Evento</label>
+                    <select id="event_filter" class="form-select form-select-sm">
+                        <option value="">Todos los eventos</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Tipo Ingreso</label>
+                    <select id="category_income_filter" class="form-select form-select-sm">
+                        <option value="">Todos los tipos de ingreso</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Tipo Egreso</label>
+                    <select id="category_egress_filter" class="form-select form-select-sm">
+                        <option value="">Todos los tipos de egreso</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Fecha Desde</label>
+                    <input type="date" id="start_date_filter" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Fecha Hasta</label>
+                    <input type="date" id="end_date_filter" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button id="clear_filters" class="btn btn-outline-secondary btn-sm">
+                        <i class="ri-refresh-line"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <div class="card-datatable table-responsive">
-            <table class="datatables-general-statement table">
+            <table class="datatables-movements-statement table">
                 <thead>
                      <tr>
                          <th>Fecha</th>
@@ -76,5 +126,5 @@
 <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.js') }}"></script>
-<script src="{{ asset('pagesjs/reports/general-statement.js') }}"></script>
+<script src="{{ asset('pagesjs/reports/general-statement.js?v=1.0.11') }}"></script>
 @endsection
