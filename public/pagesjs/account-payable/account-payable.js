@@ -15,6 +15,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Funciones utilitarias
     const formatCurrency = data => `$ ${numberFormat.format(data)}`;
+    const formatStatus = (data, type, row) => {
+        const statusClasses = {
+            'Pendiente': 'badge bg-label-warning',
+            'En Proceso': 'badge bg-label-info',
+            'Completado': 'badge bg-label-success',
+            'Vencido': 'badge bg-label-danger'
+        };
+        return `<span class="${statusClasses[data] || 'badge bg-label-secondary'}">${data}</span>`;
+    };
     // const formatDate = data => moment(data).format('DD/MM/YYYY');
     // const calculateTotal = data => data.reduce((sum, item) => sum + parseFloat(item.total_pendiente || 0), 0);
 
@@ -45,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { data: 'amount', render: formatCurrency },
                 { data: 'paid_amount', render: formatCurrency },
                 { data: 'pending_amount', render: formatCurrency },
+                { data: 'status', render: formatStatus },
                 { data: 'actions', orderable: false, searchable: false }
             ],
         });

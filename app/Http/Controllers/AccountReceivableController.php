@@ -13,10 +13,12 @@ use App\Models\EventMovement;
 use App\Models\MethodPayment;
 use App\Models\CategoryIncome;
 use App\Models\AccountReceivable;
+use App\Models\AccountReceivablePayment;
 use Illuminate\Support\Facades\DB;
 use App\Models\ClubAccountReceivable;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\AccountReceivable\ProcessPaymentRequest;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AccountReceivableController extends Controller
 {
@@ -84,6 +86,9 @@ class AccountReceivableController extends Controller
                     $paidAmount = $row->payments->sum('amount');
                     return $row->total_amount - $paidAmount;
                 })
+                ->addColumn('status', function ($row) {
+                    return $row->status ?? 'Pendiente';
+                })
                 ->addColumn('actions', function ($row) {
                     return view('account-receivable.actions', compact('row'));
                 })
@@ -94,7 +99,7 @@ class AccountReceivableController extends Controller
         $paymentMethods = MethodPayment::all();
         $currencies = Currency::all();
         $events = Event::orderBy('name', 'asc')->get();
-        $statuses = ['Pendiente', 'Parcial', 'Pagado', 'Vencido'];
+        $statuses = ['Pendiente', 'En Proceso', 'Completado', 'Vencido'];
         
         return view('account-receivable.index', compact('paymentMethods', 'currencies', 'events', 'statuses'));
     }
@@ -453,6 +458,87 @@ class AccountReceivableController extends Controller
                 $methodPayment->current_balance = ($methodPayment->current_balance ?? 0) - $amount;
             }
             $methodPayment->save();
+        }
+    }
+
+    /**
+     * Genera el recibo PDF de un pago
+     */
+    public function generateReceipt($paymentId)
+    {
+        try {
+            // Buscar el pago con sus relaciones
+            $payment = AccountReceivablePayment::with(['accountReceivable.club', 'accountReceivable.event', 'accountReceivable.currency'])->findOrFail($paymentId);
+            
+            // Verificar que el pago existe y tiene las relaciones necesarias
+            if (!$payment->accountReceivable || !$payment->accountReceivable->club || !$payment->accountReceivable->event || !$payment->accountReceivable->currency) {
+                throw new \Exception('No se pudo encontrar la información completa del pago (club, evento o moneda faltante)');
+            }
+
+            // Cargar la vista del recibo con los datos necesarios
+            $pdf = Pdf::loadView('account-receivable.recibo', [
+                'payment' => $payment,
+                'club' => $payment->accountReceivable->club,
+                'event' => $payment->accountReceivable->event,
+                'currency' => $payment->accountReceivable->currency
+            ]);
+
+            // Configurar el PDF
+            $pdf->setPaper('a4', 'portrait');
+            
+            // Generar el nombre del archivo
+            $fileName = 'Recibo_' . $payment->accountReceivable->club->name . '_' . $payment->id . '.pdf';
+            
+            // Retornar el PDF para descarga
+            return $pdf->stream($fileName);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar el recibo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Genera el detalle completo PDF de una cuenta por cobrar
+     */
+    public function generateDetail($id)
+    {
+        try {
+            // Buscar la cuenta por cobrar con todas sus relaciones
+            $accountReceivable = AccountReceivable::with([
+                'club', 
+                'event', 
+                'currency', 
+                'supplier', 
+                'payments'
+            ])->findOrFail($id);
+            
+            // Verificar que la cuenta por cobrar existe y tiene las relaciones necesarias
+            if (!$accountReceivable->club || !$accountReceivable->event || !$accountReceivable->currency) {
+                throw new \Exception('No se pudo encontrar la información completa de la cuenta por cobrar (club, evento o moneda faltante)');
+            }
+
+            // Cargar la vista del detalle con los datos necesarios
+            $pdf = Pdf::loadView('account-receivable.detalle', [
+                'accountReceivable' => $accountReceivable
+            ]);
+
+            // Configurar el PDF
+            $pdf->setPaper('a4', 'portrait');
+            
+            // Generar el nombre del archivo
+            $fileName = 'Detalle_Cuenta_' . $accountReceivable->club->name . '_' . $accountReceivable->id . '.pdf';
+            
+            // Retornar el PDF para descarga
+            return $pdf->stream($fileName);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar el detalle: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

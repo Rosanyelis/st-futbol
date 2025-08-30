@@ -66,6 +66,42 @@
                             </div>
                         </div>
                         
+                        <!-- Campo para seleccionar club (solo para ingresos) -->
+                        <div class="col-md-12" id="club_id_div" style="display: none;">
+                            <div class="form-floating form-floating-outline">
+                                <select id="club_id" name="club_id"
+                                    class="form-select select2"
+                                    placeholder="Selecione Club">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                                <label for="club_id">Club</label>
+                            </div>
+                        </div>
+
+                        <!-- Campo para seleccionar proveedor (solo para egresos) -->
+                        <div class="col-md-12" id="supplier_id_div" style="display: none;">
+                            <div class="form-floating form-floating-outline">
+                                <select id="supplier_id" name="supplier_id"
+                                    class="form-select select2"
+                                    placeholder="Selecione Proveedor">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                                <label for="supplier_id">Proveedor</label>
+                            </div>
+                        </div>
+
+                        <!-- Campo para seleccionar gasto (solo para egresos) -->
+                        <div class="col-md-12" id="expense_id_div" style="display: none;">
+                            <div class="form-floating form-floating-outline">
+                                <select id="expense_id" name="expense_id"
+                                    class="form-select select2"
+                                    placeholder="Selecione Gasto">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                                <label for="expense_id">Gasto</label>
+                            </div>
+                        </div>
+                        
                        
                         
                         <div class="col-md-12">

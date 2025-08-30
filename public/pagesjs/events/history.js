@@ -331,8 +331,11 @@ class HistoryManager {
         this.setupTypeChangeHandler();
         this.setupTypeIncomeChangeHandler();
         this.setupTypeExpenseChangeHandler();
+        this.setupClubChangeHandler();
+        this.setupSupplierChangeHandler();
+        this.setupExpenseChangeHandler();
         this.setupAmountInputFormat();
-        this.setupFormConfirmation(); // <-- Agrega esto
+        this.setupFormConfirmation();
 
         // Event listener para el cambio en el select de clubs
         $(document).on('change', CONFIG.selectors.forms.clubId, (e) => {
@@ -378,6 +381,7 @@ class HistoryManager {
             const selectedType = $(CONFIG.selectors.forms.type).val();
             this.hideOptionalDivs();
             this.clearAllSelectors();
+            this.updateDescription();
 
             if (selectedType === 'Ingreso') {
                 $(CONFIG.selectors.divs.typeIncome).show();
@@ -405,7 +409,8 @@ class HistoryManager {
             } else {
                 $(CONFIG.selectors.divs.club).hide();
             }
-            // Si hay más tipos de ingreso, puedes agregar lógica aquí
+            
+            this.updateDescription();
         });
     }
 
@@ -422,7 +427,69 @@ class HistoryManager {
                 this.loadSuppliersByCategory(selectedTypeExpense);
                 $(CONFIG.selectors.divs.supplier).show();
             }
+            
+            this.updateDescription();
         });
+    }
+
+    // Manejador de cambio de club
+    setupClubChangeHandler() {
+        $(CONFIG.selectors.forms.clubId).change(() => {
+            this.updateDescription();
+        });
+    }
+
+    // Manejador de cambio de proveedor
+    setupSupplierChangeHandler() {
+        $(CONFIG.selectors.forms.supplierId).change(() => {
+            this.updateDescription();
+        });
+    }
+
+    // Manejador de cambio de gasto
+    setupExpenseChangeHandler() {
+        $(CONFIG.selectors.forms.expenseId).change(() => {
+            this.updateDescription();
+        });
+    }
+
+    // Actualizar descripción automáticamente
+    updateDescription() {
+        const type = $(CONFIG.selectors.forms.type).val();
+        const typeIncome = $(CONFIG.selectors.forms.typeIncome).val();
+        const typeExpense = $(CONFIG.selectors.forms.typeExpense).val();
+        const clubId = $(CONFIG.selectors.forms.clubId).val();
+        const supplierId = $(CONFIG.selectors.forms.supplierId).val();
+        const expenseId = $(CONFIG.selectors.forms.expenseId).val();
+        
+        let description = '';
+        
+        if (type) {
+            description = type;
+            
+            if (type === 'Ingreso' && typeIncome) {
+                const typeIncomeText = $(CONFIG.selectors.forms.typeIncome).find('option:selected').text();
+                description += ` - ${typeIncomeText}`;
+                
+                if (clubId) {
+                    const clubText = $(CONFIG.selectors.forms.clubId).find('option:selected').text();
+                    description += ` - ${clubText}`;
+                }
+            } else if (type === 'Egreso' && typeExpense) {
+                const typeExpenseText = $(CONFIG.selectors.forms.typeExpense).find('option:selected').text();
+                description += ` - ${typeExpenseText}`;
+                
+                if (typeExpense == 1 && expenseId) { // Gastos
+                    const expenseText = $(CONFIG.selectors.forms.expenseId).find('option:selected').text();
+                    description += ` - ${expenseText}`;
+                } else if (typeExpense == 2 && supplierId) { // Proveedores
+                    const supplierText = $(CONFIG.selectors.forms.supplierId).find('option:selected').text();
+                    description += ` - ${supplierText}`;
+                }
+            }
+        }
+        
+        $('#description').val(description);
     }
 
     // Carga de métodos de pago
@@ -456,6 +523,9 @@ class HistoryManager {
 
     // Carga de gastos por categoría de egreso
     loadExpensesByCategory(categoryEgressId) {
+        console.log('loadExpensesByCategory called with categoryEgressId:', categoryEgressId);
+        console.log('URL:', CONFIG.endpoints.expensesByCategory(categoryEgressId));
+        
         $(CONFIG.selectors.forms.expenseId)
             .empty()
             .append('<option value="">-- Seleccionar --</option>');
@@ -477,8 +547,9 @@ class HistoryManager {
             success: (expenses) => {
                 if (expenses?.length) {
                     expenses.forEach(expense => {
+                        const optionText = expense.name || expense.category_expense?.name || 'Sin nombre';
                         $expenseSelect.append(
-                            `<option value="${expense.id}">${expense.category_expense.name} - ${expense.subcategory_expense.name}</option>`
+                            `<option value="${expense.id}">${optionText}</option>`
                         );
                     });
                     if (selectedExpenseId) {
@@ -627,12 +698,21 @@ class HistoryManager {
 
     // Manejo de respuesta de gastos
     handleExpensesResponse(expenses) {
+        console.log('handleExpensesResponse called with:', expenses);
+        
         if (expenses?.length) {
+            console.log('Found', expenses.length, 'expenses');
             expenses.forEach(expense => {
+                console.log('Processing expense:', expense);
+                // Usar el nombre del gasto directamente
+                const optionText = expense.name || expense.category_expense?.name || 'Sin nombre';
+                console.log('Adding option:', optionText);
                 $(CONFIG.selectors.forms.expenseId).append(
-                    `<option value="${expense.id}">${expense.category_expense.name} - ${expense.subcategory_expense.name}</option>`
+                    `<option value="${expense.id}">${optionText}</option>`
                 );
             });
+        } else {
+            console.log('No expenses found or empty response');
         }
     }
 
@@ -935,6 +1015,11 @@ class HistoryManager {
             if (movement.supplier_id) $(CONFIG.selectors.divs.supplier).show();
             if (movement.expense_id) $(CONFIG.selectors.divs.expense).show();
         }
+        
+        // Actualizar descripción después de cargar todos los datos
+        setTimeout(() => {
+            this.updateDescription();
+        }, 100);
 
         modal.find('.modal-title').text('Editar Movimiento de Ingreso/Egreso');
         modal.find('button[type="submit"]').text('Actualizar'); 
@@ -962,6 +1047,7 @@ class HistoryManager {
         $('#account_payable_payment_id').val('');
         
         this.hideOptionalDivs();
+        this.updateDescription(); // Limpiar descripción
         modal.find('.modal-title').text('Crear Movimiento de Ingreso/Egreso');
         modal.find('button[type="submit"]').text('Crear');
         modal.find('form').attr('action', $('#formMovimiento').data('action-create') || $('#formMovimiento').attr('action'));

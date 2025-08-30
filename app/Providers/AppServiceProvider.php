@@ -3,6 +3,10 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Models\AccountReceivablePayment;
+use App\Models\AccountPayablePayment;
+use App\Observers\AccountReceivablePaymentObserver;
+use App\Observers\AccountPayablePaymentObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Registrar observers para actualizar automáticamente el status de las cuentas
+        AccountReceivablePayment::observe(AccountReceivablePaymentObserver::class);
+        AccountPayablePayment::observe(AccountPayablePaymentObserver::class);
     }
 }

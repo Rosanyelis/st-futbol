@@ -11,9 +11,14 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Detalles de Cuenta por Cobrar</h5>
-                    <a href="{{ route('account-receivable.index') }}" class="btn btn-secondary btn-sm">
-                        <i class="ri-arrow-left-line"></i> Volver
-                    </a>
+                    <div>
+                        <button class="btn btn-primary btn-sm me-2" onclick="generateDetail()">
+                            <i class="ri-file-pdf-line"></i> Generar Detalle PDF
+                        </button>
+                        <a href="{{ route('account-receivable.index') }}" class="btn btn-secondary btn-sm">
+                            <i class="ri-arrow-left-line"></i> Volver
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
                     <!-- Información del Club -->
@@ -178,6 +183,7 @@
                                          <tr>
                                              <th>Fecha</th>
                                              <th class="text-end">Monto</th>
+                                             <th>Descripción</th>
                                              <th class="text-center">Acciones</th>
                                          </tr>
                                      </thead>
@@ -186,6 +192,7 @@
                                          <tr>
                                              <td>{{ $payment->date->format('d/m/Y') }}</td>
                                              <td class="text-end">{{ number_format($payment->amount, 2, ',', '.') }}</td>
+                                             <td>{{ $payment->description ?? 'Sin descripción' }}</td>
                                              <td class="text-center">
                                                  <button class="btn btn-sm btn-primary" onclick="generateReceipt({{ $payment->id }})">
                                                      <i class="ri-printer-line"></i> Recibo
@@ -222,15 +229,89 @@
                  icon: 'question',
                  showCancelButton: true,
                  confirmButtonText: 'Sí, Generar',
-                 cancelButtonText: 'Cancelar'
+                 cancelButtonText: 'Cancelar',
+                 customClass: {
+                    confirmButton: 'btn btn-primary waves-effect waves-light',
+                    cancelButton: 'btn btn-secondary waves-effect waves-light'
+                    },
+                buttonsStyling: false
              }).then((result) => {
                  if (result.isConfirmed) {
-                     // Aquí se implementaría la lógica para generar el recibo
-                     // Por ahora solo mostramos un mensaje
+                     // Mostrar loading
+                     Swal.fire({
+                         title: 'Generando PDF...',
+                         text: 'Por favor espere mientras se genera el recibo',
+                         allowOutsideClick: false,
+                         customClass: {
+                            confirmButton: 'btn btn-primary waves-effect waves-light'
+                            },
+                        buttonsStyling: false,
+                         didOpen: () => {
+                             Swal.showLoading();
+                         }
+                     });
+                     
+                     // Generar el recibo PDF
+                     const url = `/cuenta-por-cobrar/recibo/${paymentId}`;
+                     window.open(url, '_blank');
+                     
+                     // Cerrar el loading y mostrar éxito
                      Swal.fire({
                          title: 'Recibo Generado',
-                         text: 'El recibo se ha generado correctamente',
-                         icon: 'success'
+                         text: 'El recibo se ha generado correctamente y se abrirá en una nueva pestaña',
+                         icon: 'success',
+                         customClass: {
+                            confirmButton: 'btn btn-primary waves-effect waves-light'
+                            },
+                        buttonsStyling: false
+                     });
+                 }
+             });
+         }
+
+         // Función para generar detalle completo
+         function generateDetail() {
+             Swal.fire({
+                 title: 'Generando Detalle',
+                 text: '¿Desea generar el detalle completo de esta cuenta por cobrar?',
+                 icon: 'question',
+                 showCancelButton: true,
+                 confirmButtonText: 'Sí, Generar',
+                 cancelButtonText: 'Cancelar',
+                 customClass: {
+                    confirmButton: 'btn btn-primary waves-effect waves-light',
+                    cancelButton: 'btn btn-secondary waves-effect waves-light'
+                    },
+                buttonsStyling: false
+             }).then((result) => {
+                 if (result.isConfirmed) {
+                     // Mostrar loading
+                     Swal.fire({
+                         title: 'Generando PDF...',
+                         text: 'Por favor espere mientras se genera el detalle completo',
+                         allowOutsideClick: false,
+                         customClass: {
+                            confirmButton: 'btn btn-primary waves-effect waves-light'
+                            },
+                        buttonsStyling: false,
+                         didOpen: () => {
+                             Swal.showLoading();
+                         }
+                     });
+                     
+                     // Generar el detalle PDF
+                     const url = `/cuenta-por-cobrar/detalle/{{ $accountReceivable->id }}`;
+                     window.open(url, '_blank');
+                     
+                     // Cerrar el loading y mostrar éxito
+                     Swal.fire({
+                         title: 'Detalle Generado',
+                         text: 'El detalle completo se ha generado correctamente y se abrirá en una nueva pestaña',
+                         icon: 'success',
+                         customClass: {
+                            confirmButton: 'btn btn-primary waves-effect waves-light'
+                            },
+                        buttonsStyling: false
                      });
                  }
              });

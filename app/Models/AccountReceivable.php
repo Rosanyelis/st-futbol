@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class AccountReceivable extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'club_id',
         'event_id',
@@ -62,11 +64,35 @@ class AccountReceivable extends Model
      */
     public function recordPayment($amount, $date, $reference = null, $description = null)
     {
-        return $this->payments()->create([
+        $payment = $this->payments()->create([
             'date' => $date,
             'amount' => $amount,
             'description' => $description,
         ]);
+        
+        // Actualizar el status después de registrar el pago
+        $this->updateStatusAfterPayment();
+        
+        return $payment;
+    }
+
+    /**
+     * Actualizar el status de la cuenta por cobrar después de un pago
+     */
+    public function updateStatusAfterPayment()
+    {
+        $pendingAmount = $this->getPendingAmount();
+        
+        if ($pendingAmount <= 0) {
+            // Si no hay monto pendiente, marcar como completado
+            $this->update(['status' => 'Completado']);
+        } elseif ($this->getPaymentPercentage() > 0) {
+            // Si hay pagos parciales, marcar como en proceso
+            $this->update(['status' => 'En Proceso']);
+        } else {
+            // Si no hay pagos, marcar como pendiente
+            $this->update(['status' => 'Pendiente']);
+        }
     }
 
     /**
@@ -105,6 +131,10 @@ class AccountReceivable extends Model
                 'date' => $date,
                 'amount' => $amount,
             ]);
+            
+            // Actualizar el status después de modificar el pago
+            $this->updateStatusAfterPayment();
+            
             return $payment;
         }
         return null;
@@ -117,7 +147,14 @@ class AccountReceivable extends Model
     {
         $payment = $this->payments()->find($paymentId);
         if ($payment) {
-            return $payment->delete();
+            $deleted = $payment->delete();
+            
+            // Actualizar el status después de eliminar el pago
+            if ($deleted) {
+                $this->updateStatusAfterPayment();
+            }
+            
+            return $deleted;
         }
         return false;
     }

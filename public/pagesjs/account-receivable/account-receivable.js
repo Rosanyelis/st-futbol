@@ -22,8 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatStatus = (data, type, row) => {
         const statusClasses = {
             'Pendiente': 'badge bg-label-warning',
-            'Parcial': 'badge bg-label-info',
-            'Pagado': 'badge bg-label-success',
+            'En Proceso': 'badge bg-label-info',
+            'Completado': 'badge bg-label-success',
             'Vencido': 'badge bg-label-danger'
         };
         return `<span class="${statusClasses[data] || 'badge bg-label-secondary'}">${data}</span>`;

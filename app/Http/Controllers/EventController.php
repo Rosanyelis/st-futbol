@@ -595,11 +595,15 @@ class EventController extends Controller
                             'club' => $movement->club->name ?? 'N/A'
                         ]);
                         
-                        $payment->update([
-                            'amount' => $data['amount'],
-                            'date' => $data['date'],
-                            'description' => $data['description'] ?? null
-                        ]);
+                        // Usar el método del modelo para actualizar el pago y el status automáticamente
+                        $accountReceivable = $payment->accountReceivable;
+                        $accountReceivable->updatePayment(
+                            $payment->id,
+                            $data['amount'],
+                            $data['date'],
+                            null, // reference
+                            $data['description'] ?? null
+                        );
                         
                         // Actualizar el movimiento con la referencia del pago
                         $movement->update(['account_receivable_payment_id' => $payment->id]);
@@ -643,11 +647,15 @@ class EventController extends Controller
                             'supplier' => $movement->supplier->name ?? 'N/A'
                         ]);
                         
-                        $payment->update([
-                            'amount' => $data['amount'],
-                            'date' => $data['date'],
-                            'description' => $data['description'] ?? null
-                        ]);
+                        // Usar el método del modelo para actualizar el pago y el status automáticamente
+                        $accountPayable = $payment->accountPayable;
+                        $accountPayable->updatePayment(
+                            $payment->id,
+                            $data['amount'],
+                            $data['date'],
+                            null, // reference
+                            $data['description'] ?? null
+                        );
                         
                         // Actualizar el movimiento con la referencia del pago
                         $movement->update(['account_payable_payment_id' => $payment->id]);

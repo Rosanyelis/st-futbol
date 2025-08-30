@@ -505,6 +505,9 @@ class HistoryManager {
 
     // Carga de gastos por categoría de egreso
     loadExpensesByCategory(categoryEgressId) {
+        console.log('loadExpensesByCategory called with categoryEgressId:', categoryEgressId);
+        console.log('URL:', CONFIG.endpoints.expensesByCategory(categoryEgressId));
+        
         $(CONFIG.selectors.forms.expenseId)
             .empty()
             .append('<option value="">-- Seleccionar --</option>');
@@ -586,8 +589,9 @@ class HistoryManager {
             success: (expenses) => {
                 if (expenses?.length) {
                     expenses.forEach(expense => {
+                        const optionText = expense.name || expense.category_expense?.name || 'Sin nombre';
                         $expenseSelect.append(
-                            `<option value="${expense.id}">${expense.category_expense.name} - ${expense.subcategory_expense.name}</option>`
+                            `<option value="${expense.id}">${optionText}</option>`
                         );
                     });
                     if (selectedExpenseId) {
@@ -658,12 +662,21 @@ class HistoryManager {
 
     // Manejo de respuesta de gastos
     handleExpensesResponse(expenses) {
+        console.log('handleExpensesResponse called with:', expenses);
+        
         if (expenses?.length) {
+            console.log('Found', expenses.length, 'expenses');
             expenses.forEach(expense => {
+                console.log('Processing expense:', expense);
+                // Usar el nombre del gasto directamente
+                const optionText = expense.name || expense.category_expense?.name || 'Sin nombre';
+                console.log('Adding option:', optionText);
                 $(CONFIG.selectors.forms.expenseId).append(
-                    `<option value="${expense.id}">${expense.category_expense.name} - ${expense.subcategory_expense.name}</option>`
+                    `<option value="${expense.id}">${optionText}</option>`
                 );
             });
+        } else {
+            console.log('No expenses found or empty response');
         }
     }
 

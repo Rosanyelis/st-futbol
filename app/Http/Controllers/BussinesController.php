@@ -137,10 +137,32 @@ class BussinesController extends Controller
     {
         if ($categoryEgressId == 1) { // ID 1 = "Gastos"
             $expenses = Expense::with('categoryExpense')->where('category_egress_id', $categoryEgressId)->get();
+            
+            // Debug: Log para verificar qué datos se están devolviendo
+            \Log::info('Expenses query result:', [
+                'categoryEgressId' => $categoryEgressId,
+                'count' => $expenses->count(),
+                'data' => $expenses->toArray()
+            ]);
+            
             return response()->json($expenses);
         }
         
         return response()->json([]);
+    }
+
+    /**
+     * Ruta de prueba para verificar datos de gastos
+     */
+    public function testExpenses()
+    {
+        $expenses = Expense::with(['categoryExpense', 'subcategoryExpense'])->get();
+        
+        return response()->json([
+            'total_expenses' => $expenses->count(),
+            'expenses_with_category_egress_1' => $expenses->where('category_egress_id', 1)->count(),
+            'all_expenses' => $expenses->toArray()
+        ]);
     }
 
     /**

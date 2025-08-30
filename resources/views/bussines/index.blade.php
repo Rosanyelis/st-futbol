@@ -61,8 +61,10 @@
                 </thead>
             </table>
         </div>
-    </div>
+    </div>       
 </div>
+
+
 @include('bussines.modal-movimiento')
 @endsection
 @section('scripts')

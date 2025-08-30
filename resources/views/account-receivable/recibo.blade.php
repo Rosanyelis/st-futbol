@@ -122,7 +122,7 @@
                 </td>
                 <td style="width: 50%; text-align: right;">
                     <div class="recibo-monto-box">
-                        {{ $payment->currency->symbol }} {{ number_format($payment->amount, 0, ',', '.') }}
+                        {{ $currency->symbol ?? '$' }} {{ number_format($payment->amount, 0, ',', '.') }}
                     </div>
                 </td>
             </tr>
@@ -136,7 +136,7 @@
                     font-size: 14px;">
             <tr>
                 <th style="width: 50%; text-align: left;">Evento:</th>
-                <td style="width: 50%; text-align: right;">{{ $club->event->name }}</td>
+                <td style="width: 50%; text-align: right;">{{ $event->name }}</td>
             </tr>
             <tr>
                 <th style="width: 50%; text-align: left;">Club:</th>
@@ -148,11 +148,11 @@
             </tr>
             <tr>
                 <th style="width: 50%; text-align: left;">Monto:</th>
-                <td style="width: 50%; text-align: right;">{{ $payment->currency->symbol }} {{ number_format($payment->amount, 0, ',', '.') }}</td>
+                <td style="width: 50%; text-align: right;">{{ $currency->symbol ?? '$' }} {{ number_format($payment->amount, 0, ',', '.') }}</td>
             </tr>
             <tr>
                 <th style="width: 50%; text-align: left;">Moneda:</th>
-                <td style="width: 50%; text-align: right;">{{ $payment->currency->name }}</td>
+                <td style="width: 50%; text-align: right;">{{ $currency->name ?? 'Pesos Argentinos' }}</td>
             </tr>
             <tr>
                 <th style="width: 50%; text-align: left;">Fecha de Pago:</th>

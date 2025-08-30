@@ -55,6 +55,7 @@
                         <th>Total</th>
                         <th>Pagado</th>
                         <th>Pendiente</th>
+                        <th>Status</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>

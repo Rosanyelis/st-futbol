@@ -39,57 +39,53 @@ class EventCurrencyStatementExport implements FromArray, WithHeadings, WithStyle
 
     protected function prepareData()
     {
-        // Totales de ingresos
-        $this->totales = DB::table('category_incomes as ci')
-            ->crossJoin('currencies as c')
-            ->leftJoin('event_movements as em', function($join) {
-                $join->on('em.category_income_id', '=', 'ci.id')
-                     ->on('em.currency_id', '=', 'c.id')
-                     ->where('em.type', 'Ingreso');
-                if ($this->request->filled('event_id')) {
-                    $join->where('em.event_id', $this->request->get('event_id'));
-                }
-                if ($this->request->filled('start_date')) {
-                    $join->where('em.date', '>=', $this->request->get('start_date'));
-                }
-                if ($this->request->filled('end_date')) {
-                    $join->where('em.date', '<=', $this->request->get('end_date'));
-                }
+        // Totales de ingresos - Consulta corregida
+        $this->totales = DB::table('event_movements as em')
+            ->join('currencies as c', 'em.currency_id', '=', 'c.id')
+            ->leftJoin('category_incomes as ci', 'em.category_income_id', '=', 'ci.id')
+            ->where('em.type', 'Ingreso')
+            ->where('em.status', 'Activo')
+            ->when($this->request->filled('event_id'), function($query) {
+                return $query->where('em.event_id', $this->request->get('event_id'));
+            })
+            ->when($this->request->filled('start_date'), function($query) {
+                return $query->where('em.date', '>=', $this->request->get('start_date'));
+            })
+            ->when($this->request->filled('end_date'), function($query) {
+                return $query->where('em.date', '<=', $this->request->get('end_date'));
             })
             ->select(
-                'ci.name as categoria',
+                DB::raw('COALESCE(ci.name, "Sin categoría") as categoria'),
                 'c.name as moneda',
-                DB::raw('COALESCE(SUM(em.amount), 0) as total')
+                DB::raw('SUM(em.amount) as total')
             )
-            ->groupBy('ci.name', 'c.name')
-            ->orderBy('ci.name')
+            ->groupBy('categoria', 'c.name')
+            ->orderBy('categoria')
             ->orderBy('c.name')
             ->get();
 
-        // Totales de egresos
-        $this->totalesEgreso = DB::table('category_egresses as ce')
-            ->crossJoin('currencies as c')
-            ->leftJoin('event_movements as em', function($join) {
-                $join->on('em.category_egress_id', '=', 'ce.id')
-                     ->on('em.currency_id', '=', 'c.id')
-                     ->where('em.type', 'Egreso');
-                if ($this->request->filled('event_id')) {
-                    $join->where('em.event_id', $this->request->get('event_id'));
-                }
-                if ($this->request->filled('start_date')) {
-                    $join->where('em.date', '>=', $this->request->get('start_date'));
-                }
-                if ($this->request->filled('end_date')) {
-                    $join->where('em.date', '<=', $this->request->get('end_date'));
-                }
+        // Totales de egresos - Consulta corregida
+        $this->totalesEgreso = DB::table('event_movements as em')
+            ->join('currencies as c', 'em.currency_id', '=', 'c.id')
+            ->leftJoin('category_egresses as ce', 'em.category_egress_id', '=', 'ce.id')
+            ->where('em.type', 'Egreso')
+            ->where('em.status', 'Activo')
+            ->when($this->request->filled('event_id'), function($query) {
+                return $query->where('em.event_id', $this->request->get('event_id'));
+            })
+            ->when($this->request->filled('start_date'), function($query) {
+                return $query->where('em.date', '>=', $this->request->get('start_date'));
+            })
+            ->when($this->request->filled('end_date'), function($query) {
+                return $query->where('em.date', '<=', $this->request->get('end_date'));
             })
             ->select(
-                'ce.name as categoria',
+                DB::raw('COALESCE(ce.name, "Sin categoría") as categoria'),
                 'c.name as moneda',
-                DB::raw('COALESCE(SUM(em.amount), 0) as total')
+                DB::raw('SUM(em.amount) as total')
             )
-            ->groupBy('ce.name', 'c.name')
-            ->orderBy('ce.name')
+            ->groupBy('categoria', 'c.name')
+            ->orderBy('categoria')
             ->orderBy('c.name')
             ->get();
     }

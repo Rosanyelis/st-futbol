@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             EventSeeder::class,
             SubcategorySupplierSeeder::class,
             BussinesSeeder::class,
+            ExpenseSeeder::class,
         ]);
 
         User::factory()->create([

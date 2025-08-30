@@ -43,6 +43,9 @@ class AccountPayableController extends Controller
                 ->addColumn('payment_percentage', function ($row) {
                     return $row->getPaymentPercentage();
                 })
+                ->addColumn('status', function ($row) {
+                    return $row->status ?? 'Pendiente';
+                })
                 ->addColumn('actions', function ($row) {
                     return view('account-payable.actions', compact('row'));
                 })
@@ -52,6 +55,15 @@ class AccountPayableController extends Controller
         $paymentMethods = MethodPayment::all();
         $currencies = Currency::all();
         return view('account-payable.index', compact('paymentMethods', 'currencies'));
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show($id)
+    {
+        $accountPayable = AccountPayable::with(['supplier', 'event', 'currency', 'payments'])->findOrFail($id);
+        return view('account-payable.show', compact('accountPayable'));
     }
 
     /**
@@ -276,12 +288,13 @@ class AccountPayableController extends Controller
                 throw new \Exception('El monto excede el saldo pendiente de esta cuenta por pagar');
             }
             
-            // Registrar el pago básico en AccountPayablePayment
-            $accountPayablePayment = AccountPayablePayment::create([
-                'account_payable_id' => $accountPayable->id,
-                'date' => $request->date ?? now()->format('Y-m-d'),
-                'amount' => $request->amount
-            ]);
+            // Registrar el pago usando el método del modelo que actualiza automáticamente el status
+            $accountPayablePayment = $accountPayable->recordPayment(
+                $request->amount,
+                $request->date ?? now()->format('Y-m-d'),
+                null, // reference
+                null  // description
+            );
             \Log::info('Pago registrado en AccountPayablePayment', ['account_payable_payment' => $accountPayablePayment->toArray()]);
             
             // Registrar en EventMovement
