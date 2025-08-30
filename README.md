@@ -1,61 +1,353 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ST Fútbol - Sistema de Gestión Deportiva
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## 📋 Descripción General
 
-## About Laravel
+ST Fútbol es un sistema integral de gestión deportiva desarrollado en Laravel que permite administrar eventos deportivos, clubes, proveedores, movimientos financieros y reportes. El sistema está diseñado para organizaciones deportivas que necesitan gestionar múltiples eventos, clubes participantes, proveedores de servicios y el control financiero completo de sus operaciones.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🏗️ Arquitectura del Sistema
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Backend
+- **Framework**: Laravel 12.x (PHP 8.2+)
+- **Patrón**: MVC (Model-View-Controller)
+- **Base de Datos**: MySQL/PostgreSQL
+- **Autenticación**: Laravel Breeze
+- **Validación**: Form Request Validation
+- **Relaciones**: Eloquent ORM con relaciones complejas
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Frontend
+- **Framework CSS**: Tailwind CSS 3.x
+- **JavaScript**: Alpine.js 3.x
+- **Build Tool**: Vite 6.x
+- **Componentes**: Blade Templates con componentes reutilizables
+- **Responsive**: Diseño mobile-first
 
-## Learning Laravel
+## 🎯 Módulos Principales
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. **Gestión de Eventos** (`/eventos`)
+- **Funcionalidades**:
+  - Crear, editar, eliminar eventos deportivos
+  - Asignar clubes y proveedores a eventos
+  - Gestión de fechas de inicio y fin
+  - Control de movimientos financieros por evento
+  - Historial de transacciones
+  - Gestión de imágenes de eventos
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### 2. **Gestión de Clubes** (`/clubs`)
+- **Funcionalidades**:
+  - Registro completo de clubes deportivos
+  - Información de contacto y ubicación
+  - Asignación a eventos específicos
+  - Gestión de pagos y cuentas por cobrar
+  - Relación con categorías de ingresos
+  - Historial de movimientos por club
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 3. **Gestión de Proveedores** (`/proveedores`)
+- **Funcionalidades**:
+  - Registro de proveedores de servicios
+  - Categorización por tipo de servicio
+  - Subcategorías específicas
+  - Asignación a eventos
+  - Control de cuentas por pagar
+  - Historial de transacciones
 
-## Laravel Sponsors
+### 4. **Gestión Financiera**
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+#### 4.1 **Cuentas por Cobrar** (`/cuenta-por-cobrar`)
+- Registro de deudas de clubes
+- Procesamiento de pagos
+- Generación de recibos
+- Estados de cuenta detallados
+- Reportes de cobranza
 
-### Premium Partners
+#### 4.2 **Cuentas por Pagar** (`/cuenta-por-pagar`)
+- Registro de deudas con proveedores
+- Procesamiento de pagos
+- Control de vencimientos
+- Estados de cuenta
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+#### 4.3 **Movimientos de Negocio** (`/negocio`)
+- Transacciones generales del negocio
+- Control de ingresos y egresos
+- Categorización de movimientos
+- Historial completo
 
-## Contributing
+### 5. **Gestión de Gastos** (`/gastos`)
+- Registro de gastos operativos
+- Categorización por tipo
+- Asociación con eventos
+- Control de presupuestos
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 6. **Gestión de Categorías**
 
-## Code of Conduct
+#### 6.1 **Categorías de Ingresos** (`/categorias-ingresos`)
+- Clasificación de fuentes de ingresos
+- Relación con clubes y eventos
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+#### 6.2 **Categorías de Gastos** (`/categorias-gastos`)
+- Clasificación de tipos de gastos
+- Control presupuestario
 
-## Security Vulnerabilities
+#### 6.3 **Categorías de Proveedores** (`/categorias-proveedores`)
+- Clasificación de proveedores por servicio
+- Subcategorías específicas
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 7. **Gestión de Métodos de Pago** (`/metodos-pago`)
+- Configuración de métodos de pago
+- Categorización por tipo
+- Asociación con monedas
+- Control de transacciones
 
-## License
+### 8. **Gestión de Monedas** (`/monedas`)
+- Configuración de monedas soportadas
+- Historial de cambios de moneda
+- Conversiones automáticas
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 9. **Gestión Geográfica**
+- **Países** (`/paises`)
+- **Provincias** (`/provincias`)
+- **Ciudades** (`/ciudades`)
+
+### 10. **Sistema de Reportes** (`/reportes`)
+- **Reportes de Eventos**: Lista completa de eventos
+- **Estado de Ingresos**: Análisis de ingresos por categoría
+- **Estado de Egresos**: Análisis de gastos por categoría
+- **Cuentas por Cobrar**: Estado de cobranza
+- **Estado por Evento y Moneda**: Resultados financieros por evento
+- **Estado General**: Resultados consolidados
+- **Estado de Cuentas**: Balance general
+- **Estado de Movimientos**: Análisis de transacciones
+- **Exportación**: PDF y Excel
+
+## 🛠️ Tecnologías y Paquetes
+
+### Backend (PHP/Laravel)
+```json
+{
+  "laravel/framework": "^12.0",
+  "barryvdh/laravel-dompdf": "^3.1",
+  "maatwebsite/excel": "^3.1",
+  "yajra/laravel-datatables-oracle": "^12.0",
+  "laravel/breeze": "^2.3",
+  "laravel-shift/blueprint": "^2.12"
+}
+```
+
+### Frontend (JavaScript/CSS)
+```json
+{
+  "tailwindcss": "^3.1.0",
+  "@tailwindcss/forms": "^0.5.2",
+  "alpinejs": "^3.4.2",
+  "vite": "^6.2.4",
+  "axios": "^1.8.2"
+}
+```
+
+### Herramientas de Desarrollo
+- **Laravel Pint**: Formateo de código PHP
+- **Laravel Sail**: Entorno de desarrollo Docker
+- **Pest**: Framework de testing
+- **Laravel Pail**: Log viewer
+
+## 📊 Estructura de Base de Datos
+
+### Tablas Principales
+- `events` - Eventos deportivos
+- `clubs` - Clubes participantes
+- `suppliers` - Proveedores de servicios
+- `bussines_movements` - Movimientos financieros generales
+- `event_movements` - Movimientos específicos por evento
+- `account_receivables` - Cuentas por cobrar
+- `account_payables` - Cuentas por pagar
+- `expenses` - Gastos operativos
+- `currencies` - Monedas soportadas
+- `method_payments` - Métodos de pago
+
+### Tablas de Relación
+- `event_clubs` - Relación eventos-clubes
+- `event_suppliers` - Relación eventos-proveedores
+- `account_receivable_payments` - Pagos de cuentas por cobrar
+- `account_payable_payments` - Pagos de cuentas por pagar
+
+### Tablas de Configuración
+- `category_incomes` - Categorías de ingresos
+- `category_expenses` - Categorías de gastos
+- `category_suppliers` - Categorías de proveedores
+- `category_method_payments` - Categorías de métodos de pago
+- `countries`, `provinces`, `cities` - Ubicaciones geográficas
+
+## 🚀 Instalación y Configuración
+
+### Requisitos Previos
+- PHP 8.2 o superior
+- Composer
+- Node.js y npm
+- Base de datos MySQL/PostgreSQL
+
+### Pasos de Instalación
+
+1. **Clonar el repositorio**
+```bash
+git clone [url-del-repositorio]
+cd st-futbol
+```
+
+2. **Instalar dependencias PHP**
+```bash
+composer install
+```
+
+3. **Instalar dependencias JavaScript**
+```bash
+npm install
+```
+
+4. **Configurar variables de entorno**
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+5. **Configurar base de datos en `.env`**
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=st_futbol
+DB_USERNAME=tu_usuario
+DB_PASSWORD=tu_password
+```
+
+6. **Ejecutar migraciones**
+```bash
+php artisan migrate
+```
+
+7. **Compilar assets**
+```bash
+npm run build
+```
+
+8. **Iniciar servidor de desarrollo**
+```bash
+php artisan serve
+```
+
+### Comandos Útiles
+
+```bash
+# Desarrollo con hot reload
+composer run dev
+
+# Ejecutar tests
+composer run test
+
+# Formatear código PHP
+./vendor/bin/pint
+
+# Ver logs en tiempo real
+php artisan pail
+```
+
+## 🔐 Autenticación y Autorización
+
+El sistema utiliza Laravel Breeze para la autenticación con las siguientes características:
+- Login/Logout tradicional
+- Registro de usuarios
+- Recuperación de contraseñas
+- Verificación de email
+- Gestión de perfiles de usuario
+
+## 📱 Características de la Interfaz
+
+### Diseño Responsive
+- Mobile-first design
+- Adaptable a tablets y desktop
+- Componentes reutilizables
+- Navegación intuitiva
+
+### Componentes UI
+- Formularios con validación en tiempo real
+- Tablas con DataTables
+- Modales para acciones rápidas
+- Notificaciones toast
+- Gráficos y reportes visuales
+
+### Funcionalidades Avanzadas
+- Búsqueda y filtrado avanzado
+- Exportación a PDF y Excel
+- Carga de imágenes
+- Validación de formularios
+- AJAX para operaciones asíncronas
+
+## 📈 Reportes y Analytics
+
+### Tipos de Reportes
+1. **Reportes Financieros**
+   - Estado de ingresos y egresos
+   - Balance general
+   - Flujo de caja
+
+2. **Reportes Operativos**
+   - Lista de eventos
+   - Participación de clubes
+   - Proveedores por evento
+
+3. **Reportes de Cobranza**
+   - Estado de cuentas por cobrar
+   - Vencimientos
+   - Historial de pagos
+
+4. **Reportes de Pagos**
+   - Estado de cuentas por pagar
+   - Proveedores pendientes
+   - Flujo de pagos
+
+### Exportación
+- **PDF**: Reportes formateados para impresión
+- **Excel**: Datos estructurados para análisis
+- **CSV**: Datos para importación en otros sistemas
+
+## 🔧 Mantenimiento y Soporte
+
+### Logs y Monitoreo
+- Logs de Laravel en `storage/logs/`
+- Logs de errores y transacciones
+- Monitoreo de performance
+
+### Backup y Recuperación
+- Backup automático de base de datos
+- Versionado de código con Git
+- Documentación de cambios
+
+### Actualizaciones
+- Composer para dependencias PHP
+- npm para dependencias JavaScript
+- Migraciones de base de datos
+
+## 🤝 Contribución
+
+### Estándares de Código
+- PSR-12 para PHP
+- ESLint para JavaScript
+- Prettier para formateo
+- Conventional Commits
+
+### Testing
+- Tests unitarios con Pest
+- Tests de integración
+- Tests de funcionalidad
+
+## 📄 Licencia
+
+Este proyecto está bajo la licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+## 📞 Soporte
+
+Para soporte técnico o consultas sobre el sistema, contactar al equipo de desarrollo.
+
+correo de desarrolladora: rossdigital2@gmail.com
+
+---
+
+**Desarrollado con ❤️ para la gestión deportiva**
