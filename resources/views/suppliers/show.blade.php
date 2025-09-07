@@ -111,5 +111,5 @@
 @section('scripts')
     <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
-    <script src="{{ asset('pagesjs/suppliers/show.js?v=1.0') }}"></script>
+    <script src="{{ asset('pagesjs/suppliers/show.js?v=2.0') }}"></script>
 @endsection

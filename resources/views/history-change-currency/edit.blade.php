@@ -197,5 +197,5 @@
     <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
     <!-- Page JS -->
     <script src="{{ asset('assets/js/forms-selects.js') }}"></script>
-    <script src="{{ asset('pagesjs/history-change-currency/history-change-currency-edit.js?v=1.0') }}"></script>
+    <script src="{{ asset('pagesjs/history-change-currency/history-change-currency-edit.js?v=2.0') }}"></script>
 @endsection

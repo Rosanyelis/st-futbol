@@ -58,6 +58,7 @@ class IncomeReportsManager {
             columns: [
                 { data: "date", name: "date" },
                 { data: "category_income.name", name: "category_income.name" },
+                { data: "club.name", name: "club.name" },
                 { data: "currency.name", name: "currency.name" },
                 { data: "amount", name: "amount" },
                 {
@@ -75,7 +76,7 @@ class IncomeReportsManager {
             ],
             columnDefs: [
                 {
-                    targets: 3,
+                    targets: 4,
                     render: (data) => '$ ' + this.numberFormat.format(data),
                 },
             ],
@@ -92,7 +93,7 @@ class IncomeReportsManager {
                             text: '<i class="ri-file-text-line me-1" ></i>Csv',
                             className: "dropdown-item",
                             exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6],
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7],
                                 modifier: {
                                     search: 'applied',
                                     order: 'applied',
@@ -125,7 +126,7 @@ class IncomeReportsManager {
                             text: '<i class="ri-file-excel-line me-1"></i>Excel',
                             className: "dropdown-item",
                             exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6],
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7],
                                 // prevent avatar to be display
                                 format: {
                                     body: function (inner, coldex, rowdex) {
@@ -162,7 +163,7 @@ class IncomeReportsManager {
                             text: '<i class="ri-file-pdf-line me-1"></i>Pdf',
                             className: "dropdown-item",
                             exportOptions: {
-                                columns: [0, 1, 2, 3, 4, 5, 6],
+                                columns: [0, 1, 2, 3, 4, 5, 6, 7],
                                 // prevent avatar to be display
                                 format: {
                                     body: function (inner, coldex, rowdex) {

@@ -26,7 +26,8 @@ class ReportController extends Controller
         if ($request->ajax()) {
             $data = EventMovement::with('categoryIncome', 'currency', 
                         'methodPayment', 'methodPayment.entity',
-                         'methodPayment.categoryMethodPayment', 'club')
+                         'methodPayment.categoryMethodPayment', 'club',
+                         'accountReceivable')
                             ->where('type', 'Ingreso');
 
             return DataTables::of($data)

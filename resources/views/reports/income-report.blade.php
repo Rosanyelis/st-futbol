@@ -49,6 +49,7 @@
                     <tr>
                         <th>Fecha</th>
                         <th>Tipo de Ingreso</th>
+                        <th>Club</th>
                         <th>Moneda</th>
                         <th>Monto</th>
                         <th>Metodo de Pago</th>
@@ -72,5 +73,5 @@
 <script src="{{ asset('assets/vendor/libs/bootstrap-datepicker/bootstrap-datepicker.js') }}"></script>
 <script src="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.js') }}"></script>
 
-<script src="{{ asset('pagesjs/reports/income-reports.js?v=1.0') }}"></script>
+<script src="{{ asset('pagesjs/reports/income-reports.js?v=2.0') }}"></script>
 @endsection

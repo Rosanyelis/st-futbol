@@ -66,11 +66,14 @@ class HistoryManager {
                     d.end_date = $('#end_date_filter').val();
                 }
             },
+            scrollY: '350px',
+            scrollX: true,
             dom: this.getDatatableDOM(),
             language: this.getDatatableLanguage(),
             columns: this.getDatatableColumns(),
             columnDefs: this.getColumnDefinitions(),
             buttons: this.getDatatableButtons(),
+            lengthMenu: [50, 100, 200, 500],
             drawCallback: () => {
                 this.updateTotals();
                 this.initializeTooltips();

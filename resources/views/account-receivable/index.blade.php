@@ -101,6 +101,6 @@
     <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/sweetalert2/sweetalert2.js') }}"></script>
     <!-- Page JS -->
-    <script src="{{ asset('pagesjs/account-receivable/account-receivable.js?v=1.0') }}"></script>
+    <script src="{{ asset('pagesjs/account-receivable/account-receivable.js?v=2.0') }}"></script>
 
 @endsection
