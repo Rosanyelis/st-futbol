@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Requests\Events\StoreEventRequest;
 use App\Http\Requests\Events\UpdateEventRequest;
+use App\Http\Requests\StoreEventMovementRequest;
 use App\Models\AccountReceivable;
 use App\Models\AccountReceivablePayment;
 use App\Models\AccountPayable;
@@ -310,6 +311,9 @@ class EventController extends Controller
             $data['category_egress_id'] = $data['type_expense'] ?? null; 
             $data['category_income_id'] = $data['type_income'] ?? null;
             $data['user_id'] = Auth::user()->id;
+
+            // Validaciones adicionales de consistencia
+            $this->validateMovementConsistency($data);
            
             // Si es un ingreso de club, usar account_receivable_id en lugar de club_id
             if ($data['type'] === 'Ingreso' && $data['type_income'] === '1' && isset($data['account_receivable_id'])) {
@@ -337,23 +341,8 @@ class EventController extends Controller
                 $this->updatePaymentMethodBalance($data['method_payment_id'], $data['amount'], $data['type']);
             }
 
-            // Si es un ingreso de club, crear el movimiento de abono
-            if ($data['type'] === 'Ingreso' && $data['type_income'] === '1' && isset($data['account_receivable_id'])) {
-                $paymentId = $this->createClubPayment($data);
-                if ($paymentId) {
-                    // Actualizar el movimiento con el ID del pago
-                    $movement->update(['account_receivable_payment_id' => $paymentId]);
-                }
-            }
-
-            // Si es un egreso de proveedor, crear el movimiento de gasto
-            if ($data['type'] === 'Egreso' && $data['type_expense'] === '2' && isset($data['account_payable_id'])) {
-                $paymentId = $this->createSupplierPayment($data);
-                if ($paymentId) {
-                    // Actualizar el movimiento con el ID del pago
-                    $movement->update(['account_payable_payment_id' => $paymentId]);
-                }
-            }
+            // Los pagos se crean automáticamente a través del EventMovementObserver
+            // No es necesario crear pagos manualmente aquí para evitar duplicación
 
             DB::commit();
             return redirect()->route('event.history', $event)->with('success', 'Movimiento creado correctamente');
@@ -614,22 +603,15 @@ class EventController extends Controller
                             'movement_id' => $movement->id
                         ]);
                     } else {
-                        // Si no se encuentra el pago, crear uno nuevo
-                        \Log::warning('No se encontró el pago de cuenta por cobrar', [
+                        // Si no se encuentra el pago, el observer se encargará de crearlo
+                        \Log::warning('No se encontró el pago de cuenta por cobrar, el observer lo creará', [
                             'payment_id' => $movement->account_receivable_payment_id,
                             'movement_id' => $movement->id
                         ]);
-                        $paymentId = $this->createClubPayment($data);
-                        if ($paymentId) {
-                            $movement->update(['account_receivable_payment_id' => $paymentId]);
-                        }
                     }
                 } else {
-                    // Crear nuevo pago si no existe
-                    $paymentId = $this->createClubPayment($data);
-                    if ($paymentId) {
-                        $movement->update(['account_receivable_payment_id' => $paymentId]);
-                    }
+                    // El observer se encargará de crear el pago automáticamente
+                    \Log::info('No hay payment_id, el observer creará el pago automáticamente');
                 }
             }
             // 5. Si es un egreso de proveedor, actualizar el pago en la cuenta por pagar
@@ -671,17 +653,12 @@ class EventController extends Controller
                             'payment_id' => $movement->account_payable_payment_id,
                             'movement_id' => $movement->id
                         ]);
-                        $paymentId = $this->createSupplierPayment($data);
-                        if ($paymentId) {
-                            $movement->update(['account_payable_payment_id' => $paymentId]);
-                        }
+                        // El observer se encargará de crear el pago automáticamente
+                        \Log::info('No se encontró el pago de cuenta por pagar, el observer lo creará');
                     }
                 } else {
-                    // Crear nuevo pago si no existe
-                    $paymentId = $this->createSupplierPayment($data);
-                    if ($paymentId) {
-                        $movement->update(['account_payable_payment_id' => $paymentId]);
-                    }
+                    // El observer se encargará de crear el pago automáticamente
+                    \Log::info('No hay payment_id para cuenta por pagar, el observer creará el pago automáticamente');
                 }
             }
 
@@ -1246,5 +1223,81 @@ class EventController extends Controller
     {
         $events = Event::orderBy('name', 'asc')->get();
         return response()->json($events);
+    }
+
+    /**
+     * Validar consistencia del movimiento
+     */
+    private function validateMovementConsistency($data)
+    {
+        // Log para debugging
+        \Log::info('Validando consistencia del movimiento', [
+            'method_payment_id' => $data['method_payment_id'] ?? 'no definido',
+            'currency_id' => $data['currency_id'] ?? 'no definido',
+            'data_completa' => $data
+        ]);
+
+        // Validar consistencia de monedas
+        if (isset($data['method_payment_id'])) {
+            $methodPayment = MethodPayment::find($data['method_payment_id']);
+            if ($methodPayment) {
+                \Log::info('Método de pago encontrado', [
+                    'method_payment_id' => $methodPayment->id,
+                    'method_currency_id' => $methodPayment->currency_id,
+                    'movement_currency_id' => $data['currency_id']
+                ]);
+                
+                if ((int)$methodPayment->currency_id !== (int)$data['currency_id']) {
+                    \Log::error('Inconsistencia de monedas detectada', [
+                        'method_currency_id' => $methodPayment->currency_id,
+                        'movement_currency_id' => $data['currency_id'],
+                        'method_currency_id_int' => (int)$methodPayment->currency_id,
+                        'movement_currency_id_int' => (int)$data['currency_id']
+                    ]);
+                    throw new \Exception('La moneda del método de pago no coincide con la moneda del movimiento');
+                }
+            } else {
+                \Log::error('Método de pago no encontrado', ['method_payment_id' => $data['method_payment_id']]);
+                throw new \Exception('El método de pago seleccionado no existe');
+            }
+        }
+
+        // Validar que la cuenta por cobrar pertenezca al evento
+        if (isset($data['account_receivable_id'])) {
+            $accountReceivable = AccountReceivable::find($data['account_receivable_id']);
+            if ($accountReceivable && $accountReceivable->event_id != $data['event_id']) {
+                throw new \Exception('La cuenta por cobrar no pertenece a este evento');
+            }
+        }
+
+        // Validar que la cuenta por pagar pertenezca al evento
+        if (isset($data['account_payable_id'])) {
+            $accountPayable = AccountPayable::find($data['account_payable_id']);
+            if ($accountPayable && $accountPayable->event_id != $data['event_id']) {
+                throw new \Exception('La cuenta por pagar no pertenece a este evento');
+            }
+        }
+
+        // Validar que el monto no exceda el pendiente en cuentas por cobrar
+        if (isset($data['account_receivable_id'])) {
+            $accountReceivable = AccountReceivable::find($data['account_receivable_id']);
+            if ($accountReceivable) {
+                $pendingAmount = $accountReceivable->getPendingAmount();
+                if ($data['amount'] > $pendingAmount) {
+                    throw new \Exception('El monto excede el saldo pendiente de la cuenta por cobrar');
+                }
+            }
+        }
+
+        // Validar que el monto no exceda el pendiente en cuentas por pagar
+        if (isset($data['account_payable_id'])) {
+            $accountPayable = AccountPayable::find($data['account_payable_id']);
+            if ($accountPayable) {
+                $pendingAmount = $accountPayable->getPendingAmount();
+                if ($data['amount'] > $pendingAmount) {
+                    throw new \Exception('El monto excede el saldo pendiente de la cuenta por pagar');
+                }
+            }
+        }
     }
 }

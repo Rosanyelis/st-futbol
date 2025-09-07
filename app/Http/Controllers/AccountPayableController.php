@@ -136,12 +136,6 @@ class AccountPayableController extends Controller
     {
         $accountPayable = AccountPayable::with(['supplier', 'event', 'currency', 'payments'])->findOrFail($id);
         
-        // Verificar si tiene pagos
-        if ($accountPayable->payments->count() > 0) {
-            return redirect()->route('account-payable.index')
-                ->with('error', 'No se puede editar una cuenta por pagar que tiene pagos registrados');
-        }
-
         $events = Event::all();
         $currencies = Currency::all();
         
@@ -154,12 +148,6 @@ class AccountPayableController extends Controller
     public function update(Request $request, $id)
     {
         $accountPayable = AccountPayable::with('payments')->findOrFail($id);
-        
-        // Verificar si tiene pagos
-        if ($accountPayable->payments->count() > 0) {
-            return redirect()->route('account-payable.index')
-                ->with('error', 'No se puede editar una cuenta por pagar que tiene pagos registrados');
-        }
 
         $request->validate([
             'event_id' => 'required|exists:events,id',
@@ -288,21 +276,12 @@ class AccountPayableController extends Controller
                 throw new \Exception('El monto excede el saldo pendiente de esta cuenta por pagar');
             }
             
-            // Registrar el pago usando el método del modelo que actualiza automáticamente el status
-            $accountPayablePayment = $accountPayable->recordPayment(
-                $request->amount,
-                $request->date ?? now()->format('Y-m-d'),
-                null, // reference
-                null  // description
-            );
-            \Log::info('Pago registrado en AccountPayablePayment', ['account_payable_payment' => $accountPayablePayment->toArray()]);
-            
-            // Registrar en EventMovement
+            // Crear el registro en EventMovement PRIMERO
             $eventMovement = EventMovement::create([
                 'bussines_id' => 1, // ID del negocio
                 'event_id' => $accountPayable->event_id,
-                'supplier_id' => $accountPayable->supplier_id, // Agregar el ID del proveedor
-                'account_payable_id' => $accountPayable->id, // Relacionar con la cuenta por pagar
+                'supplier_id' => $accountPayable->supplier_id,
+                'account_payable_id' => $accountPayable->id,
                 'method_payment_id' => $methodPayment->id,
                 'category_egress_id' => 2, // ID para proveedores
                 'currency_id' => $accountPayable->currency_id,
@@ -310,9 +289,18 @@ class AccountPayableController extends Controller
                 'amount' => $request->amount,
                 'description' => 'Pago a proveedor: ' . $accountPayable->supplier->name,
                 'date' => $request->date ?? now()->format('Y-m-d'),
-                'user_id' => auth()->id(), // Usuario que realiza el pago
+                'user_id' => auth()->id(),
             ]);
             \Log::info('Movimiento registrado en EventMovement', ['event_movement' => $eventMovement->toArray()]);
+
+            // El pago se crea automáticamente a través del EventMovementObserver
+            // Obtener el pago creado por el observer
+            $accountPayablePayment = AccountPayablePayment::where('account_payable_id', $accountPayable->id)
+                ->where('amount', $request->amount)
+                ->where('date', $request->date ?? now()->format('Y-m-d'))
+                ->latest()
+                ->first();
+            \Log::info('Pago creado por observer', ['account_payable_payment' => $accountPayablePayment ? $accountPayablePayment->toArray() : 'No encontrado']);
             
             // Actualizar saldo del método de pago
             $oldBalance = $methodPayment->current_balance;
@@ -328,11 +316,8 @@ class AccountPayableController extends Controller
             DB::commit();
             \Log::info('Pago procesado exitosamente');
             
-            return response()->json([
-                'success' => true,
-                'message' => 'Pago procesado exitosamente',
-                'payment_percentage' => round((($saldoPagado + $request->amount) / $accountPayable->amount) * 100, 2)
-            ]);
+            return redirect()->route('account-payable.index')
+                ->with('success', 'Pago procesado exitosamente');
             
         } catch (\Exception $e) {
             \Log::error('Error al procesar pago', [
@@ -341,10 +326,8 @@ class AccountPayableController extends Controller
                 'request_data' => $request->all()
             ]);
             DB::rollback();
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 422);
+            return redirect()->route('account-payable.index')
+                ->with('error', 'Error al procesar el pago: ' . $e->getMessage());
         }
     }
 }

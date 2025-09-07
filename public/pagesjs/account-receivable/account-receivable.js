@@ -162,22 +162,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Función para mostrar mensaje de no poder editar
-    const showCannotEditMessage = () => {
-        Swal.fire({
-            title: 'No se puede editar',
-            html: `
-                <p>Esta cuenta por cobrar no se puede editar porque tiene pagos registrados.</p>
-                <p><strong>Recomendación:</strong> Cree una nueva cuenta por cobrar para registrar cambios adicionales.</p>
-            `,
-            icon: 'warning',
-            confirmButtonText: 'Entendido',
-            customClass: {
-                confirmButton: 'btn btn-primary waves-effect waves-light'
-                },
-            buttonsStyling: false
-        });
-    };
+    // Función para mostrar mensaje de no poder editar (ya no se usa)
+    // const showCannotEditMessage = () => { ... };
 
     // Función para mostrar mensaje de no poder eliminar
     const showCannotDeleteMessage = () => {
@@ -284,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hacer las funciones accesibles globalmente
     window.payOrder = payOrder;
     window.viewPayments = viewPayments;
-    window.showCannotEditMessage = showCannotEditMessage;
+    // window.showCannotEditMessage = showCannotEditMessage; // Ya no se usa
     window.showCannotDeleteMessage = showCannotDeleteMessage;
     window.deleteAccountReceivable = deleteAccountReceivable;
 });

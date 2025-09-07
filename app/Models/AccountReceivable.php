@@ -70,8 +70,7 @@ class AccountReceivable extends Model
             'description' => $description,
         ]);
         
-        // Actualizar el status después de registrar el pago
-        $this->updateStatusAfterPayment();
+        // El status se actualiza automáticamente a través del observer
         
         return $payment;
     }
@@ -86,11 +85,8 @@ class AccountReceivable extends Model
         if ($pendingAmount <= 0) {
             // Si no hay monto pendiente, marcar como completado
             $this->update(['status' => 'Completado']);
-        } elseif ($this->getPaymentPercentage() > 0) {
-            // Si hay pagos parciales, marcar como en proceso
-            $this->update(['status' => 'En Proceso']);
         } else {
-            // Si no hay pagos, marcar como pendiente
+            // Si hay monto pendiente, mantener como pendiente
             $this->update(['status' => 'Pendiente']);
         }
     }
@@ -132,8 +128,7 @@ class AccountReceivable extends Model
                 'amount' => $amount,
             ]);
             
-            // Actualizar el status después de modificar el pago
-            $this->updateStatusAfterPayment();
+            // El status se actualiza automáticamente a través del observer
             
             return $payment;
         }
@@ -149,10 +144,7 @@ class AccountReceivable extends Model
         if ($payment) {
             $deleted = $payment->delete();
             
-            // Actualizar el status después de eliminar el pago
-            if ($deleted) {
-                $this->updateStatusAfterPayment();
-            }
+            // El status se actualiza automáticamente a través del observer
             
             return $deleted;
         }

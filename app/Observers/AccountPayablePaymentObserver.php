@@ -11,7 +11,10 @@ class AccountPayablePaymentObserver
      */
     public function created(AccountPayablePayment $accountPayablePayment): void
     {
-        // El status se actualiza automáticamente en el método recordPayment del modelo
+        // Actualizar el status de la cuenta por pagar cuando se crea un pago
+        $accountPayablePayment->accountPayable->withoutEvents(function() use ($accountPayablePayment) {
+            $accountPayablePayment->accountPayable->updateStatusAfterPayment();
+        });
     }
 
     /**
@@ -20,7 +23,9 @@ class AccountPayablePaymentObserver
     public function updated(AccountPayablePayment $accountPayablePayment): void
     {
         // Actualizar el status de la cuenta por pagar cuando se modifica un pago
-        $accountPayablePayment->accountPayable->updateStatusAfterPayment();
+        $accountPayablePayment->accountPayable->withoutEvents(function() use ($accountPayablePayment) {
+            $accountPayablePayment->accountPayable->updateStatusAfterPayment();
+        });
     }
 
     /**
@@ -29,7 +34,9 @@ class AccountPayablePaymentObserver
     public function deleted(AccountPayablePayment $accountPayablePayment): void
     {
         // Actualizar el status de la cuenta por pagar cuando se elimina un pago
-        $accountPayablePayment->accountPayable->updateStatusAfterPayment();
+        $accountPayablePayment->accountPayable->withoutEvents(function() use ($accountPayablePayment) {
+            $accountPayablePayment->accountPayable->updateStatusAfterPayment();
+        });
     }
 
     /**
@@ -38,7 +45,9 @@ class AccountPayablePaymentObserver
     public function restored(AccountPayablePayment $accountPayablePayment): void
     {
         // Actualizar el status de la cuenta por pagar cuando se restaura un pago
-        $accountPayablePayment->accountPayable->updateStatusAfterPayment();
+        $accountPayablePayment->accountPayable->withoutEvents(function() use ($accountPayablePayment) {
+            $accountPayablePayment->accountPayable->updateStatusAfterPayment();
+        });
     }
 
     /**
@@ -47,6 +56,8 @@ class AccountPayablePaymentObserver
     public function forceDeleted(AccountPayablePayment $accountPayablePayment): void
     {
         // Actualizar el status de la cuenta por pagar cuando se elimina permanentemente un pago
-        $accountPayablePayment->accountPayable->updateStatusAfterPayment();
+        $accountPayablePayment->accountPayable->withoutEvents(function() use ($accountPayablePayment) {
+            $accountPayablePayment->accountPayable->updateStatusAfterPayment();
+        });
     }
 }

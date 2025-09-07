@@ -371,6 +371,10 @@ class HistoryManager {
         $(CONFIG.selectors.forms.currencyId).change(() => {
             const currencyId = $(CONFIG.selectors.forms.currencyId).val();
             this.datatable.ajax.reload();
+            
+            // Limpiar la selección del método de pago cuando cambia la moneda
+            $(CONFIG.selectors.forms.methodPaymentId).val('').trigger('change');
+            
             if (currencyId) this.loadPaymentMethods(currencyId);
         });
     }
@@ -1083,6 +1087,11 @@ class HistoryManager {
         $form.off('submit').on('submit', function(e) {
             e.preventDefault();
 
+            // Validar formulario antes de mostrar confirmación
+            if (!window.historyManager.validateMovementForm()) {
+                return false;
+            }
+
             // Detectar si es crear o editar según el texto del botón
             const isEdit = modal.find('button[type="submit"]').text().trim().toLowerCase() === 'actualizar';
             const actionText = isEdit ? 'Actualizar' : 'Crear';
@@ -1107,6 +1116,123 @@ class HistoryManager {
                 // Si cancela, no hace nada y el modal sigue abierto para edición
             });
         });
+    }
+
+    // Validar formulario de movimiento
+    validateMovementForm() {
+        const modal = $(CONFIG.selectors.modals.movement);
+        let isValid = true;
+        let errorMessages = [];
+
+        // 1. Validar descripción
+        const description = modal.find('textarea[name="description"]').val().trim();
+        if (!description) {
+            errorMessages.push('La descripción del movimiento es obligatoria.');
+            isValid = false;
+        }
+
+        // 2. Validar fecha
+        const date = modal.find('input[name="date"]').val();
+        if (!date) {
+            errorMessages.push('La fecha del movimiento es obligatoria.');
+            isValid = false;
+        }
+
+        // 3. Validar tipo de movimiento
+        const type = modal.find('select[name="type"]').val();
+        if (!type) {
+            errorMessages.push('Debe seleccionar un tipo de movimiento.');
+            isValid = false;
+        }
+
+        // 4. Validar moneda
+        const currencyId = modal.find('select[name="currency_id"]').val();
+        if (!currencyId) {
+            errorMessages.push('Debe seleccionar una moneda.');
+            isValid = false;
+        }
+
+        // 5. Validar método de pago
+        const methodPaymentId = modal.find('select[name="method_payment_id"]').val();
+        if (!methodPaymentId) {
+            errorMessages.push('Debe seleccionar un método de pago.');
+            isValid = false;
+        } else {
+            // Validar que el método de pago tenga la misma moneda
+            const selectedMethodOption = modal.find('select[name="method_payment_id"] option:selected');
+            if (selectedMethodOption.length && selectedMethodOption.val()) {
+                // Verificar que el método de pago esté disponible para la moneda seleccionada
+                const methodText = selectedMethodOption.text();
+                if (methodText.includes('-- Seleccionar --')) {
+                    errorMessages.push('El método de pago seleccionado no es válido para la moneda elegida.');
+                    isValid = false;
+                }
+            }
+        }
+
+        // 6. Validar monto
+        const amount = modal.find('input[name="amount"]').val();
+        if (!amount || parseFloat(amount.replace(/,/g, '')) <= 0) {
+            errorMessages.push('El monto debe ser mayor a 0.');
+            isValid = false;
+        }
+
+        // Validaciones específicas para Ingresos
+        if (type === 'Ingreso') {
+            const typeIncome = modal.find('select[name="type_income"]').val();
+            if (!typeIncome) {
+                errorMessages.push('Debe seleccionar una categoría de ingreso.');
+                isValid = false;
+            }
+
+            // Si es categoría de club (ID 1), validar cuenta por cobrar
+            if (typeIncome === '1') {
+                const clubId = modal.find('select[name="club_id"]').val();
+                if (!clubId) {
+                    errorMessages.push('Debe seleccionar una cuenta por cobrar del club.');
+                    isValid = false;
+                }
+            }
+        }
+
+        // Validaciones específicas para Egresos
+        if (type === 'Egreso') {
+            const typeExpense = modal.find('select[name="type_expense"]').val();
+            if (!typeExpense) {
+                errorMessages.push('Debe seleccionar una categoría de egreso.');
+                isValid = false;
+            }
+
+            // Si es categoría de gastos (ID 1), validar gasto
+            if (typeExpense === '1') {
+                const expenseId = modal.find('select[name="expense_id"]').val();
+                if (!expenseId) {
+                    errorMessages.push('Debe seleccionar un gasto registrado.');
+                    isValid = false;
+                }
+            }
+
+            // Si es categoría de proveedor (ID 2), validar cuenta por pagar
+            if (typeExpense === '2') {
+                const supplierId = modal.find('select[name="supplier_id"]').val();
+                if (!supplierId) {
+                    errorMessages.push('Debe seleccionar una cuenta por pagar del proveedor.');
+                    isValid = false;
+                }
+            }
+        }
+
+        // Mostrar errores si los hay
+        if (!isValid) {
+            Swal.fire({
+                title: 'Error de validación',
+                html: errorMessages.map(msg => `• ${msg}`).join('<br>'),
+                icon: 'error',
+                confirmButtonText: 'Entendido'
+            });
+        }
+
+        return isValid;
     }
 
     // Formatear el campo de monto en tiempo real

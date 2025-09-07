@@ -55,8 +55,7 @@ class AccountPayable extends Model
             'description' => $description,
         ]);
         
-        // Actualizar el status después de registrar el pago
-        $this->updateStatusAfterPayment();
+        // El status se actualiza automáticamente a través del AccountPayablePaymentObserver
         
         return $payment;
     }
@@ -66,16 +65,14 @@ class AccountPayable extends Model
      */
     public function updateStatusAfterPayment()
     {
-        $pendingAmount = $this->getPendingAmount();
+        $totalPaid = $this->getPaidAmount();
+        $totalAmount = $this->amount;
         
-        if ($pendingAmount <= 0) {
-            // Si no hay monto pendiente, marcar como completado
+        // Si el total de pagos es igual al monto total, marcar como completado
+        if ($totalPaid >= $totalAmount) {
             $this->update(['status' => 'Completado']);
-        } elseif ($this->getPaymentPercentage() > 0) {
-            // Si hay pagos parciales, marcar como en proceso
-            $this->update(['status' => 'En Proceso']);
         } else {
-            // Si no hay pagos, marcar como pendiente
+            // Si no es igual, marcar como pendiente
             $this->update(['status' => 'Pendiente']);
         }
     }
@@ -117,8 +114,7 @@ class AccountPayable extends Model
                 'amount' => $amount,
             ]);
             
-            // Actualizar el status después de modificar el pago
-            $this->updateStatusAfterPayment();
+            // El status se actualiza automáticamente a través del AccountPayablePaymentObserver
             
             return $payment;
         }
@@ -134,10 +130,7 @@ class AccountPayable extends Model
         if ($payment) {
             $deleted = $payment->delete();
             
-            // Actualizar el status después de eliminar el pago
-            if ($deleted) {
-                $this->updateStatusAfterPayment();
-            }
+            // El status se actualiza automáticamente a través del AccountPayablePaymentObserver
             
             return $deleted;
         }

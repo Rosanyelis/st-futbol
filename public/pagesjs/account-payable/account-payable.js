@@ -109,19 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Hacer la función payOrder accesible globalmente si es necesario
     window.payOrder = payOrder;
 
-    // Función para mostrar mensaje de no poder editar
-    const showCannotEditMessage = () => {
-        Swal.fire({
-            title: 'No se puede editar',
-            html: `<p>Esta cuenta por pagar no se puede editar porque tiene pagos registrados.</p><p><strong>Recomendación:</strong> Cree una nueva cuenta por pagar para registrar cambios adicionales.</p>`,
-            icon: 'warning',
-            confirmButtonText: 'Entendido',
-            customClass: {
-                confirmButton: 'btn btn-primary waves-effect waves-light'
-                },
-            buttonsStyling: false
-        });
-    };
 
     // Función para mostrar mensaje de no poder eliminar
     const showCannotDeleteMessage = () => {

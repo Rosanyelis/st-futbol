@@ -152,12 +152,6 @@ class AccountReceivableController extends Controller
     {
         $accountReceivable = AccountReceivable::with(['club', 'event', 'currency', 'supplier'])->findOrFail($id);
         
-        // Verificar que no tenga pagos registrados
-        if ($accountReceivable->payments->count() > 0) {
-            return redirect()->route('account-receivable.index')
-                ->with('error', 'No se puede editar una cuenta por cobrar que tiene pagos registrados.');
-        }
-        
         $events = Event::all();
         $currencies = Currency::all();
         
@@ -171,17 +165,11 @@ class AccountReceivableController extends Controller
     {
         $accountReceivable = AccountReceivable::findOrFail($id);
         
-        // Verificar que no tenga pagos registrados
-        if ($accountReceivable->payments->count() > 0) {
-            return redirect()->route('account-receivable.index')
-                ->with('error', 'No se puede editar una cuenta por cobrar que tiene pagos registrados.');
-        }
-        
         $request->validate([
             'event_id' => 'required|exists:events,id',
             'club_id' => 'required|exists:clubs,id',
             'currency_id' => 'required|exists:currencies,id',
-            'has_accommodation' => 'required|boolean',
+            'has_accommodation' => 'required|in:0,1',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'players_quantity' => 'required|integer|min:0',
             'player_price' => 'required|numeric|min:0',
@@ -201,6 +189,7 @@ class AccountReceivableController extends Controller
             
             // Limpiar formatos de números
             $data = $request->all();
+            $data['has_accommodation'] = (bool) $data['has_accommodation'];
             $data['player_price'] = (float) str_replace(['.', ','], ['', '.'], $data['player_price']);
             $data['teacher_price'] = (float) str_replace(['.', ','], ['', '.'], $data['teacher_price']);
             $data['companion_price'] = (float) str_replace(['.', ','], ['', '.'], $data['companion_price']);
@@ -392,37 +381,53 @@ class AccountReceivableController extends Controller
                 throw new \Exception('El monto del pago no puede exceder el monto pendiente');
             }
 
-            // Registrar el pago en la cuenta por cobrar
-            $payment = $receivable->recordPayment(
-                $data['amount'],
-                $data['date'],
-                $data['payment_reference'] ?? null,
-                $data['description'] ?? null
-            );
-
-            // Actualizar el método de pago si se especifica
+            // Determinar la moneda correcta para el EventMovement
+            $currencyId = $receivable->currency_id; // Por defecto, usar la moneda de la cuenta por cobrar
+            
+            // Si se especifica un método de pago, usar su moneda
             if (isset($data['method_payment_id'])) {
-                $payment->update(['method_payment_id' => $data['method_payment_id']]);
-                
-                // Actualizar el balance del método de pago
-                $this->updatePaymentMethodBalance($data['method_payment_id'], $data['amount'], 'Ingreso');
+                $methodPayment = MethodPayment::find($data['method_payment_id']);
+                if ($methodPayment) {
+                    $currencyId = $methodPayment->currency_id;
+                    
+                    // Validar que las monedas coincidan
+                    if ($receivable->currency_id !== $methodPayment->currency_id) {
+                        throw new \Exception('La moneda de la cuenta por cobrar no coincide con la moneda del método de pago seleccionado');
+                    }
+                }
             }
 
-            // Crear el registro en EventMovement
-            EventMovement::create([
+            // Crear el registro en EventMovement PRIMERO
+            $eventMovement = EventMovement::create([
                 'bussines_id' => 1, // ID del negocio
                 'event_id' => $receivable->event_id,
                 'club_id' => $receivable->club_id,
                 'account_receivable_id' => $receivable->id, // Relacionar con la cuenta por cobrar
                 'method_payment_id' => $data['method_payment_id'] ?? null,
                 'category_income_id' => 1, // ID fijo para pagos de club
-                'currency_id' => $receivable->currency_id,
+                'currency_id' => $currencyId, // Usar la moneda correcta
                 'amount' => $data['amount'],
                 'date' => $data['date'],
                 'description' => $data['description'] ?? "Pago de cuenta por cobrar #{$receivable->id}",
                 'type' => 'Ingreso',
                 'user_id' => auth()->id(), // Usuario que realiza el pago
             ]);
+
+            // El pago se crea automáticamente a través del EventMovementObserver
+            // Obtener el pago creado por el observer
+            $payment = AccountReceivablePayment::where('account_receivable_id', $receivable->id)
+                ->where('amount', $data['amount'])
+                ->where('date', $data['date'])
+                ->latest()
+                ->first();
+
+            // Actualizar el método de pago si se especifica
+            if (isset($data['method_payment_id']) && $payment) {
+                $payment->update(['method_payment_id' => $data['method_payment_id']]);
+                
+                // Actualizar el balance del método de pago
+                $this->updatePaymentMethodBalance($data['method_payment_id'], $data['amount'], 'Ingreso');
+            }
 
             DB::commit();
 

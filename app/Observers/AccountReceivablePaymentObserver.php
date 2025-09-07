@@ -11,7 +11,11 @@ class AccountReceivablePaymentObserver
      */
     public function created(AccountReceivablePayment $accountReceivablePayment): void
     {
-        // El status se actualiza automáticamente en el método recordPayment del modelo
+        // Actualizar el estado de la cuenta por cobrar cuando se crea un pago
+        // Usar withoutEvents para evitar bucles infinitos
+        $accountReceivablePayment->accountReceivable->withoutEvents(function() use ($accountReceivablePayment) {
+            $accountReceivablePayment->accountReceivable->updateStatusAfterPayment();
+        });
     }
 
     /**
@@ -19,8 +23,11 @@ class AccountReceivablePaymentObserver
      */
     public function updated(AccountReceivablePayment $accountReceivablePayment): void
     {
-        // Actualizar el status de la cuenta por cobrar cuando se modifica un pago
-        $accountReceivablePayment->accountReceivable->updateStatusAfterPayment();
+        // Actualizar el estado de la cuenta por cobrar cuando se modifica un pago
+        // Usar withoutEvents para evitar bucles infinitos
+        $accountReceivablePayment->accountReceivable->withoutEvents(function() use ($accountReceivablePayment) {
+            $accountReceivablePayment->accountReceivable->updateStatusAfterPayment();
+        });
     }
 
     /**
@@ -28,8 +35,11 @@ class AccountReceivablePaymentObserver
      */
     public function deleted(AccountReceivablePayment $accountReceivablePayment): void
     {
-        // Actualizar el status de la cuenta por cobrar cuando se elimina un pago
-        $accountReceivablePayment->accountReceivable->updateStatusAfterPayment();
+        // Actualizar el estado de la cuenta por cobrar cuando se elimina un pago
+        // Usar withoutEvents para evitar bucles infinitos
+        $accountReceivablePayment->accountReceivable->withoutEvents(function() use ($accountReceivablePayment) {
+            $accountReceivablePayment->accountReceivable->updateStatusAfterPayment();
+        });
     }
 
     /**
@@ -37,8 +47,11 @@ class AccountReceivablePaymentObserver
      */
     public function restored(AccountReceivablePayment $accountReceivablePayment): void
     {
-        // Actualizar el status de la cuenta por cobrar cuando se restaura un pago
-        $accountReceivablePayment->accountReceivable->updateStatusAfterPayment();
+        // Actualizar el estado de la cuenta por cobrar cuando se restaura un pago
+        // Usar withoutEvents para evitar bucles infinitos
+        $accountReceivablePayment->accountReceivable->withoutEvents(function() use ($accountReceivablePayment) {
+            $accountReceivablePayment->accountReceivable->updateStatusAfterPayment();
+        });
     }
 
     /**
@@ -46,7 +59,10 @@ class AccountReceivablePaymentObserver
      */
     public function forceDeleted(AccountReceivablePayment $accountReceivablePayment): void
     {
-        // Actualizar el status de la cuenta por cobrar cuando se elimina permanentemente un pago
-        $accountReceivablePayment->accountReceivable->updateStatusAfterPayment();
+        // Actualizar el estado de la cuenta por cobrar cuando se elimina permanentemente un pago
+        // Usar withoutEvents para evitar bucles infinitos
+        $accountReceivablePayment->accountReceivable->withoutEvents(function() use ($accountReceivablePayment) {
+            $accountReceivablePayment->accountReceivable->updateStatusAfterPayment();
+        });
     }
 }

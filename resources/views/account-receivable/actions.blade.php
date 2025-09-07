@@ -6,21 +6,12 @@
         <i class="ri-eye-line"></i>
     </a>
     
-    <!-- Botón Editar (solo si el pago no está completado) -->
-    @if($row->status !== 'Completado')
-        <a href="{{ route('account-receivable.edit', $row->id) }}" 
-           class="btn btn-sm btn-icon btn-text-warning" 
-           title="Editar cuenta por cobrar">
-            <i class="ri-edit-line"></i>
-        </a>
-    @else
-        <button type="button" 
-                class="btn btn-sm btn-icon btn-text-secondary" 
-                onclick="showCannotEditMessage()"
-                title="No se puede editar - El pago está completado">
-            <i class="ri-edit-line"></i>
-        </button>
-    @endif
+    <!-- Botón Editar (siempre habilitado) -->
+    <a href="{{ route('account-receivable.edit', $row->id) }}" 
+       class="btn btn-sm btn-icon btn-text-warning" 
+       title="Editar cuenta por cobrar">
+        <i class="ri-edit-line"></i>
+    </a>
     
     <!-- Botón Eliminar (solo si no hay pagos) -->
     @if($row->payments->count() == 0)
