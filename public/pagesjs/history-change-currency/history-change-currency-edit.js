@@ -1,5 +1,5 @@
 /**
- * Configuración para cambio de monedas
+ * Configuración para edición de cambio de monedas
  */
 
 'use strict';
@@ -69,26 +69,36 @@ const initForm = () => {
         calculateConvertedAmount();
     });
 
-    // Cargar métodos de pago iniciales si estamos en modo edición
+    // Cargar métodos de pago iniciales para edición
     const currencyId = $('#currency_id').val();
     const currencyReceptorId = $('#currency_receptor_id').val();
+    const methodPaymentId = $('#method_payment_id').val();
+    const methodPaymentReceptorId = $('#method_payment_receptor_id').val();
     
     if (currencyId) {
-        loadMethodPaymentsByCurrency(currencyId, 'method_payment_id');
+        loadMethodPaymentsByCurrency(currencyId, 'method_payment_id', methodPaymentId);
     }
     
     if (currencyReceptorId) {
-        loadMethodPaymentsByCurrency(currencyReceptorId, 'method_payment_receptor_id');
+        loadMethodPaymentsByCurrency(currencyReceptorId, 'method_payment_receptor_id', methodPaymentReceptorId);
     }
 
-    // Calcular monto convertido inicial
-    calculateConvertedAmount();
+    // Inicializar Select2 para el campo tipo_operacion
+    $('#type_operation').select2({
+        placeholder: 'Seleccione un tipo de operación',
+        allowClear: false
+    });
+
+    // Calcular monto convertido inicial después de un pequeño delay para asegurar que Select2 esté listo
+    setTimeout(() => {
+        calculateConvertedAmount();
+    }, 500);
 };
 
 /**
  * Carga los métodos de pago por moneda
  */
-const loadMethodPaymentsByCurrency = (currencyId, targetSelectId) => {
+const loadMethodPaymentsByCurrency = (currencyId, targetSelectId, selectedValue = null) => {
     // Mostrar loading
     $(`#${targetSelectId}`).html('<option value="">Cargando métodos de pago...</option>').prop('disabled', true);
 
@@ -100,7 +110,8 @@ const loadMethodPaymentsByCurrency = (currencyId, targetSelectId) => {
 
             if (data.length > 0) {
                 data.forEach(method => {
-                    options += `<option value="${method.id}">${method.account_holder} - ${method.entity.name} - ${method.type_account} - ${method.current_balance}</option>`;
+                    const isSelected = selectedValue && method.id == selectedValue ? 'selected' : '';
+                    options += `<option value="${method.id}" ${isSelected}>${method.account_holder} - ${method.entity.name} - ${method.type_account} - ${method.current_balance}</option>`;
                 });
             } else {
                 options = '<option value="">No hay métodos de pago para esta moneda</option>';
@@ -130,6 +141,7 @@ const formatNumber = (number) => {
  */
 const cleanNumberFormat = (value) => {
     if (!value) return '0';
+    // Remover puntos de miles y cambiar coma decimal por punto
     return value.toString().replace(/\./g, '').replace(',', '.');
 };
 
@@ -140,6 +152,12 @@ const calculateConvertedAmount = () => {
     const amount = cleanNumberFormat($('#amount').val());
     const exchangeRate = cleanNumberFormat($('#exchange_rate').val());
     const typeOperation = $('#type_operation').val();
+    
+    console.log('Calculando monto convertido:', {
+        amount: amount,
+        exchangeRate: exchangeRate,
+        typeOperation: typeOperation
+    });
     
     if (amount && exchangeRate && typeOperation) {
         let converted;
@@ -155,8 +173,10 @@ const calculateConvertedAmount = () => {
             converted = parseFloat(amount) * parseFloat(exchangeRate);
         }
         
+        console.log('Monto convertido calculado:', converted);
         $('#amount_converted').val(formatNumber(converted));
     } else {
+        console.log('Faltan datos para calcular');
         $('#amount_converted').val('');
     }
 };

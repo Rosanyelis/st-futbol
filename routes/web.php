@@ -67,11 +67,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/eventos/metodo-pago/{currencyId}', [EventController::class, 'paymentMethods'])->name('event.paymentMethods');
     Route::get('/eventos/currencies', [EventController::class, 'currencies'])->name('event.currencies');
     Route::get('/eventos/clubs-by-category/{categoryIncomeId}', [EventController::class, 'getClubsByCategory'])->name('event.getClubsByCategory');
+    Route::get('/eventos/clubs-by-category-for-edit/{categoryIncomeId}', [EventController::class, 'getClubsByCategoryForEdit'])->name('event.getClubsByCategoryForEdit');
     Route::get('/eventos/{eventId}/clubs-with-pending-accounts', [EventController::class, 'getClubsWithPendingAccounts'])->name('event.clubs-with-pending-accounts');
     Route::get('/eventos/{eventId}/clubs-pending-amounts', [EventController::class, 'getClubsWithPendingAmounts'])->name('event.clubs-pending-amounts');
     Route::get('/eventos/{eventId}/clubs-pending-accounts-filtered', [EventController::class, 'getClubsPendingAccountsFiltered'])->name('event.clubs-pending-accounts-filtered');
     Route::get('/eventos/expenses-by-category/{categoryEgressId}', [EventController::class, 'getExpensesByCategory'])->name('event.getExpensesByCategory');
     Route::get('/eventos/suppliers-by-category/{categoryEgressId}', [EventController::class, 'getSuppliersByCategory'])->name('event.getSuppliersByCategory');
+    Route::get('/eventos/suppliers-by-category-for-edit/{categoryEgressId}', [EventController::class, 'getSuppliersByCategoryForEdit'])->name('event.getSuppliersByCategoryForEdit');
     Route::get('/eventos/{id}/edit-history', [EventController::class, 'editHistory'])->name('event.history.edit');
     Route::post('/eventos/{id}/update-history', [EventController::class, 'updateHistory'])->name('event.history.update');
     Route::get('/eventos/{id}/destroy-history', [EventController::class, 'destroyHistory'])->name('event.history.destroy');

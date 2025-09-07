@@ -74,7 +74,7 @@
                                     <h6 class="text-primary mb-3">Información de Destino</h6>
                                 </div>
 
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-3 mb-3">
                                     <div class="form-floating form-floating-outline">
                                         <select class="form-select select2 @error('currency_receptor_id') is-invalid @enderror" 
                                         id="currency_receptor_id" name="currency_receptor_id" required>
@@ -92,7 +92,7 @@
                                     @enderror
                                 </div>
 
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-3 mb-3">
                                     <div class="form-floating form-floating-outline">
                                         <select class="form-select select2 @error('method_payment_receptor_id') is-invalid @enderror" 
                                         id="method_payment_receptor_id" name="method_payment_receptor_id" required>
@@ -105,7 +105,22 @@
                                     @enderror
                                 </div>
 
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-3 mb-3">
+                                    <div class="form-floating form-floating-outline">
+                                        <select class="form-select select2 @error('type_operation') is-invalid @enderror" 
+                                        id="type_operation" name="type_operation" required>
+                                            <option value="">Seleccione un tipo de operación</option>
+                                            <option value="Multiplicacion">Multiplicación</option>
+                                            <option value="Division">División</option>
+                                        </select>
+                                        <label for="type_operation">Tipo de Operación *</label>
+                                    </div>
+                                    @error('type_operation')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-3 mb-3">
                                     <div class="form-floating form-floating-outline">
                                         <input type="text" class="form-control @error('exchange_rate') is-invalid @enderror" 
                                         id="exchange_rate" name="exchange_rate" placeholder="0" value="{{ old('exchange_rate') }}" required>

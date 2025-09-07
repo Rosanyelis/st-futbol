@@ -76,6 +76,7 @@ class HistoryChangeCurrencyController extends Controller
             'method_payment_receptor_id' => 'required|exists:method_payments,id',
             'currency_receptor_id' => 'required|exists:currencies,id',
             'exchange_rate' => 'required|numeric|min:0',
+            'type_operation' => 'required|in:Multiplicacion,Division',
             'description' => 'nullable|string|max:255',
         ]);
 
@@ -86,12 +87,17 @@ class HistoryChangeCurrencyController extends Controller
             $amount = str_replace(['.', ','], ['', '.'], $request->amount);
             $exchangeRate = str_replace(['.', ','], ['', '.'], $request->exchange_rate);
             
-            // Calcular monto convertido
-            $amountConverted = (float) $amount * (float) $exchangeRate;
+            // Calcular monto convertido según el tipo de operación
+            $amountConverted = 0;
+            if ($request->type_operation === 'Multiplicacion') {
+                $amountConverted = (float) $amount * (float) $exchangeRate;
+            } elseif ($request->type_operation === 'Division') {
+                $amountConverted = (float) $amount / (float) $exchangeRate;
+            }
             
             // Obtener métodos de pago
-            $originMethod = MethodPayment::findOrFail($request->method_payment_id);
-            $destinationMethod = MethodPayment::findOrFail($request->method_payment_receptor_id);
+            $originMethod = MethodPayment::with('entity')->findOrFail($request->method_payment_id);
+            $destinationMethod = MethodPayment::with('entity')->findOrFail($request->method_payment_receptor_id);
             
             // Verificar saldo suficiente en el método de pago origen
             if ($originMethod->current_balance < (float) $amount) {
@@ -107,6 +113,7 @@ class HistoryChangeCurrencyController extends Controller
                 'method_payment_receptor_id' => $request->method_payment_receptor_id,
                 'currency_receptor_id' => $request->currency_receptor_id,
                 'exchange_rate' => (float) $exchangeRate,
+                'type_operation' => $request->type_operation,
                 'amount_converted' => $amountConverted,
                 'description' => $request->description,
             ]);
@@ -189,6 +196,7 @@ class HistoryChangeCurrencyController extends Controller
             'method_payment_receptor_id' => 'required|exists:method_payments,id',
             'currency_receptor_id' => 'required|exists:currencies,id',
             'exchange_rate' => 'required|numeric|min:0',
+            'type_operation' => 'required|in:Multiplicacion,Division',
             'description' => 'nullable|string|max:255',
         ]);
 
@@ -199,16 +207,21 @@ class HistoryChangeCurrencyController extends Controller
             $amount = str_replace(['.', ','], ['', '.'], $request->amount);
             $exchangeRate = str_replace(['.', ','], ['', '.'], $request->exchange_rate);
             
-            // Calcular monto convertido
-            $amountConverted = (float) $amount * (float) $exchangeRate;
+            // Calcular monto convertido según el tipo de operación
+            $amountConverted = 0;
+            if ($request->type_operation === 'Multiplicacion') {
+                $amountConverted = (float) $amount * (float) $exchangeRate;
+            } elseif ($request->type_operation === 'Division') {
+                $amountConverted = (float) $amount / (float) $exchangeRate;
+            }
             
             // Obtener métodos de pago
-            $originMethod = MethodPayment::findOrFail($request->method_payment_id);
-            $destinationMethod = MethodPayment::findOrFail($request->method_payment_receptor_id);
+            $originMethod = MethodPayment::with('entity')->findOrFail($request->method_payment_id);
+            $destinationMethod = MethodPayment::with('entity')->findOrFail($request->method_payment_receptor_id);
             
             // Revertir cambios anteriores
-            $oldOriginMethod = MethodPayment::find($historyChangeCurrency->method_payment_id);
-            $oldDestinationMethod = MethodPayment::find($historyChangeCurrency->method_payment_receptor_id);
+            $oldOriginMethod = MethodPayment::with('entity')->find($historyChangeCurrency->method_payment_id);
+            $oldDestinationMethod = MethodPayment::with('entity')->find($historyChangeCurrency->method_payment_receptor_id);
             
             if ($oldOriginMethod) {
                 $oldOriginMethod->update([
@@ -236,6 +249,7 @@ class HistoryChangeCurrencyController extends Controller
                 'method_payment_receptor_id' => $request->method_payment_receptor_id,
                 'currency_receptor_id' => $request->currency_receptor_id,
                 'exchange_rate' => (float) $exchangeRate,
+                'type_operation' => $request->type_operation,
                 'amount_converted' => $amountConverted,
                 'description' => $request->description,
             ]);
@@ -300,8 +314,8 @@ class HistoryChangeCurrencyController extends Controller
         
         try {
             // Revertir cambios en los métodos de pago
-            $originMethod = MethodPayment::find($historyChangeCurrency->method_payment_id);
-            $destinationMethod = MethodPayment::find($historyChangeCurrency->method_payment_receptor_id);
+            $originMethod = MethodPayment::with('entity')->find($historyChangeCurrency->method_payment_id);
+            $destinationMethod = MethodPayment::with('entity')->find($historyChangeCurrency->method_payment_receptor_id);
             
             if ($originMethod) {
                 $originMethod->update([
@@ -370,7 +384,7 @@ class HistoryChangeCurrencyController extends Controller
      */
     public function getMethodPaymentsByCurrency($currencyId)
     {
-        $methodPayments = MethodPayment::where('currency_id', $currencyId)->get(['id', 'account_holder']);
+        $methodPayments = MethodPayment::with('entity')->where('currency_id', $currencyId)->get();
         return response()->json($methodPayments);
     }
 }

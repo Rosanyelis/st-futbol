@@ -11,8 +11,10 @@ const CONFIG = {
         clubsPendingAmounts: (eventId) => `/eventos/${eventId}/clubs-pending-amounts`,
         clubsPendingAccountsFiltered: (eventId) => `/eventos/${eventId}/clubs-pending-accounts-filtered`,
         clubsByCategory: (categoryIncomeId) => `/eventos/clubs-by-category/${categoryIncomeId}`,
+        clubsByCategoryForEdit: (categoryIncomeId) => `/eventos/clubs-by-category-for-edit/${categoryIncomeId}`,
         expensesByCategory: (categoryEgressId) => `/eventos/expenses-by-category/${categoryEgressId}`,
-        suppliersByCategory: (categoryEgressId) => `/eventos/suppliers-by-category/${categoryEgressId}`
+        suppliersByCategory: (categoryEgressId) => `/eventos/suppliers-by-category/${categoryEgressId}`,
+        suppliersByCategoryForEdit: (categoryEgressId) => `/eventos/suppliers-by-category-for-edit/${categoryEgressId}`
     },
     selectors: {
         datatable: ".datatables-history",
@@ -68,11 +70,14 @@ class HistoryManager {
                     d.end_date = $('#end_date_filter').val();
                 }
             },
+            scrollY: '350px',
+            scrollX: true,
             dom: this.getDatatableDOM(),
             language: this.getDatatableLanguage(),
             columns: this.getDatatableColumns(),
             columnDefs: this.getColumnDefinitions(),
             buttons: this.getDatatableButtons(),
+            lengthMenu: [50, 100, 200, 500],
             drawCallback: () => {
                 this.updateTotals();
                 this.initializeTooltips();
@@ -114,7 +119,7 @@ class HistoryManager {
                 previous: '<i class="ri-arrow-left-s-line"></i>'
             },
             lengthMenu: "_MENU_",
-            search: "Buscar:"
+            search: "Buscar:",
         };
     }
 
@@ -602,12 +607,58 @@ class HistoryManager {
         });
     }
 
+    // Cargar proveedores para edición (incluye cuentas completadas) y seleccionar el proveedor correspondiente
+    loadSuppliersByCategoryForEditAndSelect(categoryEgressId, selectedSupplierId) {
+        const $supplierSelect = $(CONFIG.selectors.forms.supplierId);
+        $supplierSelect.empty().append('<option value="">-- Seleccionar --</option>');
+        $.ajax({
+            url: CONFIG.endpoints.suppliersByCategoryForEdit(categoryEgressId),
+            type: 'GET',
+            data: { event_id: CONFIG.eventId },
+            success: (suppliers) => {
+                if (suppliers?.length) {
+                    suppliers.forEach(supplier => {
+                        $supplierSelect.append(
+                            `<option value="${supplier.id}" data-account-payable-id="${supplier.account_payable_id}">${supplier.name}</option>`
+                        );
+                    });
+                    if (selectedSupplierId) {
+                        $supplierSelect.val(selectedSupplierId).trigger('change');
+                    }
+                }
+            }
+        });
+    }
+
     // Cargar clubs y seleccionar el club correspondiente
     loadClubsByCategoryAndSelect(categoryIncomeId, selectedClubId) {
         const $clubSelect = $(CONFIG.selectors.forms.clubId);
         $clubSelect.empty().append('<option value="">-- Seleccionar --</option>');
         $.ajax({
             url: CONFIG.endpoints.clubsByCategory(categoryIncomeId),
+            type: 'GET',
+            data: { event_id: CONFIG.eventId },
+            success: (clubs) => {
+                if (clubs?.length) {
+                    clubs.forEach(club => {
+                        $clubSelect.append(
+                            `<option value="${club.id}" data-account-receivable-id="${club.account_receivable_id}">${club.name}</option>`
+                        );
+                    });
+                    if (selectedClubId) {
+                        $clubSelect.val(selectedClubId).trigger('change');
+                    }
+                }
+            }
+        });
+    }
+
+    // Cargar clubs para edición (incluye cuentas completadas) y seleccionar el club correspondiente
+    loadClubsByCategoryForEditAndSelect(categoryIncomeId, selectedClubId) {
+        const $clubSelect = $(CONFIG.selectors.forms.clubId);
+        $clubSelect.empty().append('<option value="">-- Seleccionar --</option>');
+        $.ajax({
+            url: CONFIG.endpoints.clubsByCategoryForEdit(categoryIncomeId),
             type: 'GET',
             data: { event_id: CONFIG.eventId },
             success: (clubs) => {
@@ -955,7 +1006,10 @@ class HistoryManager {
 
         // Clubs dependiente de tipo de ingreso
         if (movement.type === 'Ingreso' && movement.category_income_id) {
-            this.loadClubsByCategoryAndSelect(movement.category_income_id, movement.club_id);
+            this.loadClubsByCategoryForEditAndSelect(movement.category_income_id, movement.club_id);
+            
+            // Hacer readonly el selector de club para evitar cambios
+            $(CONFIG.selectors.forms.clubId).prop('disabled', true);
             
             // Si el movimiento tiene account_receivable_id, mostrarlo
             if (movement.account_receivable_id) {
@@ -980,8 +1034,11 @@ class HistoryManager {
 
         // Proveedores dependiente de tipo de egreso
         if (movement.type === 'Egreso' && movement.category_egress_id) {
-            this.loadSuppliersByCategoryAndSelect(movement.category_egress_id, movement.supplier_id);
+            this.loadSuppliersByCategoryForEditAndSelect(movement.category_egress_id, movement.supplier_id);
             this.loadExpensesByCategoryAndSelect(movement.category_egress_id, movement.expense_id);
+            
+            // Hacer readonly el selector de proveedor para evitar cambios
+            $(CONFIG.selectors.forms.supplierId).prop('disabled', true);
             
             // Si el movimiento tiene account_payable_id, mostrarlo
             if (movement.account_payable_id) {
@@ -1037,6 +1094,9 @@ class HistoryManager {
         modal.find('form')[0].reset();
         modal.find('input[name="id"]').remove();
         modal.find('select').val('').trigger('change');
+        
+        // Habilitar todos los selectores (en caso de que estuvieran deshabilitados por edición)
+        modal.find('select').prop('disabled', false);
         
         // Limpiar el campo account_receivable_id
         $('#account_receivable_id').val('');
@@ -1375,6 +1435,8 @@ class HistoryManager {
             // Solo si es el botón de "Nuevo Movimiento"
             if ($(this).text().trim() === 'Nuevo Movimiento') {
                 window.historyManager.clearMovementModal();
+                // Asegurar que todos los selectores estén habilitados para crear nuevo movimiento
+                $(CONFIG.selectors.modals.movement).find('select').prop('disabled', false);
                 $(CONFIG.selectors.modals.movement).modal('show');
             }
         });

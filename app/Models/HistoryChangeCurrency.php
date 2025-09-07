@@ -15,6 +15,7 @@ class HistoryChangeCurrency extends Model
         'method_payment_receptor_id',
         'currency_receptor_id',
         'exchange_rate',
+        'type_operation',
         'amount_converted',
         'description',
     ];

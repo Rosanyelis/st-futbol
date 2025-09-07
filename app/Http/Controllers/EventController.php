@@ -235,6 +235,65 @@ class EventController extends Controller
     }
 
     /**
+     * Obtener clubs por categoría de ingreso para edición (incluye cuentas completadas)
+     */
+    public function getClubsByCategoryForEdit($categoryIncomeId)
+    {
+        if ($categoryIncomeId == 1) { // ID 1 = "Clubs"
+            $eventId = request()->get('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'Event ID es requerido'], 400);
+            }
+            
+            $event = Event::find($eventId);
+            
+            if (!$event) {
+                return response()->json(['error' => 'Evento no encontrado'], 404);
+            }
+            
+            // Obtener TODAS las cuentas por cobrar de clubs para este evento específico
+            // Incluyendo las completadas para permitir edición
+            $accountReceivables = AccountReceivable::with(['club', 'currency'])
+                ->where('event_id', $eventId)
+                ->where('club_id', '!=', null) // Solo cuentas de clubs, no de proveedores
+                ->whereHas('club', function($query) use ($eventId) {
+                    // Verificar que el club esté asignado al evento
+                    $query->whereHas('events', function($subQuery) use ($eventId) {
+                        $subQuery->where('events.id', $eventId);
+                    });
+                })
+                ->orderBy('club_id')
+                ->orderBy('created_at')
+                ->get();
+            
+            // Transformar para mostrar cada cuenta por cobrar como una opción
+            $clubsWithAccounts = [];
+            foreach ($accountReceivables as $receivable) {
+                $pendingAmount = $receivable->getPendingAmount();
+                $status = $receivable->status;
+                
+                // Incluir todas las cuentas, incluso las completadas
+                $statusText = $status === 'Pagado' ? 'Completada' : 'Pendiente: ' . number_format($pendingAmount, 2);
+                
+                $clubsWithAccounts[] = [
+                    'id' => $receivable->club_id, // Usar el ID del club para el select
+                    'name' => $receivable->club->name . ' - Cuenta #' . $receivable->id . ' (' . $statusText . ' ' . $receivable->currency->symbol . ')',
+                    'club_id' => $receivable->club_id,
+                    'pending_amount' => $pendingAmount,
+                    'currency_symbol' => $receivable->currency->symbol,
+                    'account_receivable_id' => $receivable->id,
+                    'status' => $status
+                ];
+            }
+            
+            return response()->json($clubsWithAccounts);
+        }
+        
+        return response()->json([]);
+    }
+
+    /**
      * Obtener gastos por categoría de egreso
      */
     public function getExpensesByCategory($categoryEgressId)
@@ -290,6 +349,59 @@ class EventController extends Controller
                         'account_payable_id' => $payable->id
                     ];
                 }
+            }
+            
+            return response()->json($suppliersWithAccounts);
+        }
+        
+        return response()->json([]);
+    }
+
+    /**
+     * Obtener proveedores por categoría de egreso para edición (incluye cuentas completadas)
+     */
+    public function getSuppliersByCategoryForEdit($categoryEgressId)
+    {
+        if ($categoryEgressId == 2) { // ID 2 = "Proveedores"
+            $eventId = request()->get('event_id');
+            
+            if (!$eventId) {
+                return response()->json(['error' => 'Event ID es requerido'], 400);
+            }
+            
+            $event = Event::find($eventId);
+            
+            if (!$event) {
+                return response()->json(['error' => 'Evento no encontrado'], 404);
+            }
+            
+            // Obtener TODAS las cuentas por pagar de proveedores para este evento específico
+            // Incluyendo las completadas para permitir edición
+            $accountPayables = AccountPayable::with(['supplier', 'currency'])
+                ->where('event_id', $eventId)
+                ->where('supplier_id', '!=', null) // Solo cuentas de proveedores
+                ->orderBy('supplier_id')
+                ->orderBy('created_at')
+                ->get();
+            
+            // Transformar para mostrar cada cuenta por pagar como una opción
+            $suppliersWithAccounts = [];
+            foreach ($accountPayables as $payable) {
+                $pendingAmount = $payable->getPendingAmount();
+                $status = $payable->status;
+                
+                // Incluir todas las cuentas, incluso las completadas
+                $statusText = $status === 'Pagado' ? 'Completada' : 'Pendiente: ' . number_format($pendingAmount, 2);
+                
+                $suppliersWithAccounts[] = [
+                    'id' => $payable->supplier_id, // Usar el ID del proveedor para el select
+                    'name' => $payable->supplier->name . ' - Cuenta #' . $payable->id . ' (' . $statusText . ' ' . $payable->currency->symbol . ')',
+                    'supplier_id' => $payable->supplier_id,
+                    'pending_amount' => $pendingAmount,
+                    'currency_symbol' => $payable->currency->symbol,
+                    'account_payable_id' => $payable->id,
+                    'status' => $status
+                ];
             }
             
             return response()->json($suppliersWithAccounts);
