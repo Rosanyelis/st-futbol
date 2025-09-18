@@ -41,7 +41,8 @@ class BussinesController extends Controller
     {
         if ($request->ajax()) {
             $data = BussinesMovement::with('currency', 'methodPayment', 'methodPayment.entity')
-                ->where('bussines_id', 1);
+                ->where('bussines_id', 1)
+                ->orderBy('date', 'desc');
 
             return DataTables::of($data)
                 ->addColumn('method_payment_name', function ($data) {

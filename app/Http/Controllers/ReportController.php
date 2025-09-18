@@ -6,14 +6,15 @@ use App\Models\Club;
 use App\Models\Event;
 use App\Models\Currency;
 use App\Models\ClubPayment;
-use App\Models\AccountReceivable;
 use Illuminate\Http\Request;
 use App\Models\EventMovement;
 use App\Models\MethodPayment;
-use App\Models\CategoryIncome;
 use App\Models\CategoryEgress;
-use Yajra\DataTables\Facades\DataTables;
+use App\Models\CategoryIncome;
+use App\Models\BussinesMovement;
+use App\Models\AccountReceivable;
 use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
 use App\Exports\EventCurrencyStatementExport;
 
 class ReportController extends Controller
@@ -643,7 +644,8 @@ class ReportController extends Controller
     public function movementsStatement(Request $request)
     {
         if ($request->ajax()) {
-            $data = EventMovement::with([
+            // Obtener movimientos de eventos
+            $eventMovements = EventMovement::with([
                 'event',
                 'currency',
                 'categoryIncome',
@@ -652,8 +654,8 @@ class ReportController extends Controller
                 'supplier',
                 'methodPayment.entity'
             ])
-            ->where('status', '!=', 'Cancelado') // Excluir movimientos cancelados
-            ->whereNotNull('method_payment_id') // Solo movimientos con método de pago
+            ->where('status', '!=', 'Cancelado')
+            ->whereNotNull('method_payment_id')
             ->when($request->filled('event_id'), function ($query) use ($request) {
                 $query->where('event_id', $request->get('event_id'));
             })
@@ -696,24 +698,122 @@ class ReportController extends Controller
                                    });
                              });
                 });
+            })
+            ->get()
+            ->map(function ($movement) {
+                return [
+                    'id' => 'event_' . $movement->id,
+                    'date' => $movement->date,
+                    'type' => $movement->type,
+                    'amount' => $movement->amount,
+                    'description' => $movement->description,
+                    'currency' => $movement->currency,
+                    'methodPayment' => $movement->methodPayment,
+                    'event' => $movement->event,
+                    'club' => $movement->club,
+                    'supplier' => $movement->supplier,
+                    'categoryIncome' => $movement->categoryIncome,
+                    'categoryEgress' => $movement->categoryEgress,
+                    'movement_type' => 'Evento',
+                    'movement_source' => $movement->event ? $movement->event->name : 'Sin evento'
+                ];
             });
 
-            $dataTable = DataTables::of($data)
+            // Obtener movimientos de negocio
+            $businessMovements = BussinesMovement::with([
+                'currency',
+                'categoryIncome',
+                'categoryEgress',
+                'methodPayment.entity'
+            ])
+            ->whereNotNull('method_payment_id')
+            ->when($request->filled('currency_id'), function ($query) use ($request) {
+                $query->where('currency_id', $request->get('currency_id'));
+            })
+            ->when($request->filled('method_payment_id'), function ($query) use ($request) {
+                $query->where('method_payment_id', $request->get('method_payment_id'));
+            })
+            ->when($request->filled('category_income_id'), function ($query) use ($request) {
+                $query->where('category_income_id', $request->get('category_income_id'));
+            })
+            ->when($request->filled('category_egress_id'), function ($query) use ($request) {
+                $query->where('category_egress_id', $request->get('category_egress_id'));
+            })
+            ->when($request->filled('start_date'), function ($query) use ($request) {
+                $query->where('date', '>=', $request->get('start_date'));
+            })
+            ->when($request->filled('end_date'), function ($query) use ($request) {
+                $query->where('date', '<=', $request->get('end_date'));
+            })
+            ->when($request->has('search') && !empty($request->get('search')['value']), function ($query) use ($request) {
+                $searchValue = $request->get('search')['value'];
+                $query->where(function ($subQuery) use ($searchValue) {
+                    $subQuery->where('date', 'like', "%{$searchValue}%")
+                             ->orWhere('type', 'like', "%{$searchValue}%")
+                             ->orWhere('amount', 'like', "%{$searchValue}%")
+                             ->orWhere('description', 'like', "%{$searchValue}%")
+                             ->orWhereHas('currency', function ($q) use ($searchValue) {
+                                 $q->where('name', 'like', "%{$searchValue}%");
+                             })
+                             ->orWhereHas('methodPayment', function ($q) use ($searchValue) {
+                                 $q->where('account_holder', 'like', "%{$searchValue}%")
+                                   ->orWhere('type_account', 'like', "%{$searchValue}%")
+                                   ->orWhereHas('entity', function ($nested_q) use ($searchValue) {
+                                       $nested_q->where('name', 'like', "%{$searchValue}%");
+                                   });
+                             });
+                });
+            })
+            ->get()
+            ->map(function ($movement) {
+                return [
+                    'id' => 'business_' . $movement->id,
+                    'date' => $movement->date,
+                    'type' => $movement->type,
+                    'amount' => $movement->amount,
+                    'description' => $movement->description,
+                    'currency' => $movement->currency,
+                    'methodPayment' => $movement->methodPayment,
+                    'event' => null,
+                    'club' => null,
+                    'supplier' => null,
+                    'categoryIncome' => $movement->categoryIncome,
+                    'categoryEgress' => $movement->categoryEgress,
+                    'movement_type' => 'Negocio',
+                    'movement_source' => 'Movimiento de Negocio'
+                ];
+            });
+
+            // Combinar y ordenar todos los movimientos por fecha descendente
+            $allMovements = $eventMovements->concat($businessMovements)
+                ->sortByDesc('date')
+                ->values();
+
+            $dataTable = DataTables::of($allMovements)
                 ->addColumn('formatted_date', function ($row) {
-                    return $row->date ? $row->date->format('d/m/Y') : '-';
+                    return $row['date'] ? \Carbon\Carbon::parse($row['date'])->format('d/m/Y') : '-';
                 })
                 ->addColumn('formatted_amount', function ($row) {
-                    return number_format($row->amount, 0, ',', '.');
+                    return number_format($row['amount'], 0, ',', '.');
                 })
                 ->addColumn('account_info', function ($row) {
-                    if ($row->methodPayment) {
-                        return $row->methodPayment->account_holder . ' - ' . 
-                               ($row->methodPayment->entity ? $row->methodPayment->entity->name : '') . ' - ' . 
-                               $row->methodPayment->type_account;
+                    if ($row['methodPayment']) {
+                        return $row['methodPayment']->account_holder . ' - ' . 
+                               ($row['methodPayment']->entity ? $row['methodPayment']->entity->name : '') . ' - ' . 
+                               $row['methodPayment']->type_account;
                     }
                     return '-';
                 })
-                ->rawColumns(['formatted_date', 'formatted_amount', 'account_info']);
+                ->addColumn('event_name', function ($row) {
+                    return $row['event'] ? $row['event']->name : '-';
+                })
+                ->addColumn('club_name', function ($row) {
+                    return $row['club'] ? $row['club']->name : '-';
+                })
+                ->addColumn('supplier_name', function ($row) {
+                    return $row['supplier'] ? $row['supplier']->name : '-';
+                })
+                ->rawColumns(['formatted_date', 'formatted_amount', 'account_info', 'event_name', 'club_name', 'supplier_name']);
 
             return $dataTable->make(true);
         }

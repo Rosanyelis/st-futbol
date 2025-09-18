@@ -78,6 +78,7 @@ class HistoryManager {
             columnDefs: this.getColumnDefinitions(),
             buttons: this.getDatatableButtons(),
             lengthMenu: [50, 100, 200, 500],
+            order: [[0, 'desc']],
             drawCallback: () => {
                 this.updateTotals();
                 this.initializeTooltips();

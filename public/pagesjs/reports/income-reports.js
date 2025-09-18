@@ -45,6 +45,7 @@ class IncomeReportsManager {
             ">",
             responsive: true,
             lengthMenu: [7, 10, 20, 50, 70, 100], //for length of menu
+            order: [[0, 'desc']], // Ordenar por la primera columna (fecha) de forma descendente
             language: {
                 sLengthMenu: "_MENU_",
                 search: "",

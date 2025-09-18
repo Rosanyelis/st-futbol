@@ -45,7 +45,6 @@ class MovementsStatementManager {
 
         this.datatable = table.DataTable({
             processing: true,
-            serverSide: false,
             ajax: {
                 url: CONFIG.endpoints.movementsStatementJson,
                 data: (d) => {
@@ -61,12 +60,15 @@ class MovementsStatementManager {
                     console.error('Thrown:', thrown);
                 }
             },
+            scrollY: '350px',
+            scrollX: true,
             dom: this.getDatatableDOM(),
             language: this.getDatatableLanguage(),
             columns: this.getDatatableColumns(),
             columnDefs: this.getColumnDefinitions(),
             buttons: this.getDatatableButtons(),
             pageLength: 50,
+            order: [[0, 'desc']], // Ordenar por la primera columna (fecha) de forma descendente
             drawCallback: () => {
                 this.updateTotals();
                 this.initializeTooltips();
@@ -125,14 +127,18 @@ class MovementsStatementManager {
     // Definición de columnas
     getDatatableColumns() {
         return [
-            {data: 'date'},
-            {data: 'method_payment'},
+            {data: 'formatted_date'},
+            {data: 'movement_type'},
+            {data: 'movement_source'},
+            {data: 'account_info'},
             {data: 'currency.name'},
-            {data: 'event.name'},
-            {data: 'amount'},
-            {data: 'amount'},
-            {data: 'category_income.name'},
-            {data: 'category_egress.name'},
+            {data: 'event_name'},
+            {data: 'club_name'},
+            {data: 'supplier_name'},
+            {data: 'formatted_amount'},
+            {data: 'formatted_amount'},
+            {data: 'categoryIncome.name'},
+            {data: 'categoryEgress.name'},
             {data: 'description'}
         ];
     }
@@ -143,40 +149,62 @@ class MovementsStatementManager {
             {
                 targets: 0,
                 render: (data, type, full) => 
-                    `<span class='text-nowrap'>${moment(full.date).format("DD/MM/YYYY")}</span>`
+                    `<span class='text-nowrap'>${full.formatted_date || '-'}</span>`
             },
             {
                 targets: 1,
                 render: (data, type, full) => {
-                    const methodPayment = full.method_payment || full.methodPayment;
-                    return this.renderMethodPaymentWithTooltip(methodPayment);
+                    const badgeClass = full.movement_type === 'Evento' ? 'badge bg-info' : 'badge bg-warning';
+                    return `<span class="${badgeClass}">${full.movement_type}</span>`;
                 }
             },
             {
                 targets: 2,
                 render: (data, type, full) => 
-                    `<span class='text-nowrap'>${full.currency?.name} ${full.currency?.symbol}</span>`
+                    `<span class='text-nowrap'>${full.movement_source || '-'}</span>`
             },
             {
                 targets: 3,
-                render: (data, type, full) => 
-                    this.renderOptionalField(full.event?.name)
+                render: (data, type, full) => {
+                    const methodPayment = full.methodPayment;
+                    return this.renderMethodPaymentWithTooltip(methodPayment);
+                }
             },
             {
                 targets: 4,
                 render: (data, type, full) => 
-                    this.renderAmount(full, 'Ingreso')
+                    `<span class='text-nowrap'>${full.currency?.name || '-'} ${full.currency?.symbol || ''}</span>`
             },
             {
                 targets: 5,
                 render: (data, type, full) => 
-                    this.renderAmount(full, 'Egreso')
+                    this.renderOptionalField(full.event_name)
             },
             {
                 targets: 6,
+                render: (data, type, full) => 
+                    this.renderOptionalField(full.club_name)
+            },
+            {
+                targets: 7,
+                render: (data, type, full) => 
+                    this.renderOptionalField(full.supplier_name)
+            },
+            {
+                targets: 8,
+                render: (data, type, full) => 
+                    this.renderAmount(full, 'Ingreso')
+            },
+            {
+                targets: 9,
+                render: (data, type, full) => 
+                    this.renderAmount(full, 'Egreso')
+            },
+            {
+                targets: 10,
                 render: (data, type, full) => {
                     if (full.type === 'Ingreso') {
-                        const categoryName = full.category_income?.name || full.categoryIncome?.name;
+                        const categoryName = full.categoryIncome?.name;
                         if (categoryName) {
                             return `<span class="text-nowrap text-primary">${categoryName}</span>`;
                         } else {
@@ -187,10 +215,10 @@ class MovementsStatementManager {
                 }
             },
             {
-                targets: 7,
+                targets: 11,
                 render: (data, type, full) => {
                     if (full.type === 'Egreso') {
-                        const categoryName = full.category_egress?.name || full.categoryEgress?.name;
+                        const categoryName = full.categoryEgress?.name;
                         if (categoryName) {
                             return `<span class="text-nowrap text-danger">${categoryName}</span>`;
                         } else {
@@ -201,7 +229,7 @@ class MovementsStatementManager {
                 }
             },
             {
-                targets: 8,
+                targets: 12,
                 render: (data, type, full) => 
                     this.renderDescription(full.description)
             }
@@ -220,7 +248,7 @@ class MovementsStatementManager {
                     text: '<i class="ri-file-text-line me-1" ></i>Csv',
                     className: "dropdown-item",
                     exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
                         modifier: {
                             search: 'applied',
                             order: 'applied',
@@ -246,7 +274,7 @@ class MovementsStatementManager {
                     text: '<i class="ri-file-excel-line me-1"></i>Excel',
                     className: "dropdown-item",
                     exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
                         modifier: {
                             search: 'applied',
                             order: 'applied',
@@ -272,7 +300,7 @@ class MovementsStatementManager {
                     text: '<i class="ri-file-pdf-line me-1"></i>Pdf',
                     className: "dropdown-item",
                     exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
                         modifier: {
                             search: 'applied',
                             order: 'applied',
@@ -311,7 +339,7 @@ class MovementsStatementManager {
                     text: '<i class="ri-printer-line me-1" ></i>Imprimir',
                     className: "dropdown-item",
                     exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                        columns: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
                         modifier: {
                             search: 'applied',
                             order: 'applied',
@@ -358,10 +386,10 @@ class MovementsStatementManager {
         }
         
         // Texto para mostrar en la celda (con <br> para indentación visual)
-        const displayText = `${method.account_holder} <br> ${method.entity?.name} <br> ${method.type_account}`;
+        const displayText = `${method.account_holder} - ${method.entity?.name} - ${method.type_account}`;
         
         // Texto para el tooltip (con saltos de línea reales, sin HTML)
-        const tooltipText = `${method.account_holder}\n${method.entity?.name}\n${method.type_account}`;
+        const tooltipText = `${method.account_holder} - ${method.entity?.name} - ${method.type_account}`;
         
         return `<span class='text-nowrap text-center'>${displayText}</span>`;
      
@@ -369,7 +397,7 @@ class MovementsStatementManager {
 
     // Renderizado de descripción
     renderDescription(description) {
-        return description ? `<span class='text-wrap'>${description}</span>` : '-';
+        return description ? `<span class='text-nowrap'>${description}</span>` : '-';
     }
 
     // Renderizado de campos opcionales

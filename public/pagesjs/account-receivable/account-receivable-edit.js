@@ -76,6 +76,9 @@ const initForm = () => {
  * Carga los clubs asignados al evento seleccionado
  */
 const loadClubsByEvent = (eventId) => {
+    // Guardar el valor actualmente seleccionado
+    const currentClubId = $('#club_id').val();
+    
     // Mostrar loading
     $('#club_id').html('<option value="">Cargando clubs...</option>').prop('disabled', true);
 
@@ -86,7 +89,8 @@ const loadClubsByEvent = (eventId) => {
             
             if (data.length > 0) {
                 data.forEach(club => {
-                    options += `<option value="${club.id}">${club.name}</option>`;
+                    const selected = club.id == currentClubId ? 'selected' : '';
+                    options += `<option value="${club.id}" ${selected}>${club.name}</option>`;
                 });
             } else {
                 options = '<option value="">No hay clubs asignados a este evento</option>';
@@ -104,6 +108,9 @@ const loadClubsByEvent = (eventId) => {
  * Carga los proveedores hoteleros asignados al evento seleccionado
  */
 const loadHotelSuppliersByEvent = (eventId) => {
+    // Guardar el valor actualmente seleccionado
+    const currentSupplierId = $('#supplier_id').val();
+    
     // Mostrar loading
     $('#supplier_id').html('<option value="">Cargando hoteles...</option>').prop('disabled', true);
 
@@ -114,7 +121,8 @@ const loadHotelSuppliersByEvent = (eventId) => {
             
             if (data.length > 0) {
                 data.forEach(supplier => {
-                    options += `<option value="${supplier.id}">${supplier.name}</option>`;
+                    const selected = supplier.id == currentSupplierId ? 'selected' : '';
+                    options += `<option value="${supplier.id}" ${selected}>${supplier.name}</option>`;
                 });
             } else {
                 options = '<option value="">No hay hoteles asignados a este evento</option>';

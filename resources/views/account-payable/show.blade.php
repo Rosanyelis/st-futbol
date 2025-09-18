@@ -11,8 +11,11 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Detalles de Cuenta por Pagar</h5>
-                    <div>
-                        
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('account-payable.pdf', $accountPayable->id) }}" 
+                           class="btn btn-danger btn-sm" target="_blank">
+                            <i class="ri-file-pdf-line"></i> Generar PDF
+                        </a>
                         <a href="{{ route('account-payable.index') }}" class="btn btn-secondary btn-sm">
                             <i class="ri-arrow-left-line"></i> Volver
                         </a>

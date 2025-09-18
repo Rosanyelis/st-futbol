@@ -43,7 +43,7 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <p><strong>Nombre:</strong> {{ $accountReceivable->club->name ?? 'Club no encontrado' }}</p>
-                                            <p><strong>Representante:</strong> {{ $accountReceivable->club->representant ?? 'No especificado' }}</p>
+                                            <p><strong>Representante:</strong> {{ $accountReceivable->club->responsible ?? 'No especificado' }}</p>
                                             <p><strong>Teléfono:</strong> {{ $accountReceivable->club->phone ?? 'No especificado' }}</p>
                                         </div>
                                         <div class="col-md-6">

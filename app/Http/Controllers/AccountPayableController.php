@@ -330,4 +330,18 @@ class AccountPayableController extends Controller
                 ->with('error', 'Error al procesar el pago: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Generar PDF del detalle de cuenta por pagar
+     */
+    public function generatePdf($id)
+    {
+        $accountPayable = AccountPayable::with(['supplier', 'event', 'currency', 'payments'])->findOrFail($id);
+        
+        $pdf = \PDF::loadView('account-payable.pdf', compact('accountPayable'));
+        
+        $filename = 'cuenta-por-pagar-' . $accountPayable->id . '-' . date('Y-m-d-H-i-s') . '.pdf';
+        
+        return $pdf->stream($filename);
+    }
 }

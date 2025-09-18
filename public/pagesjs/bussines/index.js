@@ -74,6 +74,7 @@ class HistoryManager {
             columnDefs: this.getColumnDefinitions(),
             buttons: this.getDatatableButtons(),
             lengthMenu: [50, 100, 200, 500],
+            order: [[0, 'desc']], // Ordenar por la primera columna (fecha) de forma descendente
             drawCallback: () => {
                 this.updateTotals();
                 this.initializeTooltips();
@@ -122,7 +123,7 @@ class HistoryManager {
     // Definición de columnas
     getDatatableColumns() {
         return [
-            {data: 'formatted_date'},
+            {data: 'formatted_date'}, // Permitir ordenamiento en fecha
             {data: 'description'},
             {data: 'formatted_amount'},
             {data: 'formatted_amount'},

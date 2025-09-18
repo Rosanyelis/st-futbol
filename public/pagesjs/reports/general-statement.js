@@ -45,7 +45,7 @@ class MovementsStatementManager {
 
         this.datatable = table.DataTable({
             processing: true,
-            serverSide: true, // Usar procesamiento del lado del servidor
+            // serverSide: true, // Usar procesamiento del lado del servidor
             ajax: {
                 url: CONFIG.endpoints.movementsStatementJson,
                 data: (d) => {
@@ -61,11 +61,14 @@ class MovementsStatementManager {
                     console.error('Thrown:', thrown);
                 }
             },
+            scrollY: '350px',
+            scrollX: true,
             language: this.getDatatableLanguage(),
             columns: this.getDatatableColumns(),
             columnDefs: this.getColumnDefinitions(),
             buttons: this.getDatatableButtons(),
             pageLength: 50,
+            order: [[0, 'desc']], // Ordenar por la primera columna (fecha) de forma descendente
             drawCallback: () => {
                 this.updateTotals();
                 this.initializeTooltips();
@@ -218,17 +221,17 @@ class MovementsStatementManager {
         }
         
         // Texto para mostrar en la celda (con <br> para indentación visual)
-        const displayText = `${method.account_holder} <br> ${method.entity?.name} <br> ${method.type_account}`;
+        const displayText = `${method.account_holder} - ${method.entity?.name} - ${method.type_account}`;
         
         // Texto para el tooltip (con saltos de línea reales, sin HTML)
-        const tooltipText = `${method.account_holder}\n${method.entity?.name}\n${method.type_account}`;
+        const tooltipText = `${method.account_holder} - ${method.entity?.name} - ${method.type_account}`;
         
         return `<span class='text-nowrap text-center'>${displayText}</span>`;
     }
 
     // Renderizado de descripción
     renderDescription(description) {
-        return description ? `<span class='text-wrap'>${description}</span>` : '-';
+        return description ? `<span class='text-nowrap'>${description}</span>` : '-';
     }
 
     // Renderizado de campos opcionales

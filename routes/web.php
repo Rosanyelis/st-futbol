@@ -241,6 +241,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/cuenta-por-pagar/crear', [AccountPayableController::class, 'create'])->name('account-payable.create');
     Route::post('/cuenta-por-pagar', [AccountPayableController::class, 'store'])->name('account-payable.store');
     Route::get('/cuenta-por-pagar/{id}', [AccountPayableController::class, 'show'])->name('account-payable.show');
+    Route::get('/cuenta-por-pagar/{id}/pdf', [AccountPayableController::class, 'generatePdf'])->name('account-payable.pdf');
     Route::get('/cuenta-por-pagar/{id}/editar', [AccountPayableController::class, 'edit'])->name('account-payable.edit');
     Route::put('/cuenta-por-pagar/{id}', [AccountPayableController::class, 'update'])->name('account-payable.update');
     Route::delete('/cuenta-por-pagar/{id}', [AccountPayableController::class, 'destroy'])->name('account-payable.destroy');

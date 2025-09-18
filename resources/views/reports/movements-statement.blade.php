@@ -43,16 +43,20 @@
     <!-- Product List Table -->
     <div class="card">
         <div class="card-header header-elements border-bottom">
-            <h5 class="card-title">Movimientos por Cuentas/Métodos de Pago</h5>
+            <h5 class="card-title">Reporte de Movimientos de Metodos de Pago (Eventos y Negocio)</h5>
         </div>
         <div class="card-datatable table-responsive">
             <table class="datatables-movements-statement table">
                 <thead>
                      <tr>
                          <th>Fecha</th>
+                         <th>Tipo de Movimiento</th>
+                         <th>Fuente</th>
                          <th>Cuenta/Método de Pago</th>
                          <th>Moneda</th>
                          <th>Evento</th>
+                         <th>Club</th>
+                         <th>Proveedor</th>
                          <th>Ingreso</th>
                          <th>Egreso</th>
                          <th>Tipo de Ingreso</th>

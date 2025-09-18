@@ -2,12 +2,11 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Detalle de Cuenta por Cobrar</title>
+    <title>Detalle de Cuenta por Pagar</title>
     <style type="text/css">
         body {
             font-family: Arial, Helvetica, sans-serif;
             font-size: 12px;
-            /* background: #f8fafd; */
             margin: 0;
             padding: 0;
         }
@@ -111,35 +110,28 @@
             display: table;
             clear: both;
         }
-        .costs-table {
+        .payments-table {
             width: 100%;
             border-collapse: collapse;
             margin: 15px 0;
         }
-        .costs-table th {
+        .payments-table th {
             background: #f8f9fa;
             padding: 5px;
             text-align: center;
             border: 1px solid #dee2e6;
             font-weight: bold;
         }
-        .costs-table td {
+        .payments-table td {
             padding: 5px;
             border: 1px solid #dee2e6;
             text-align: center;
         }
-        .costs-table .text-end {
+        .payments-table .text-end {
             text-align: right;
         }
-        .costs-table .total-row {
-            background: #f8f9fa;
-            font-weight: bold;
-        }
-        .club-logo {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
+        .payments-table .text-left {
+            text-align: left;
         }
         .footer {
             margin-top: 20px;
@@ -148,6 +140,22 @@
             text-align: center;
             border-top: 2px solid #b3d7f2;
             padding-top: 10px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
         }
     </style>
 </head>
@@ -171,28 +179,37 @@
             </table>
         </div>
 
-        <!-- Información del Club -->
-        <h2 class="section-title">Información del Club</h2>
+        <!-- Información del Proveedor -->
+        <h2 class="section-title">Información del Proveedor</h2>
         <table class="info-table">
             <tr>
-                <th> Club:</th>
-                <td>{{ $accountReceivable->club->name ?? 'Club no encontrado' }}</td>
+                <th>Proveedor:</th>
+                <td>{{ $accountPayable->supplier->name ?? 'Proveedor no encontrado' }}</td>
                 <th>Representante:</th>
-                <td>{{ $accountReceivable->club->responsible ?? 'No especificado' }}</td>
+                <td>{{ $accountPayable->supplier->representant ?? 'No especificado' }}</td>
             </tr>
             <tr>
                 <th>Teléfono:</th>
-                <td>{{ $accountReceivable->club->phone ?? 'No especificado' }}</td>
+                <td>{{ $accountPayable->supplier->phone ?? 'No especificado' }}</td>
                 <th>Email:</th>
-                <td>{{ $accountReceivable->club->email ?? 'No especificado' }}</td>
+                <td>{{ $accountPayable->supplier->email ?? 'No especificado' }}</td>
             </tr>
             <tr>
                 <th>Evento:</th>
-                <td>{{ $accountReceivable->event->name ?? 'Evento no encontrado' }}</td>
+                <td>{{ $accountPayable->event->name ?? 'Evento no encontrado' }}</td>
                 <th>Moneda:</th>
-                <td>{{ $accountReceivable->currency->name ?? 'Moneda no encontrada' }}</td>
+                <td>{{ $accountPayable->currency->name ?? 'Moneda no encontrada' }}</td>
             </tr>
-               
+            <tr>
+                <th>Fecha de Creación:</th>
+                <td>{{ $accountPayable->date->format('d/m/Y') }}</td>
+                <th>Estado:</th>
+                <td>
+                    <span class="status-badge {{ $accountPayable->status === 'Completado' ? 'status-completed' : 'status-pending' }}">
+                        {{ $accountPayable->status ?? 'Pendiente' }}
+                    </span>
+                </td>
+            </tr>
         </table>
 
         <!-- Resumen de Montos -->
@@ -200,111 +217,61 @@
         <div class="summary-cards clearfix">
             <div class="summary-card card-total">
                 <h4>Total</h4>
-                <div class="amount">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->total_amount, 2, ',', '.') }}</div>
+                <div class="amount">{{ $accountPayable->currency->symbol ?? '$' }} {{ number_format($accountPayable->amount, 2, ',', '.') }}</div>
             </div>
             <div class="summary-card card-paid">
                 <h4>Pagado</h4>
-                <div class="amount">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->getPaidAmount(), 2, ',', '.') }}</div>
+                <div class="amount">{{ $accountPayable->currency->symbol ?? '$' }} {{ number_format($accountPayable->getPaidAmount(), 2, ',', '.') }}</div>
             </div>
             <div class="summary-card card-pending">
                 <h4>Pendiente</h4>
-                <div class="amount">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->getPendingAmount(), 2, ',', '.') }}</div>
+                <div class="amount">{{ $accountPayable->currency->symbol ?? '$' }} {{ number_format($accountPayable->getPendingAmount(), 2, ',', '.') }}</div>
             </div>
             <div class="summary-card card-percentage">
                 <h4>% Pagado</h4>
-                <div class="amount">{{ $accountReceivable->getPaymentPercentage() }}%</div>
+                <div class="amount">{{ $accountPayable->getPaymentPercentage() }}%</div>
             </div>
         </div>
 
-        <!-- Detalle de Jugadores y Costos -->
-        <h2 class="section-title">Detalle de Jugadores y Costos</h2>
-        <table class="costs-table">
-            <thead>
-                <tr>
-                    <th>Concepto</th>
-                    <th>Cantidad</th>
-                    <th>Precio Unitario</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Jugadores</td>
-                    <td>{{ number_format($accountReceivable->players_quantity, 0, ',', '.') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->player_price, 2, ',', '.') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->total_players, 2, ',', '.') }}</td>
-                </tr>
-                <tr>
-                    <td>Profesores</td>
-                    <td>{{ number_format($accountReceivable->teachers_quantity, 0, ',', '.') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->teacher_price, 2, ',', '.') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->total_teachers, 2, ',', '.') }}</td>
-                </tr>
-                <tr>
-                    <td>Acompañantes</td>
-                    <td>{{ number_format($accountReceivable->companions_quantity, 0, ',', '.') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->companion_price, 2, ',', '.') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->total_companions, 2, ',', '.') }}</td>
-                </tr>
-                <tr>
-                    <td>Choferes</td>
-                    <td>{{ number_format($accountReceivable->drivers_quantity, 0, ',', '.') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->driver_price, 2, ',', '.') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->total_drivers, 2, ',', '.') }}</td>
-                </tr>
-                <tr>
-                    <td>Liberados</td>
-                    <td>{{ number_format($accountReceivable->liberated_quantity, 0, ',', '.') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->liberated_price ?? 0, 2, ',', '.') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->total_liberated ?? 0, 2, ',', '.') }}</td>
-                </tr>
-                <tr class="total-row">
-                    <td colspan="2"><strong>Total de Personas</strong></td>
-                    <td class="text-end"><strong>{{ number_format($accountReceivable->total_people, 0, ',', '.') }}</strong></td>
-                    <td class="text-end"><strong>{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($accountReceivable->total_amount, 2, ',', '.') }}</strong></td>
-                </tr>
-            </tbody>
-        </table>
-
-        <!-- Información de Hospedaje (si aplica) -->
-        @if($accountReceivable->has_accommodation && $accountReceivable->supplier)
-        <h2 class="section-title">Información de Hospedaje</h2>
-        <table class="info-table">
-            <tr>
-                <th>Hotel:</th>
-                <td>{{ $accountReceivable->supplier->name ?? 'Hotel no especificado' }}</td>
-            </tr>
-        </table>
-        @endif
-
-        <!-- Observaciones -->
-        @if($accountReceivable->description)
-        <h2 class="section-title">Observaciones</h2>
+        <!-- Descripción -->
+        @if($accountPayable->description)
+        <h2 class="section-title">Descripción</h2>
         <table class="info-table">
             <tr>
                 <th>Descripción:</th>
-                <td>{{ $accountReceivable->description }}</td>
+                <td colspan="3">{{ $accountPayable->description }}</td>
             </tr>
         </table>
         @endif
 
         <!-- Historial de Abonos -->
-        @if($accountReceivable->payments->count() > 0)
+        @if($accountPayable->payments->count() > 0)
         <h2 class="section-title">Historial de Abonos</h2>
-        <table class="costs-table">
+        <table class="payments-table">
             <thead>
                 <tr>
                     <th>Fecha</th>
                     <th>Monto</th>
+                    <th>Descripción</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($accountReceivable->payments as $payment)
+                @foreach($accountPayable->payments as $payment)
                 <tr>
                     <td>{{ $payment->date->format('d/m/Y') }}</td>
-                    <td class="text-end">{{ $accountReceivable->currency->symbol ?? '$' }} {{ number_format($payment->amount, 2, ',', '.') }}</td>
+                    <td class="text-end">{{ $accountPayable->currency->symbol ?? '$' }} {{ number_format($payment->amount, 2, ',', '.') }}</td>
+                    <td class="text-left">{{ $payment->description ?? 'Sin descripción' }}</td>
                 </tr>
                 @endforeach
+            </tbody>
+        </table>
+        @else
+        <h2 class="section-title">Historial de Abonos</h2>
+        <table class="payments-table">
+            <tbody>
+                <tr>
+                    <td colspan="3" style="text-align: center;">No hay abonos registrados</td>
+                </tr>
             </tbody>
         </table>
         @endif
