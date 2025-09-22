@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use App\Models\EventMovement;
 use App\Models\BussinesMovement;
 use App\Models\MethodPayment;
+use App\Models\HistoryChangeCurrency;
 use App\Models\CategoryEgress;
 use App\Models\CategoryIncome;
 use Illuminate\Support\Facades\DB;
@@ -257,39 +258,15 @@ class BussinesController extends Controller
             // Limpiar comas del monto antes de actualizar
             $data['amount'] = str_replace(',', '', $data['amount']);
 
-            // 1. Revertir el saldo anterior si tenía método de pago
-            if ($oldMethodPaymentId) {
-                $methodPayment = MethodPayment::find($oldMethodPaymentId);
-                if ($methodPayment) {
-                    if ($oldType === 'Ingreso') {
-                        $methodPayment->current_balance -= $oldAmount;
-                    } elseif ($oldType === 'Egreso') {
-                        $methodPayment->current_balance += $oldAmount;
-                    }
-                    $methodPayment->save();
-                }
-            }
-
-            // 2. Actualizar el movimiento con los nuevos datos
-            $movement->update($data);
-
-            // 3. Aplicar el nuevo saldo si tiene método de pago
-            if (!empty($data['method_payment_id'])) {
-                $newMethodPayment = MethodPayment::find($data['method_payment_id']);
-                $newAmount = floatval($data['amount']);
-                $newType = $data['type'];
-
-                if ($newMethodPayment) {
-                    if ($newType === 'Ingreso') {
-                        $newMethodPayment->current_balance += $newAmount;
-                    } elseif ($newType === 'Egreso') {
-                        if ($newMethodPayment->current_balance < $newAmount) {
-                            throw new \Exception('Saldo insuficiente en el método de pago');
-                        }
-                        $newMethodPayment->current_balance -= $newAmount;
-                    }
-                    $newMethodPayment->save();
-                }
+            // Verificar si es un movimiento de cambio de moneda
+            $isCurrencyChange = $this->isCurrencyChangeMovement($movement);
+            
+            if ($isCurrencyChange) {
+                // Manejar actualización de cambio de moneda
+                $this->updateCurrencyChangeFromBussinesMovement($movement, $data, $oldAmount, $oldType, $oldMethodPaymentId);
+            } else {
+                // Manejar actualización normal de movimiento
+                $this->updateNormalMovement($movement, $data, $oldAmount, $oldType, $oldMethodPaymentId);
             }
 
             DB::commit();
@@ -368,6 +345,174 @@ class BussinesController extends Controller
             'method_payment_id' => $data['method_payment_id'] ?? null,
             'date' => $data['date'],
             'amount' => $data['amount'],
+        ]);
+    }
+
+    /**
+     * Verificar si un movimiento es parte de un cambio de moneda
+     */
+    private function isCurrencyChangeMovement($movement)
+    {
+        return strpos($movement->description, 'Cambio de moneda') !== false;
+    }
+
+    /**
+     * Actualizar movimiento normal (no cambio de moneda)
+     */
+    private function updateNormalMovement($movement, $data, $oldAmount, $oldType, $oldMethodPaymentId)
+    {
+        // 1. Revertir el saldo anterior si tenía método de pago
+        if ($oldMethodPaymentId) {
+            $methodPayment = MethodPayment::find($oldMethodPaymentId);
+            if ($methodPayment) {
+                if ($oldType === 'Ingreso') {
+                    $methodPayment->current_balance -= $oldAmount;
+                } elseif ($oldType === 'Egreso') {
+                    $methodPayment->current_balance += $oldAmount;
+                }
+                $methodPayment->save();
+            }
+        }
+
+        // 2. Actualizar el movimiento con los nuevos datos
+        $movement->update($data);
+
+        // 3. Aplicar el nuevo saldo si tiene método de pago
+        if (!empty($data['method_payment_id'])) {
+            $newMethodPayment = MethodPayment::find($data['method_payment_id']);
+            $newAmount = floatval($data['amount']);
+            $newType = $data['type'];
+
+            if ($newMethodPayment) {
+                if ($newType === 'Ingreso') {
+                    $newMethodPayment->current_balance += $newAmount;
+                } elseif ($newType === 'Egreso') {
+                    if ($newMethodPayment->current_balance < $newAmount) {
+                        throw new \Exception('Saldo insuficiente en el método de pago');
+                    }
+                    $newMethodPayment->current_balance -= $newAmount;
+                }
+                $newMethodPayment->save();
+            }
+        }
+    }
+
+    /**
+     * Actualizar cambio de moneda desde BussinesMovement
+     */
+    private function updateCurrencyChangeFromBussinesMovement($movement, $data, $oldAmount, $oldType, $oldMethodPaymentId)
+    {
+        // Buscar el registro de cambio de moneda relacionado
+        $currencyChange = $this->findRelatedCurrencyChange($movement);
+        
+        if (!$currencyChange) {
+            // Si no se encuentra el cambio de moneda, tratar como movimiento normal
+            $this->updateNormalMovement($movement, $data, $oldAmount, $oldType, $oldMethodPaymentId);
+            return;
+        }
+
+        // Determinar si es el movimiento de salida o entrada
+        $isOriginMovement = $oldType === 'Egreso';
+        
+        if ($isOriginMovement) {
+            // Es el movimiento de salida (origen)
+            $this->updateOriginMovementInCurrencyChange($currencyChange, $movement, $data, $oldAmount, $oldMethodPaymentId);
+        } else {
+            // Es el movimiento de entrada (destino)
+            $this->updateDestinationMovementInCurrencyChange($currencyChange, $movement, $data, $oldAmount, $oldMethodPaymentId);
+        }
+    }
+
+    /**
+     * Buscar el cambio de moneda relacionado con el movimiento
+     */
+    private function findRelatedCurrencyChange($movement)
+    {
+        // Buscar por fecha y método de pago
+        return HistoryChangeCurrency::where('date', $movement->date)
+            ->where(function($query) use ($movement) {
+                $query->where('method_payment_id', $movement->method_payment_id)
+                      ->orWhere('method_payment_receptor_id', $movement->method_payment_id);
+            })
+            ->first();
+    }
+
+    /**
+     * Actualizar movimiento de origen en cambio de moneda
+     */
+    private function updateOriginMovementInCurrencyChange($currencyChange, $movement, $data, $oldAmount, $oldMethodPaymentId)
+    {
+        $newAmount = floatval($data['amount']);
+        $newMethodPaymentId = $data['method_payment_id'];
+        
+        // Revertir saldo del método de pago anterior
+        if ($oldMethodPaymentId) {
+            $oldMethod = MethodPayment::find($oldMethodPaymentId);
+            if ($oldMethod) {
+                $oldMethod->current_balance += $oldAmount;
+                $oldMethod->save();
+            }
+        }
+
+        // Aplicar nuevo saldo
+        if ($newMethodPaymentId) {
+            $newMethod = MethodPayment::find($newMethodPaymentId);
+            if ($newMethod) {
+                if ($newMethod->current_balance < $newAmount) {
+                    throw new \Exception('Saldo insuficiente en el método de pago');
+                }
+                $newMethod->current_balance -= $newAmount;
+                $newMethod->save();
+            }
+        }
+
+        // Actualizar el movimiento
+        $movement->update($data);
+
+        // Actualizar el registro de cambio de moneda
+        $currencyChange->update([
+            'method_payment_id' => $newMethodPaymentId,
+            'currency_id' => $data['currency_id'],
+            'amount' => $newAmount,
+            'date' => $data['date'],
+        ]);
+    }
+
+    /**
+     * Actualizar movimiento de destino en cambio de moneda
+     */
+    private function updateDestinationMovementInCurrencyChange($currencyChange, $movement, $data, $oldAmount, $oldMethodPaymentId)
+    {
+        $newAmount = floatval($data['amount']);
+        $newMethodPaymentId = $data['method_payment_id'];
+        
+        // Revertir saldo del método de pago anterior
+        if ($oldMethodPaymentId) {
+            $oldMethod = MethodPayment::find($oldMethodPaymentId);
+            if ($oldMethod) {
+                $oldMethod->current_balance -= $oldAmount;
+                $oldMethod->save();
+            }
+        }
+
+        // Aplicar nuevo saldo
+        if ($newMethodPaymentId) {
+            $newMethod = MethodPayment::find($newMethodPaymentId);
+            if ($newMethod) {
+                $newMethod->current_balance += $newAmount;
+                $newMethod->save();
+            }
+        }
+
+        // Actualizar el movimiento
+        $movement->update($data);
+
+        // Actualizar el registro de cambio de moneda
+        $currencyChange->update([
+            'method_payment_receptor_id' => $newMethodPaymentId,
+            'currency_receptor_id' => $data['currency_id'],
+            'amount_converted' => $newAmount,
+            'date' => $data['date'],
         ]);
     }
 }

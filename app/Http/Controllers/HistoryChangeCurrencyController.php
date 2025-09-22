@@ -234,6 +234,9 @@ class HistoryChangeCurrencyController extends Controller
                     'current_balance' => $oldDestinationMethod->current_balance - $historyChangeCurrency->amount_converted
                 ]);
             }
+
+            // Buscar y actualizar movimientos existentes en BussinesMovement
+            $this->updateExistingBussinesMovements($historyChangeCurrency, $request, $amount, $amountConverted, $originMethod, $destinationMethod);
             
             // Verificar saldo suficiente en el método de pago origen
             if ($originMethod->current_balance < (float) $amount) {
@@ -261,34 +264,6 @@ class HistoryChangeCurrencyController extends Controller
 
             $destinationMethod->update([
                 'current_balance' => $destinationMethod->current_balance + $amountConverted
-            ]);
-
-            // Registrar nuevos movimientos en BussinesMovement
-            BussinesMovement::create([
-                'bussines_id' => 1, // ID del negocio
-                'method_payment_id' => $originMethod->id,
-                'currency_id' => $request->currency_id,
-                'user_id' => auth()->id(), // Usuario que realiza la operación
-                'amount' => (float) $amount,
-                'date' => $request->date,
-                'description' => 'Cambio de moneda actualizado - Salida: ' . ($request->description ?: 'Sin descripción') . 
-                                ' | Moneda origen: ' . $originMethod->currency->name . 
-                                ' | Método: ' . $originMethod->account_holder,
-                'type' => 'Egreso',
-            ]);
-
-            BussinesMovement::create([
-                'bussines_id' => 1, // ID del negocio
-                'method_payment_id' => $destinationMethod->id,
-                'currency_id' => $request->currency_receptor_id,
-                'user_id' => auth()->id(), // Usuario que realiza la operación
-                'amount' => $amountConverted,
-                'date' => $request->date,
-                'description' => 'Cambio de moneda actualizado - Entrada: ' . ($request->description ?: 'Sin descripción') . 
-                                ' | Moneda destino: ' . $destinationMethod->currency->name . 
-                                ' | Método: ' . $destinationMethod->account_holder . 
-                                ' | Tasa: ' . number_format($exchangeRate, 2),
-                'type' => 'Ingreso',
             ]);
 
             DB::commit();
@@ -386,5 +361,85 @@ class HistoryChangeCurrencyController extends Controller
     {
         $methodPayments = MethodPayment::with('entity')->where('currency_id', $currencyId)->get();
         return response()->json($methodPayments);
+    }
+
+    /**
+     * Actualizar movimientos existentes en BussinesMovement
+     */
+    private function updateExistingBussinesMovements($historyChangeCurrency, $request, $amount, $amountConverted, $originMethod, $destinationMethod)
+    {
+        // Buscar movimientos existentes relacionados con este cambio de moneda específico
+        // Usamos una búsqueda más específica basada en la descripción y los métodos de pago originales
+        $originMovement = BussinesMovement::where('bussines_id', 1)
+            ->where('type', 'Egreso')
+            ->where('method_payment_id', $historyChangeCurrency->method_payment_id)
+            ->where('currency_id', $historyChangeCurrency->currency_id)
+            ->where('description', 'like', '%Cambio de moneda%')
+            ->where('date', $historyChangeCurrency->date)
+            ->first();
+
+        $destinationMovement = BussinesMovement::where('bussines_id', 1)
+            ->where('type', 'Ingreso')
+            ->where('method_payment_id', $historyChangeCurrency->method_payment_receptor_id)
+            ->where('currency_id', $historyChangeCurrency->currency_receptor_id)
+            ->where('description', 'like', '%Cambio de moneda%')
+            ->where('date', $historyChangeCurrency->date)
+            ->first();
+
+        // Actualizar movimiento de salida (origen)
+        if ($originMovement) {
+            $originMovement->update([
+                'method_payment_id' => $originMethod->id,
+                'currency_id' => $request->currency_id,
+                'amount' => (float) $amount,
+                'date' => $request->date,
+                'description' => 'Cambio de moneda actualizado - Salida: ' . ($request->description ?: 'Sin descripción') . 
+                                ' | Moneda origen: ' . $originMethod->currency->name . 
+                                ' | Método: ' . $originMethod->account_holder,
+            ]);
+        } else {
+            // Crear nuevo movimiento si no existe
+            BussinesMovement::create([
+                'bussines_id' => 1,
+                'method_payment_id' => $originMethod->id,
+                'currency_id' => $request->currency_id,
+                'user_id' => auth()->id(),
+                'amount' => (float) $amount,
+                'date' => $request->date,
+                'description' => 'Cambio de moneda actualizado - Salida: ' . ($request->description ?: 'Sin descripción') . 
+                                ' | Moneda origen: ' . $originMethod->currency->name . 
+                                ' | Método: ' . $originMethod->account_holder,
+                'type' => 'Egreso',
+            ]);
+        }
+
+        // Actualizar movimiento de entrada (destino)
+        if ($destinationMovement) {
+            $destinationMovement->update([
+                'method_payment_id' => $destinationMethod->id,
+                'currency_id' => $request->currency_receptor_id,
+                'amount' => $amountConverted,
+                'date' => $request->date,
+                'description' => 'Cambio de moneda actualizado - Entrada: ' . ($request->description ?: 'Sin descripción') . 
+                                ' | Moneda destino: ' . $destinationMethod->currency->name . 
+                                ' | Método: ' . $destinationMethod->account_holder . 
+                                ' | Tasa: ' . number_format($request->exchange_rate, 2),
+            ]);
+        } else {
+            // Crear nuevo movimiento si no existe
+            BussinesMovement::create([
+                'bussines_id' => 1,
+                'method_payment_id' => $destinationMethod->id,
+                'currency_id' => $request->currency_receptor_id,
+                'user_id' => auth()->id(),
+                'amount' => $amountConverted,
+                'date' => $request->date,
+                'description' => 'Cambio de moneda actualizado - Entrada: ' . ($request->description ?: 'Sin descripción') . 
+                                ' | Moneda destino: ' . $destinationMethod->currency->name . 
+                                ' | Método: ' . $destinationMethod->account_holder . 
+                                ' | Tasa: ' . number_format($request->exchange_rate, 2),
+                'type' => 'Ingreso',
+            ]);
+        }
     }
 }
