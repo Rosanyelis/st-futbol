@@ -133,10 +133,10 @@ class HistoryManager {
             {data: 'description'},
             {data: 'amount'},
             {data: 'amount'},
-            {data: 'currency.name'},
-            {data: 'club.name'},
-            {data: 'supplier.name'},
-            {data: 'methodPayment.account_holder'},
+            {data: 'currency_name'},
+            {data: 'club_name'},
+            {data: 'supplier_name'},
+            {data: 'method_payment_account_holder'},
             {data: 'actions', orderable: false, searchable: false},
         ];
     }
@@ -172,22 +172,22 @@ class HistoryManager {
             {
                 targets: 4,
                 render: (data, type, full) => 
-                    `<span class='text-nowrap'>${full.currency?.name} ${full.currency?.symbol}</span>`
+                    `<span class='text-nowrap'>${full.currency_name} ${full.currency_symbol}</span>`
             },
             {
                 targets: 5,
                 render: (data, type, full) => 
-                    this.renderOptionalField(full.club?.name)
+                    this.renderOptionalField(full.club_name)
             },
             {
                 targets: 6,
                 render: (data, type, full) => 
-                    this.renderOptionalField(full.supplier?.name)
+                    this.renderOptionalField(full.supplier_name)
             },
             {
                 targets: 7,
                 render: (data, type, full) => 
-                    this.renderMethodPaymentWithTooltip(full.method_payment)
+                    this.renderMethodPaymentWithTooltip(full)
             },
             {
                 targets: 8,
@@ -241,12 +241,12 @@ class HistoryManager {
     }
 
     // Renderizado de método de pago con tooltip para nombre completo
-    renderMethodPaymentWithTooltip(method) {
-        if (!method?.account_holder) {
+    renderMethodPaymentWithTooltip(full) {
+        if (!full?.method_payment_account_holder) {
             return `<span class='text-nowrap'> - </span>`;
         }
         
-        const fullText = `${method.account_holder} - ${method.entity?.name} - ${method.type_account}`;
+        const fullText = `${full.method_payment_account_holder} - ${full.entity_name} - ${full.method_payment_type_account}`;
         const maxLength = 50;
         
         if (fullText.length <= maxLength) {

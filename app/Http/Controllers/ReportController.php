@@ -29,8 +29,7 @@ class ReportController extends Controller
                         'methodPayment', 'methodPayment.entity',
                          'methodPayment.categoryMethodPayment', 'club',
                          'accountReceivable')
-                            ->where('type', 'Ingreso')
-                            ->orderBy('date', 'desc');
+                            ->where('type', 'Ingreso');
 
             return DataTables::of($data)
                 ->filter(function ($query) use ($request) {
@@ -97,8 +96,7 @@ class ReportController extends Controller
                         'methodPayment', 'methodPayment.entity',
                          'methodPayment.categoryMethodPayment', 'supplier', 'expense',
                          'expense.categoryExpense')
-                            ->where('type', 'Egreso')
-                            ->orderBy('date', 'desc');
+                            ->where('type', 'Egreso');
 
             return DataTables::of($data)
                 ->filter(function ($query) use ($request) {
@@ -187,8 +185,7 @@ class ReportController extends Controller
             ]);
             
             $data = AccountReceivable::with(['club', 'event', 'currency', 'payments'])
-                ->select('account_receivables.*')
-                ->orderBy('date', 'desc');
+                ->select('account_receivables.*');
                 
             return DataTables::of($data)
                 ->filter(function ($query) use ($request) {
@@ -299,7 +296,6 @@ class ReportController extends Controller
             ->groupBy('categoria', 'c.name')
             ->orderBy('categoria')
             ->orderBy('c.name')
-            ->orderBy('em.date', 'desc')
             ->get();
 
         // Totales de egresos - Consulta corregida
@@ -326,7 +322,6 @@ class ReportController extends Controller
             ->groupBy('categoria', 'c.name')
             ->orderBy('categoria')
             ->orderBy('c.name')
-            ->orderBy('em.date', 'desc')
             ->get();
 
         return view('reports.event-currency-statement', compact(
@@ -367,7 +362,6 @@ class ReportController extends Controller
             ->groupBy('categoria', 'c.name')
             ->orderBy('categoria')
             ->orderBy('c.name')
-            ->orderBy('em.date', 'desc')
             ->get();
 
         // Totales de egresos - Consulta corregida
@@ -394,7 +388,6 @@ class ReportController extends Controller
             ->groupBy('categoria', 'c.name')
             ->orderBy('categoria')
             ->orderBy('c.name')
-            ->orderBy('em.date', 'desc')
             ->get();
 
         $pdf = \PDF::loadView('reports.event-currency-statement-pdf', compact(
@@ -436,8 +429,7 @@ class ReportController extends Controller
                 'accountReceivablePayment',
                 'accountPayablePayment'
             ])
-            ->where('status', '!=', 'Cancelado') // Excluir movimientos cancelados
-            ->orderBy('date', 'desc'); // Ordenar por fecha descendente (más reciente primero)
+            ->where('status', '!=', 'Cancelado'); // Excluir movimientos cancelados
 
             // Log para depuración (comentado para producción)
             // $sampleRecord = $data->first();
@@ -566,7 +558,6 @@ class ReportController extends Controller
                 'methodPayment.entity'
             ])
             ->where('status', '!=', 'Cancelado') // Excluir movimientos cancelados
-            ->orderBy('date', 'desc') // Ordenar por fecha descendente (más reciente primero)
             ->whereNotNull('method_payment_id') // Solo movimientos con método de pago
             ->when($request->filled('event_id'), function ($query) use ($request) {
                 $query->where('event_id', $request->get('event_id'));
@@ -664,7 +655,6 @@ class ReportController extends Controller
                 'methodPayment.entity'
             ])
             ->where('status', '!=', 'Cancelado')
-            ->orderBy('date', 'desc')
             ->whereNotNull('method_payment_id')
             ->when($request->filled('event_id'), function ($query) use ($request) {
                 $query->where('event_id', $request->get('event_id'));
@@ -709,7 +699,6 @@ class ReportController extends Controller
                              });
                 });
             })
-            ->orderBy('date', 'desc')
             ->get()
             ->map(function ($movement) {
                 return [
@@ -737,7 +726,6 @@ class ReportController extends Controller
                 'categoryEgress',
                 'methodPayment.entity'
             ])
-            ->orderBy('date', 'desc')
             ->whereNotNull('method_payment_id')
             ->when($request->filled('currency_id'), function ($query) use ($request) {
                 $query->where('currency_id', $request->get('currency_id'));
@@ -776,7 +764,6 @@ class ReportController extends Controller
                              });
                 });
             })
-            ->orderBy('date', 'desc')
             ->get()
             ->map(function ($movement) {
                 return [

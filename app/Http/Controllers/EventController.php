@@ -10,6 +10,7 @@ use App\Models\Supplier;
 
 use Illuminate\Http\Request;
 use App\Models\EventMovement;
+use App\Models\EventMovementView;
 use App\Models\MethodPayment;
 use App\Models\CategoryEgress;
 use App\Models\CategoryIncome;
@@ -77,18 +78,7 @@ class EventController extends Controller
     public function historyJson(Request $request, $event)
     {
         if ($request->ajax()) {
-            $data = EventMovement::with([
-                'club', 
-                'currency', 
-                'methodPayment', 
-                'methodPayment.entity', 
-                'supplier',
-                'accountReceivablePayment',
-                'accountPayablePayment'
-            ])
-                ->where('event_id', $event)
-                ->where('status', '!=', 'Cancelado') // Excluir movimientos cancelados
-                ->orderBy('date', 'desc'); // Ordenar por fecha descendente (más reciente primero)
+            $data = EventMovementView::where('event_id', $event);
 
             return DataTables::of($data)
                 ->filter(function ($query) use ($request) {
@@ -115,29 +105,19 @@ class EventController extends Controller
                                      ->orWhere('amount', 'like', "%{$searchValue}%")
                                      ->orWhere('description', 'like', "%{$searchValue}%");
 
-                            // Búsqueda en la relación 'currency'
-                            $subQuery->orWhereHas('currency', function ($q) use ($searchValue) {
-                                $q->where('name', 'like', "%{$searchValue}%");
-                            });
+                            // Búsqueda en currency (ahora columnas directas de la vista)
+                            $subQuery->orWhere('currency_name', 'like', "%{$searchValue}%");
 
-                            // Búsqueda en la relación 'club'
-                            $subQuery->orWhereHas('club', function ($q) use ($searchValue) {
-                                $q->where('name', 'like', "%{$searchValue}%");
-                            });
+                            // Búsqueda en club (ahora columnas directas de la vista)
+                            $subQuery->orWhere('club_name', 'like', "%{$searchValue}%");
 
-                            // Búsqueda en la relación 'supplier'
-                            $subQuery->orWhereHas('supplier', function ($q) use ($searchValue) {
-                                $q->where('name', 'like', "%{$searchValue}%");
-                            });
+                            // Búsqueda en supplier (ahora columnas directas de la vista)
+                            $subQuery->orWhere('supplier_name', 'like', "%{$searchValue}%");
 
-                            // Búsqueda en la relación 'methodPayment' y su anidada 'entity'
-                            $subQuery->orWhereHas('methodPayment', function ($q) use ($searchValue) {
-                                $q->where('account_holder', 'like', "%{$searchValue}%")
-                                  ->orWhere('type_account', 'like', "%{$searchValue}%")
-                                  ->orWhereHas('entity', function ($nested_q) use ($searchValue) {
-                                      $nested_q->where('name', 'like', "%{$searchValue}%");
-                                  });
-                            });
+                            // Búsqueda en methodPayment y entity (ahora columnas directas de la vista)
+                            $subQuery->orWhere('method_payment_account_holder', 'like', "%{$searchValue}%")
+                                     ->orWhere('method_payment_type_account', 'like', "%{$searchValue}%")
+                                     ->orWhere('entity_name', 'like', "%{$searchValue}%");
                         });
                     }
                 })
