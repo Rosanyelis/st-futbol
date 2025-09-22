@@ -127,7 +127,7 @@ class HistoryManager {
     // Definición de columnas
     getDatatableColumns() {
         return [
-            {data: 'date'},
+            {data: 'date', type: 'date'},
             {data: 'description'},
             {data: 'amount'},
             {data: 'amount'},
@@ -144,8 +144,13 @@ class HistoryManager {
         return [
             {
                 targets: 0,
-                render: (data, type, full) => 
-                    `<span class='text-nowrap'>${moment(full.date).format("DD/MM/YYYY")}</span>`
+                type: 'date',
+                render: (data, type, full) => {
+                    if (type === 'sort' || type === 'type') {
+                        return moment(full.date).format('YYYY-MM-DD');
+                    }
+                    return `<span class='text-nowrap'>${moment(full.date).format("DD/MM/YYYY")}</span>`;
+                }
             },
             {
                 targets: 1,

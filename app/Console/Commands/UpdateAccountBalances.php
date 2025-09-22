@@ -77,15 +77,13 @@ class UpdateAccountBalances extends Command
      */
     private function updateMethodPaymentBalance(MethodPayment $methodPayment)
     {
-        // Calcular ingresos y egresos de BussinesMovement
+        // Calcular ingresos y egresos de BussinesMovement (sin filtro de status)
         $businessIngresos = BussinesMovement::where('method_payment_id', $methodPayment->id)
             ->where('type', 'Ingreso')
-            ->where('status', 'Activo')
             ->sum('amount');
 
         $businessEgresos = BussinesMovement::where('method_payment_id', $methodPayment->id)
             ->where('type', 'Egreso')
-            ->where('status', 'Activo')
             ->sum('amount');
 
         // Calcular ingresos y egresos de EventMovement

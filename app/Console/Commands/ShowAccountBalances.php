@@ -102,7 +102,6 @@ class ShowAccountBalances extends Command
 
         // Obtener movimientos recientes de ambos tipos
         $businessMovements = BussinesMovement::with(['methodPayment', 'currency'])
-            ->where('status', 'Activo')
             ->orderBy('date', 'desc')
             ->limit(5)
             ->get();
