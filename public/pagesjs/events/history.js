@@ -79,6 +79,8 @@ class HistoryManager {
             buttons: this.getDatatableButtons(),
             lengthMenu: [50, 100, 200, 500],
             order: [[0, 'desc']],
+            stateSave: false, // No guardar estado para mantener ordenamiento consistente
+            ordering: true, // Habilitar ordenamiento
             drawCallback: () => {
                 this.updateTotals();
                 this.initializeTooltips();

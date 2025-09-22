@@ -77,17 +77,18 @@ class EventController extends Controller
     public function historyJson(Request $request, $event)
     {
         if ($request->ajax()) {
-                    $data = EventMovement::with([
-            'club', 
-            'currency', 
-            'methodPayment', 
-            'methodPayment.entity', 
-            'supplier',
-            'accountReceivablePayment',
-            'accountPayablePayment'
-        ])
-            ->where('event_id', $event)
-            ->where('status', '!=', 'Cancelado'); // Excluir movimientos cancelados
+            $data = EventMovement::with([
+                'club', 
+                'currency', 
+                'methodPayment', 
+                'methodPayment.entity', 
+                'supplier',
+                'accountReceivablePayment',
+                'accountPayablePayment'
+            ])
+                ->where('event_id', $event)
+                ->where('status', '!=', 'Cancelado') // Excluir movimientos cancelados
+                ->orderBy('date', 'desc'); // Ordenar por fecha descendente (más reciente primero)
 
             return DataTables::of($data)
                 ->filter(function ($query) use ($request) {
