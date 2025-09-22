@@ -124,7 +124,7 @@ class AccountPayableController extends Controller
     {
         $suppliers = Supplier::whereHas('events', function($query) use ($eventId) {
             $query->where('events.id', $eventId);
-        })->get(['id', 'name']);
+        })->orderBy('name', 'asc')->get(['id', 'name']);
 
         return response()->json($suppliers);
     }
